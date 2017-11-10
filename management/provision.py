@@ -5,10 +5,11 @@ from geopy.geocoders import Nominatim
 from geopy.geocoders import Bing
 from geopy.geocoders import GoogleV3
 
-import os
-parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.sys.path.insert(0,parentdir) 
-import tbapi
+
+# pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+# sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+import thingsboard_api_tools as tbapi
+
 
 from provision_config import motherShipUrl, username, password, google_geocoder_api_key, bing_geocoder_api_key, dashboard_template_name, sensor_type
 
@@ -29,7 +30,7 @@ cust_lon = None     # Will be populated by geocoder if empty
 
 
 def main():
-    tbapi.setMotherShipUrl(motherShipUrl)
+    tbapi.set_mothership_url(motherShipUrl)
     token = tbapi.get_token(username, password)
 
     # Get a definition of our template dashboard
@@ -39,9 +40,26 @@ def main():
     # Lookup missing fields, such as zip, lat, and lon
     update_customer_data()
 
+    if cust_lat is None or cust_lon is None:
+        print("Must have valid lat/lon in order to add device!")
+        exit(1)
+
     # Create new customer and device records on the server
     customer = tbapi.add_customer(token, cust_name, cust_address, cust_address2, cust_city, cust_state, cust_zip, cust_country, cust_email, cust_phone)
-    device = tbapi.add_device(token, cust_name, sensor_type, cust_lat, cust_lon)
+
+
+    server_attributes = {
+        "latitude": cust_lat,
+        "longitude": cust_lon
+    }
+
+    shared_attributes = {
+        "LED": "Unknown",
+        "nonce": 0
+    }
+    device = tbapi.add_device(token, make_device_name(cust_name), sensor_type, shared_attributes, server_attributes)
+
+
 
     # Upate the dash def. to point at the device we just created (modifies dash_def)
     update_dash_def(dash_def, cust_name, tbapi.get_id(device))
@@ -49,9 +67,6 @@ def main():
     # Create a new dash with our definition, and assign it to the new customer    
     dash = tbapi.create_dashboard_for_customer(token, cust_name, dash_def)
     tbapi.assign_dash_to_user(token, tbapi.get_id(dash), tbapi.get_id(customer))
-
-
-
     
 
     # input("Press Enter to continue...")
@@ -86,8 +101,13 @@ def main():
 def update_dash_def(dash_def, customer_name, device_id):
     aliases = dash_def["configuration"]["entityAliases"].keys()
     for a in aliases:
-        dash_def["configuration"]["entityAliases"][a]["alias"] = tbapi.get_device_name(customer_name)
+        dash_def["configuration"]["entityAliases"][a]["alias"] = make_device_name(customer_name)
         dash_def["configuration"]["entityAliases"][a]["filter"]["singleEntity"]["id"] = device_id
+
+
+
+def make_device_name(customer_name):
+    return customer_name + ' Device'
 
 
 
