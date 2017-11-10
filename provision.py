@@ -3,9 +3,9 @@ import tbapi
 import geopy        # pip install geopy
 
 # Import some geocoders
+from geopy.geocoders import Nominatim
 from geopy.geocoders import Bing
 from geopy.geocoders import GoogleV3
-from geopy.geocoders import Nominatim
 
 from provision_config import motherShipUrl, username, password, google_geocoder_api_key, bing_geocoder_api_key, dashboard_template_name, sensor_type
 
