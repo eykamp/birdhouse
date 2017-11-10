@@ -6,7 +6,7 @@ import web   # sudo pip3 install git+https://github.com/webpy/webpy#egg=web.py
 # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 import thingsboard_api_tools as tbapi
 
-from server_config import motherShipUrl, username, password, data_encoding
+from redlight_greenlight_config import motherShipUrl, username, password, data_encoding
 
 
 tbapi.set_mothership_url(motherShipUrl)
