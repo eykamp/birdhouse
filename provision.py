@@ -14,7 +14,7 @@ from provision_config import motherShipUrl, username, password, google_geocoder_
 cust_name = "Hank Williams 3"
 cust_address = "4000 SE 39th"
 cust_address2 = None
-cust_city = "Portand"
+cust_city = "Portland"
 cust_state = "OR"
 cust_zip = None     # Will be populated by geocoder if empty
 cust_country = "USA"
