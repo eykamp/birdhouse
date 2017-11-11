@@ -65,7 +65,7 @@ def main():
     update_dash_def(dash_def, cust_name, tbapi.get_id(device))
 
     # Create a new dash with our definition, and assign it to the new customer    
-    dash = tbapi.create_dashboard_for_customer(token, cust_name, dash_def)
+    dash = tbapi.create_dashboard_for_customer(token, customer_name + ' Dash', dash_def)
     tbapi.assign_dash_to_user(token, tbapi.get_id(dash), tbapi.get_id(customer))
     
 
