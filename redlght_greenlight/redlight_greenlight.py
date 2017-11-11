@@ -4,12 +4,12 @@ import web   # sudo pip3 install git+https://github.com/webpy/webpy#egg=web.py
 
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-import thingsboard_api_tools as tbapi
+from thingsboard_api_tools import TbApi
 
 from redlight_greenlight_config import motherShipUrl, username, password, data_encoding
 
 
-tbapi.set_mothership_url(motherShipUrl)
+tbapi = TbApi(motherShipUrl, username, password)
 
 
 urls = (
@@ -39,8 +39,7 @@ class set_led_color:
 
         outgoing_data = {"LED": color}
 
-        token = tbapi.get_token(username, password)
-        tbapi.set_shared_attributes(token, device_id, outgoing_data)
+        tbapi.set_shared_attributes(device_id, outgoing_data)
 
         return "OK"
 
