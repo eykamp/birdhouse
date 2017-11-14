@@ -8,7 +8,7 @@ from geopy.geocoders import GoogleV3
 
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-import thingsboard_api_tools as tbapi
+from thingsboard_api_tools import TbApi
 
 
 from provision_config import motherShipUrl, username, password, google_geocoder_api_key, bing_geocoder_api_key, dashboard_template_name, sensor_type
@@ -30,12 +30,11 @@ cust_lon = None     # Will be populated by geocoder if empty
 
 
 def main():
-    tbapi.set_mothership_url(motherShipUrl)
-    token = tbapi.get_token(username, password)
+    tbapi = TbApi(motherShipUrl, username, password)
 
     # Get a definition of our template dashboard
-    template_dash = tbapi.get_dashboard_by_name(token, dashboard_template_name)
-    dash_def = tbapi.get_dashboard_definition(token, tbapi.get_id(template_dash))
+    template_dash = tbapi.get_dashboard_by_name(dashboard_template_name)
+    dash_def = tbapi.get_dashboard_definition(tbapi.get_id(template_dash))
 
     # Lookup missing fields, such as zip, lat, and lon
     update_customer_data()
@@ -45,7 +44,7 @@ def main():
         exit(1)
 
     # Create new customer and device records on the server
-    customer = tbapi.add_customer(token, cust_name, cust_address, cust_address2, cust_city, cust_state, cust_zip, cust_country, cust_email, cust_phone)
+    customer = tbapi.add_customer(cust_name, cust_address, cust_address2, cust_city, cust_state, cust_zip, cust_country, cust_email, cust_phone)
 
 
     server_attributes = {
@@ -57,24 +56,22 @@ def main():
         "LED": "Unknown",
         "nonce": 0
     }
-    device = tbapi.add_device(token, make_device_name(cust_name), sensor_type, shared_attributes, server_attributes)
-
+    device = tbapi.add_device(make_device_name(cust_name), sensor_type, shared_attributes, server_attributes)
 
 
     # Upate the dash def. to point at the device we just created (modifies dash_def)
     update_dash_def(dash_def, cust_name, tbapi.get_id(device))
 
     # Create a new dash with our definition, and assign it to the new customer    
-    dash = tbapi.create_dashboard_for_customer(token, customer_name + ' Dash', dash_def)
-    tbapi.assign_dash_to_user(token, tbapi.get_id(dash), tbapi.get_id(customer))
+    dash = tbapi.create_dashboard_for_customer(cust_name + ' Dash', dash_def)
+    tbapi.assign_dash_to_user(tbapi.get_id(dash), tbapi.get_id(customer))
     
 
     # input("Press Enter to continue...")
 
-    tbapi.delete_customer_by_id(token, tbapi.get_id(customer))
-    tbapi.delete_device(token, tbapi.get_id(device))
-    tbapi.delete_dashboard(token, tbapi.get_id(dash))
-
+    tbapi.delete_customer_by_id(tbapi.get_id(customer))
+    tbapi.delete_device(tbapi.get_id(device))
+    tbapi.delete_dashboard(tbapi.get_id(dash))
 
 
 
