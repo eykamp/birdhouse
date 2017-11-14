@@ -8,12 +8,12 @@
 #include "ESP8266Ping.h"        // For ping, of course
 
 // Indulge me!
-#define S8  int8_t
 #define U8  uint8_t
+#define S8  int8_t
 #define S16 int16_t
 #define U16 uint16_t
 #define S32 int32_t 
-#define U32 uint32_t
+#define U32 uint32_t            // unsigned long
 
 #define SECONDS 1000
 
@@ -32,14 +32,17 @@ void handleNotFound();
 const int SSID_LENGTH       = 32;
 const int PASSWORD_LENGTH   = 63;
 const int DEVICE_KEY_LENGTH = 20;
+const int URL_LENGTH        = 64;
+
 
 const int LOCAL_SSID_ADDRESS     = 0;
-const int LOCAL_PASSWORD_ADDRESS = LOCAL_SSID_ADDRESS     + SSID_LENGTH     + 1;
-const int WIFI_SSID_ADDRESS      = LOCAL_PASSWORD_ADDRESS + PASSWORD_LENGTH + 1;
-const int WIFI_PASSWORD_ADDRESS  = WIFI_SSID_ADDRESS      + SSID_LENGTH     + 1;
-const int DEVICE_KEY_ADDRESS     = WIFI_PASSWORD_ADDRESS  + PASSWORD_LENGTH + 1;
+const int LOCAL_PASSWORD_ADDRESS = LOCAL_SSID_ADDRESS     + SSID_LENGTH       + 1;
+const int WIFI_SSID_ADDRESS      = LOCAL_PASSWORD_ADDRESS + PASSWORD_LENGTH   + 1;
+const int WIFI_PASSWORD_ADDRESS  = WIFI_SSID_ADDRESS      + SSID_LENGTH       + 1;
+const int DEVICE_KEY_ADDRESS     = WIFI_PASSWORD_ADDRESS  + PASSWORD_LENGTH   + 1;
+const int MOTHERSHIP_URL_ADDRESS = DEVICE_KEY_ADDRESS     + DEVICE_KEY_LENGTH + 1;
 
-const int EEPROM_SIZE = 2 * (SSID_LENGTH + 1) + 2 * (PASSWORD_LENGTH + 1) + (DEVICE_KEY_LENGTH + 1);
+const int EEPROM_SIZE = 2 * (SSID_LENGTH + 1) + 2 * (PASSWORD_LENGTH + 1) + (DEVICE_KEY_LENGTH + 1) + (URL_LENGTH + 1);
 
 
 // Our vars to hold the EEPROM values
@@ -48,11 +51,16 @@ char localPassword[PASSWORD_LENGTH + 1];
 char wifiSsid[SSID_LENGTH + 1];
 char wifiPassword[PASSWORD_LENGTH + 1];
 char deviceKey[DEVICE_KEY_LENGTH + 1];
+char mothershipUrl[URL_LENGTH + 1];
 
 /////
 
+const int PUB_SUB_CLIENT_PORT = 80;
+
 // U8 macAddress[WL_MAC_ADDR_LENGTH];
 // WiFi.softAPmacAddress(macAddress);
+
+U32 millisOveflows = 0;
 
 const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
 
@@ -91,18 +99,17 @@ void reconnect() {
   }
 }
 
-IPAddress serverIp(23, 239, 151, 127);
-
-const char *pingTargetHostName = "www.google.com";
-
-int startTime;
 
 
-const int STARTUP = 0;
-const int RUNNING = 1;
+const char *defaultPingTargetHostName = "www.google.com";
+// const int STARTUP = 0;
+// const int RUNNING = 1;
 
 
-U8 mode = STARTUP;
+
+void connectToWiFi(const char*, const char*, bool); // Forward declare
+
+// U8 mode = STARTUP;
 
 const U32 MAX_COMMAND_LENGTH = 128;
 String command;     // The command the user is composing during command mode
@@ -111,9 +118,6 @@ bool changedWifiCredentials = false;    // Track if we've changed wifi connectio
 
 void setup()
 {
-
-  startTime = millis();
-
   Serial.begin(115200);
   while(!Serial) { }    // wait for serial port to connect  ==> needed?
 
@@ -139,22 +143,21 @@ void setup()
   readStringFromEeprom(WIFI_SSID_ADDRESS,      SSID_LENGTH,       wifiSsid);
   readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  PASSWORD_LENGTH,   wifiPassword);
   readStringFromEeprom(DEVICE_KEY_ADDRESS,     DEVICE_KEY_LENGTH, deviceKey);
+  readStringFromEeprom(MOTHERSHIP_URL_ADDRESS, URL_LENGTH,        mothershipUrl);
   
-  Serial.print("localSsid: ");
-  Serial.println(localSsid);
-  Serial.print("localPassword: ");
-  Serial.println(localPassword);
-  Serial.print("wifiSsid: ");
-  Serial.println(wifiSsid);
-  Serial.print("wifiPassword: ");
-  Serial.println(wifiPassword);
-  Serial.print("deviceKey: ");
-  Serial.println(deviceKey);
-
+  Serial.print("localSsid: ");     Serial.println(localSsid);
+  Serial.print("localPassword: "); Serial.println(localPassword);
+  Serial.print("wifiSsid: ");      Serial.println(wifiSsid);
+  Serial.print("wifiPassword: ");  Serial.println(wifiPassword);
+  Serial.print("mothershipUrl: "); Serial.println(mothershipUrl);
+  Serial.print("deviceKey: ");     Serial.println(deviceKey);
 
   WiFi.mode(WIFI_AP);  
   
-  pubSubClient.setServer(serverIp, 80);
+
+
+
+  setupPubSubClient();
   pubSubClient.setCallback(callback);
 
  
@@ -165,8 +168,21 @@ void setup()
   server.begin(); 
   
   command.reserve(MAX_COMMAND_LENGTH);
-  Serial.println("Listening for boot commands...");
+
+  setupLocalAccessPoint(localSsid, localPassword);
+  connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
 }
+
+
+void setupPubSubClient() {
+  IPAddress serverIp;
+
+  if(!WiFi.hostByName(mothershipUrl, serverIp)) {
+    Serial.print("Could not get IP address for server ");   Serial.println(mothershipUrl);
+  }
+  else
+    pubSubClient.setServer(serverIp, PUB_SUB_CLIENT_PORT);
+  }
 
 
 void activateLed(String LED) {
@@ -181,51 +197,26 @@ String visitUrl = "www.yahoo.com";
 
 
 
+
+bool isConnectingToWifi = false;
+U32 connectingToWifiDotTimer;
+U32 wifiConnectStartTime;
+U32 lastMillis = 0;
+
 void loop() {
+  U32 time = millis();
 
-  if(mode == STARTUP) {
-    loop_startup();
-    return;
-  }
+  if(time < lastMillis)
+    millisOveflows++;
+  
+  lastMillis = time;
 
-  loop_running();
-
-}
-
-
-bool anyUserInput = false;
-
-
-void loop_startup() {
-
-  if(millis() - startTime > 10 * 1000 && !anyUserInput) {
-    exitConfigMode("Config timeout expired!");
-    return;
-  }
-
-  while(Serial.available()) {
-    if(!anyUserInput){
-      Serial.println("Entering config mode...");
-      anyUserInput = true;
-    }
-    char incomingByte = (char)Serial.read();
-    if(incomingByte == '\n' || incomingByte == '\r') {
-      processConfigCommand(command);
-      command = "";
-
-    }
-    else {
-        command += incomingByte;
-      }
-    }
-
-  return;
-}
-
-
-void loop_running() {
 
   server.handleClient();
+  serialEvent();
+
+  if(isConnectingToWifi)
+    connectingToWifi();
   
   if(needToConnect) {
     contactServer(visitUrl);
@@ -240,88 +231,141 @@ void loop_running() {
 }
 
 
-bool connectToWiFi(const char*, const char*, bool); // Forward declare
-
-
-void exitConfigMode(const String &message) {
-    mode = RUNNING;
-    Serial.println(message);
-
-    setupLocalAccessPoint(localSsid, localPassword);
-    connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
+void copy(char *dest, const char *source, U32 size) {
+  strncpy(dest, source, size);
+  dest[size] = '\0';
 }
 
 
 
 void processConfigCommand(const String &command) {
-  if(command == "exit") {
-    exitConfigMode("Exiting configuration mode.  Thank you for playing!");
-  }
-  else if(command == "time") {
-    Serial.print("Seconds since startup: ");
-    Serial.println(U32((millis() - startTime) / 1000));
+  if(command == "uptime") {
+    Serial.print("Uptime: ");
+    if(millisOveflows > 0) {
+      Serial.print(millisOveflows);   Serial.print("*2^32 + ");
+    }
+    Serial.println(millis() / 1000);
   }
     else if(command.startsWith("set wifi pw")) {
     copy(wifiPassword, &command.c_str()[12], PASSWORD_LENGTH);
     writeStringToEeprom(WIFI_PASSWORD_ADDRESS, PASSWORD_LENGTH, wifiPassword);
     changedWifiCredentials = true;
 
-    Serial.println("Set wifi pw.");
+    Serial.print("Set wifi pw: ");   Serial.println(wifiPassword);
   }
   else if(command.startsWith("set local pw")) {
     copy(localPassword, &command.c_str()[13], PASSWORD_LENGTH);
     writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, PASSWORD_LENGTH, localPassword);
 
-    Serial.println("Set local pw.");
+    Serial.print("Set local pw: ");  Serial.println(localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
     copy(wifiSsid, &command.c_str()[14], SSID_LENGTH);
     writeStringToEeprom(WIFI_SSID_ADDRESS, SSID_LENGTH, wifiSsid);
     changedWifiCredentials = true;
 
-    Serial.println("Set wifi ssid.");
+    Serial.print("Set wifi ssid: ");   Serial.println(wifiSsid);
   }
   else if(command.startsWith("set local ssid")) {
     copy(localSsid, &command.c_str()[15], SSID_LENGTH);
     writeStringToEeprom(LOCAL_SSID_ADDRESS, SSID_LENGTH, localSsid);
 
-    Serial.println("Set local ssid.");
+    Serial.print("Set local ssid: ");  Serial.println(localSsid);
   }
   else if(command.startsWith("set device key")) {
     copy(deviceKey, &command.c_str()[15], DEVICE_KEY_LENGTH);
     writeStringToEeprom(DEVICE_KEY_ADDRESS, DEVICE_KEY_LENGTH, deviceKey);
-    Serial.println("Set device key.");
+
+    Serial.print("Set device key: ");  Serial.println(deviceKey);
+  }  
+  else if(command.startsWith("set mothership url")) {
+    copy(mothershipUrl, &command.c_str()[18], URL_LENGTH);
+    writeStringToEeprom(DEVICE_KEY_ADDRESS, URL_LENGTH, mothershipUrl);
+
+    Serial.print("Set mothership URL: ");   Serial.println(mothershipUrl);
+    setupPubSubClient();
   }
   else if(command.startsWith("connect")) {
     connectToWiFi(wifiSsid, wifiPassword, true);
+  }
+  else if(command.startsWith("cancel")) {
+    if(isConnectingToWifi) {
+      Serial.println("\nCanceled connection attempt");
+      isConnectingToWifi = false;
+    }
+    else
+      Serial.println("No connection attempt in progress");
+
   }
   else if(command.startsWith("show")) {
     Serial.print("localSsid: ");     Serial.println(localSsid);
     Serial.print("localPassword: "); Serial.println(localPassword);
     Serial.print("wifiSsid: ");      Serial.println(wifiSsid);
     Serial.print("wifiPassword: ");  Serial.println(wifiPassword);
+    Serial.print("mothershipUrl: "); Serial.println(mothershipUrl);
     Serial.print("deviceKey: ");     Serial.println(deviceKey);
   }
   else if(command.startsWith("diag")) {
     Serial.println("Wifi Diagnostics:");
     WiFi.printDiag(Serial); 
+    Serial.print("Wifi connection status: ");   Serial.println(getWifiStatusName(WiFi.status()));
   }
   else if(command.startsWith("scan")) {
     scanAccessPoints();
   }
   else if(command.startsWith("ping")) {
+    const char *target = (command.length() > 5) ? &command.c_str()[5] : defaultPingTargetHostName;
+    
     connectToWiFi(wifiSsid, wifiPassword, false);
+    Serial.print("Pinging ");   Serial.println(target);
     U8 pingCount = 5;
     while(pingCount > 0)
     {
-      if(Ping.ping(pingTargetHostName, 1)) {
-          Serial.print("Successfully pinged ");   Serial.print(pingTargetHostName);  Serial.print(": ");  Serial.print(Ping.averageTime()); Serial.println("ms");
-          pingCount--;
-        } else {
-          Serial.print("Failure pinging ");       Serial.println(pingTargetHostName);
-          pingCount = 0;    // Cancel ping if it's not working
-        }
+      if(Ping.ping(target, 1)) {
+        Serial.print("Response time:"); Serial.print(Ping.averageTime()); Serial.println("ms");
+        pingCount--;
+        if(pingCount == 0)
+          Serial.println("Ping complete");
+      } else {
+        Serial.print("Failure pinging ");   Serial.println(target);
+        pingCount = 0;    // Cancel ping if it's not working
       }
+    }
+  }
+}
+
+
+
+const char *getWifiStatusName(wl_status_t status) {
+  return
+    status == WL_NO_SHIELD        ? "NO_SHIELD" :
+    status == WL_IDLE_STATUS      ? "IDLE_STATUS" :
+    status == WL_NO_SSID_AVAIL    ? "NO_SSID_AVAIL" :
+    status == WL_SCAN_COMPLETED   ? "SCAN_COMPLETED" :
+    status == WL_CONNECTED        ? "CONNECTED" :
+    status == WL_CONNECT_FAILED   ? "CONNECT_FAILED" :
+    status == WL_CONNECTION_LOST  ? "CONNECTION_LOST" :
+    status == WL_DISCONNECTED     ? "DISCONNECTED" :
+                                    "UNKNOWN";
+}
+
+
+// SerialEvent occurs whenever a new data comes in the hardware serial RX. This
+// routine is run between each time loop() runs, so using delay inside loop can
+// delay response. Multiple bytes of data may be available.
+void serialEvent() {
+  while (Serial.available()) {
+    // get the new byte:
+    char incomingChar = (char)Serial.read();
+    // Add it to the command.
+    // if the incoming character is a newline, or we're just getting too long (which should never happen) 
+    // start processing the command
+    if (incomingChar == '\n' || command.length() == MAX_COMMAND_LENGTH) {
+      processConfigCommand(command);
+      command = "";
+    }
+    else
+      command += incomingChar;
   }
 }
 
@@ -354,12 +398,6 @@ void scanAccessPoints() {
 }
 
 
-void copy(char *dest, const char *source, U32 size) {
-  strncpy(dest, source, size);
-  dest[size] = '\0';
-}
-
-
 void contactServer(const String &url) {
 
   IPAddress google;
@@ -370,7 +408,7 @@ void contactServer(const String &url) {
     return;
   }
 
-//  wfclient2.setTimeout(20 * 1000);
+  //  wfclient2.setTimeout(20 * 1000);
   
   WiFiClient wfclient2;
   if(wfclient2.connect(google, 80)) {
@@ -492,44 +530,55 @@ void setupLocalAccessPoint(const char *ssid, const char *password)
 }
 
 
-bool connectToWiFi(const char *ssid, const char *password, bool disconnectIfConnected = false) {
+void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConnected = false) {
 
   changedWifiCredentials = false;
 
-  if(WiFi.status() == WL_CONNECTED) {
-    if(!disconnectIfConnected) {
-      return true;
-    }
+  if(WiFi.status() == WL_CONNECTED) {   // Already connected
+    if(!disconnectIfConnected)          // Don't disconnect, so nothing to do
+      return;
 
-    Serial.println("Disconnecting...");
+    Serial.println("Disconnecting..."); // Otherwise... disconnect!
     WiFi.disconnect();
   }
 
-  Serial.print("Connecting to ");
+  wifiConnectStartTime = millis();      // Initiate new connection
+  Serial.print("Connecting to ");       
   Serial.println(ssid);
 
-  U32 start = millis();
-
   WiFi.begin(ssid, password);
- 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  isConnectingToWifi = true;
+  connectingToWifiDotTimer = millis();
+ }
 
-    if(millis() - start > WIFI_CONNECT_TIMEOUT) {
+
+// Will be run every loop cycle if isConnectingToWifi is true
+void connectingToWifi()
+{
+  if(WiFi.status() != WL_CONNECTED) {
+    if(millis() - connectingToWifiDotTimer > 500) {
+      Serial.print(".");
+      connectingToWifiDotTimer = millis();
+    }
+
+    if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
       Serial.println("");
       Serial.println("Unable to connect to WiFi!");
-      return false;
+      isConnectingToWifi = false;
     }
+
+    return;
   }
 
+  // We're connected!
+
+  isConnectingToWifi = false;
+  
   Serial.println("");
-  Serial.print((millis() - start) / 1000);
+  Serial.print((millis() - wifiConnectStartTime) / 1000);
   Serial.println(" seconds");
   Serial.print("Connected to WiFi; Address on the LAN: "); 
   Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
-
-  return true;
 }
 
 
