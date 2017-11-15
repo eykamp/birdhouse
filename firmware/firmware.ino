@@ -411,7 +411,7 @@ void scanAccessPoints() {
   {
     Serial.print(networksFound);
     Serial.println(" networks found:");
-    for (int i = 0; i < networksFound; ++i)
+    for (int i = 0; i < networksFound; i++)
     {
       // Print SSID and RSSI for each network found
       Serial.print(i + 1);
@@ -423,6 +423,17 @@ void scanAccessPoints() {
       Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " " : "*");
     }
     Serial.println("[* = secured network]");
+
+    String json = "[";
+    for (int i = 0; i < networksFound; i++) {
+      json += "{\"ssid\": \"" + WiFi.SSID(i) + "\", \"rssi\":" + WiFi.RSSI(i) + "}";
+      if(i < networksFound - 1)
+        json += ",";
+    }
+    json += "]";
+
+    Serial.println(json);
+
   }
   Serial.println("");
 }
