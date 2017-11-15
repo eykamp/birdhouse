@@ -52,11 +52,7 @@ const int MQTT_URL_ADDRESS       = DEVICE_KEY_ADDRESS     + sizeof(deviceToken);
 const int PUB_SUB_PORT_ADDRESS   = MQTT_URL_ADDRESS       + sizeof(mqttUrl);
 const int NEXT_ADDRESS           = PUB_SUB_PORT_ADDRESS   + sizeof(mqttPort);
 
-const int EEPROM_SIZE = 2 * (SSID_LENGTH + 1) + 2 * (PASSWORD_LENGTH + 1) + (DEVICE_KEY_LENGTH + 1) + (URL_LENGTH + 1) + sizeof(mqttPort);
-
-
-
-/////
+const int EEPROM_SIZE = sizeof(localSsid) + sizeof(localPassword) + sizeof(wifiSsid) + sizeof(wifiPassword) + sizeof(deviceToken) + sizeof(mqttUrl) + sizeof(mqttPort);
 
 // U8 macAddress[WL_MAC_ADDR_LENGTH];
 // WiFi.softAPmacAddress(macAddress);
