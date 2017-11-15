@@ -424,13 +424,13 @@ void scanAccessPoints() {
     }
     Serial.println("[* = secured network]");
 
-    String json = "[";
+    String json = "{\"visibleNetworks\":[";
     for (int i = 0; i < networksFound; i++) {
       json += "{\"ssid\": \"" + WiFi.SSID(i) + "\", \"rssi\":" + WiFi.RSSI(i) + "}";
       if(i < networksFound - 1)
         json += ",";
     }
-    json += "]";
+    json += "]}";
 
     Serial.println(json);
 
