@@ -340,23 +340,7 @@ void processConfigCommand(const String &command) {
     scanAccessPoints();
   }
   else if(command.startsWith("ping")) {
-    const char *target = (command.length() > 5) ? &command.c_str()[5] : defaultPingTargetHostName;
-    
-    connectToWiFi(wifiSsid, wifiPassword, false);
-    Serial.print("Pinging ");   Serial.println(target);
-    U8 pingCount = 5;
-    while(pingCount > 0)
-    {
-      if(Ping.ping(target, 1)) {
-        Serial.print("Response time:"); Serial.print(Ping.averageTime()); Serial.println("ms");
-        pingCount--;
-        if(pingCount == 0)
-          Serial.println("Ping complete");
-      } else {
-        Serial.print("Failure pinging ");   Serial.println(target);
-        pingCount = 0;    // Cancel ping if it's not working
-      }
-    }
+    ping();
   }
   else {
     Serial.print("Unknown command: ");    Serial.println(command);
@@ -444,6 +428,28 @@ void scanAccessPoints() {
     Serial.println("[* = secured network]");
   }
   Serial.println("");
+}
+
+
+void ping() {
+  const char *target = (command.length() > 5) ? &command.c_str()[5] : defaultPingTargetHostName;
+    
+  connectToWiFi(wifiSsid, wifiPassword, false);
+  
+  Serial.print("Pinging ");   Serial.println(target);
+  U8 pingCount = 5;
+  while(pingCount > 0)
+  {
+    if(Ping.ping(target, 1)) {
+      Serial.print("Response time:"); Serial.print(Ping.averageTime()); Serial.println("ms");
+      pingCount--;
+      if(pingCount == 0)
+        Serial.println("Ping complete");
+    } else {
+      Serial.print("Failure pinging ");   Serial.println(target);
+      pingCount = 0;    // Cancel ping if it's not working
+    }
+  }
 }
 
 
