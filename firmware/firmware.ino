@@ -379,9 +379,6 @@ const char *getSubPubStatusName(int status) {
 }
 
 
-
-
-
 // SerialEvent occurs whenever a new data comes in the hardware serial RX. This
 // routine is run between each time loop() runs, so using delay inside loop can
 // delay response. Multiple bytes of data may be available.
@@ -435,7 +432,7 @@ void ping() {
   const char *target = (command.length() > 5) ? &command.c_str()[5] : defaultPingTargetHostName;
     
   connectToWiFi(wifiSsid, wifiPassword, false);
-  
+
   Serial.print("Pinging ");   Serial.println(target);
   U8 pingCount = 5;
   while(pingCount > 0)
