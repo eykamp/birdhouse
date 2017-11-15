@@ -34,28 +34,29 @@ const int PASSWORD_LENGTH   = 63;
 const int DEVICE_KEY_LENGTH = 20;
 const int URL_LENGTH        = 64;
 
-
-const int LOCAL_SSID_ADDRESS     = 0;
-const int LOCAL_PASSWORD_ADDRESS = LOCAL_SSID_ADDRESS     + SSID_LENGTH       + 1;
-const int WIFI_SSID_ADDRESS      = LOCAL_PASSWORD_ADDRESS + PASSWORD_LENGTH   + 1;
-const int WIFI_PASSWORD_ADDRESS  = WIFI_SSID_ADDRESS      + SSID_LENGTH       + 1;
-const int DEVICE_KEY_ADDRESS     = WIFI_PASSWORD_ADDRESS  + PASSWORD_LENGTH   + 1;
-const int MOTHERSHIP_URL_ADDRESS = DEVICE_KEY_ADDRESS     + DEVICE_KEY_LENGTH + 1;
-
-const int EEPROM_SIZE = 2 * (SSID_LENGTH + 1) + 2 * (PASSWORD_LENGTH + 1) + (DEVICE_KEY_LENGTH + 1) + (URL_LENGTH + 1);
-
-
 // Our vars to hold the EEPROM values
 char localSsid[SSID_LENGTH + 1];
 char localPassword[PASSWORD_LENGTH + 1];
 char wifiSsid[SSID_LENGTH + 1];
 char wifiPassword[PASSWORD_LENGTH + 1];
-char deviceKey[DEVICE_KEY_LENGTH + 1];
-char mothershipUrl[URL_LENGTH + 1];
+char deviceToken[DEVICE_KEY_LENGTH + 1];
+char mqttUrl[URL_LENGTH + 1];
+U16 mqttPort;
+
+const int LOCAL_SSID_ADDRESS     = 0;
+const int LOCAL_PASSWORD_ADDRESS = LOCAL_SSID_ADDRESS     + sizeof(localSsid);
+const int WIFI_SSID_ADDRESS      = LOCAL_PASSWORD_ADDRESS + sizeof(localPassword);
+const int WIFI_PASSWORD_ADDRESS  = WIFI_SSID_ADDRESS      + sizeof(wifiSsid);
+const int DEVICE_KEY_ADDRESS     = WIFI_PASSWORD_ADDRESS  + sizeof(wifiPassword);
+const int MQTT_URL_ADDRESS       = DEVICE_KEY_ADDRESS     + sizeof(deviceToken);
+const int PUB_SUB_PORT_ADDRESS   = MQTT_URL_ADDRESS       + sizeof(mqttUrl);
+const int NEXT_ADDRESS           = PUB_SUB_PORT_ADDRESS   + sizeof(mqttPort);
+
+const int EEPROM_SIZE = 2 * (SSID_LENGTH + 1) + 2 * (PASSWORD_LENGTH + 1) + (DEVICE_KEY_LENGTH + 1) + (URL_LENGTH + 1) + sizeof(mqttPort);
+
+
 
 /////
-
-const int PUB_SUB_CLIENT_PORT = 80;
 
 // U8 macAddress[WL_MAC_ADDR_LENGTH];
 // WiFi.softAPmacAddress(macAddress);
@@ -65,11 +66,11 @@ U32 millisOveflows = 0;
 const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
 
 
-void callback(char* topic, byte* payload, unsigned int length) {
+void message_received_from_mothership(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i=0;i<length;i++) {
+  for (int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
@@ -77,33 +78,58 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 WiFiClient wfclient;
 PubSubClient pubSubClient(wfclient);
+U32 lastPubSubConnectAttempt = 0;
 
-void reconnect() {
-  // Loop until we're reconnected
-  while (!pubSubClient.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (pubSubClient.connect("arduinoClient", "PjoBPqgAB9Dkso8JUo6N", "")) {
-      Serial.println("connected");
-      // Once connected, publish an announcement...
-      pubSubClient.publish("v1/devices/me/telemetry","{'humidity':-999}");
-      // ... and resubscribe
-      pubSubClient.subscribe("v1/devices/me/attributes");
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(pubSubClient.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
+void setupPubSubClient() {
+  IPAddress serverIp;
+
+  if(WiFi.hostByName(mqttUrl, serverIp)) 
+    pubSubClient.setServer(serverIp, mqttPort);
+  else
+  {
+    Serial.print("Could not get IP address for server ");   Serial.println(mqttUrl);
+  }
+}
+
+
+void loopPubSub() {
+  // Ensure constant contact with the mother ship
+  if(pubSubClient.connected()) {
+    pubSubClient.loop();
+  }
+  else {
+    U32 now = millis();
+
+    if (now - lastPubSubConnectAttempt > 5 * SECONDS) {
+      reconnectToPubSubServer();      // Attempt to reconnect
+      lastPubSubConnectAttempt = now;
     }
+  }
+
+}
+
+
+// Gets run when we're not connected to the PubSub client
+void reconnectToPubSubServer() {
+  if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
+    return;
+
+  Serial.print("Attempting MQTT connection...");
+  // Attempt to connect
+  if (pubSubClient.connect("Birdhouse", deviceToken, "")) {   // ClientID, username, password
+    Serial.println("connected");
+    // Once connected, publish an announcement...
+    pubSubClient.publish("v1/devices/me/attributes","{'status':'Connected'}");
+    // ... and subscribe to any shared attribute changes
+    pubSubClient.subscribe("v1/devices/me/attributes");
+  } else {
+    Serial.print("failed: ");  Serial.print(getSubPubStatusName(pubSubClient.state()));  Serial.println(" Will try again in 5 seconds");
   }
 }
 
 
 
 const char *defaultPingTargetHostName = "www.google.com";
-// const int STARTUP = 0;
-// const int RUNNING = 1;
 
 
 
@@ -138,27 +164,27 @@ void setup()
 
   // void readStringFromEeprom(int addr, int length, char container[]);  // Forward declare
 
-  readStringFromEeprom(LOCAL_SSID_ADDRESS,     SSID_LENGTH,       localSsid);
-  readStringFromEeprom(LOCAL_PASSWORD_ADDRESS, PASSWORD_LENGTH,   localPassword);
-  readStringFromEeprom(WIFI_SSID_ADDRESS,      SSID_LENGTH,       wifiSsid);
-  readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  PASSWORD_LENGTH,   wifiPassword);
-  readStringFromEeprom(DEVICE_KEY_ADDRESS,     DEVICE_KEY_LENGTH, deviceKey);
-  readStringFromEeprom(MOTHERSHIP_URL_ADDRESS, URL_LENGTH,        mothershipUrl);
+  readStringFromEeprom(LOCAL_SSID_ADDRESS,     sizeof(localSsid)     - 1, localSsid);
+  readStringFromEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
+  readStringFromEeprom(WIFI_SSID_ADDRESS,      sizeof(wifiSsid)      - 1, wifiSsid);
+  readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  sizeof(wifiPassword)  - 1, wifiPassword);
+  readStringFromEeprom(DEVICE_KEY_ADDRESS,     sizeof(deviceToken)   - 1, deviceToken);
+  readStringFromEeprom(MQTT_URL_ADDRESS,       sizeof(mqttUrl)       - 1, mqttUrl);
+  mqttPort = EepromReadU16(PUB_SUB_PORT_ADDRESS);
+
   
   Serial.print("localSsid: ");     Serial.println(localSsid);
   Serial.print("localPassword: "); Serial.println(localPassword);
   Serial.print("wifiSsid: ");      Serial.println(wifiSsid);
   Serial.print("wifiPassword: ");  Serial.println(wifiPassword);
-  Serial.print("mothershipUrl: "); Serial.println(mothershipUrl);
-  Serial.print("deviceKey: ");     Serial.println(deviceKey);
+  Serial.print("mqttUrl: ");       Serial.println(mqttUrl);
+  Serial.print("deviceToken: ");   Serial.println(deviceToken);
 
   WiFi.mode(WIFI_AP);  
   
 
-
-
   setupPubSubClient();
-  pubSubClient.setCallback(callback);
+  pubSubClient.setCallback(message_received_from_mothership);
 
  
   server.on("/", HTTP_GET, handleRoot);        // Call the 'handleRoot' function when a client requests URI "/"
@@ -174,15 +200,7 @@ void setup()
 }
 
 
-void setupPubSubClient() {
-  IPAddress serverIp;
 
-  if(!WiFi.hostByName(mothershipUrl, serverIp)) {
-    Serial.print("Could not get IP address for server ");   Serial.println(mothershipUrl);
-  }
-  else
-    pubSubClient.setServer(serverIp, PUB_SUB_CLIENT_PORT);
-  }
 
 
 void activateLed(String LED) {
@@ -203,17 +221,19 @@ U32 connectingToWifiDotTimer;
 U32 wifiConnectStartTime;
 U32 lastMillis = 0;
 
-void loop() {
-  U32 time = millis();
 
-  if(time < lastMillis)
+void loop() {
+  U32 now = millis();
+
+  if(now < lastMillis)
     millisOveflows++;
   
-  lastMillis = time;
+  lastMillis = now;
 
+  loopPubSub();
 
   server.handleClient();
-  serialEvent();
+  checkForNewInputFromSerialPort();
 
   if(isConnectingToWifi)
     connectingToWifi();
@@ -222,12 +242,6 @@ void loop() {
     contactServer(visitUrl);
   }
   
-////handle pubSubClient
-
-//  if (!pubSubClient.connected()) {
-//    reconnect();
-//  }
-//  pubSubClient.loop();
 }
 
 
@@ -244,48 +258,61 @@ void processConfigCommand(const String &command) {
     if(millisOveflows > 0) {
       Serial.print(millisOveflows);   Serial.print("*2^32 + ");
     }
-    Serial.println(millis() / 1000);
+    Serial.print(millis() / 1000);    Serial.println(" seconds");
   }
     else if(command.startsWith("set wifi pw")) {
-    copy(wifiPassword, &command.c_str()[12], PASSWORD_LENGTH);
-    writeStringToEeprom(WIFI_PASSWORD_ADDRESS, PASSWORD_LENGTH, wifiPassword);
+    copy(wifiPassword, &command.c_str()[12], sizeof(wifiPassword) - 1);
+    writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
     changedWifiCredentials = true;
 
     Serial.print("Set wifi pw: ");   Serial.println(wifiPassword);
   }
   else if(command.startsWith("set local pw")) {
-    copy(localPassword, &command.c_str()[13], PASSWORD_LENGTH);
-    writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, PASSWORD_LENGTH, localPassword);
+    copy(localPassword, &command.c_str()[13], sizeof(localPassword) - 1);
+    writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
 
     Serial.print("Set local pw: ");  Serial.println(localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
-    copy(wifiSsid, &command.c_str()[14], SSID_LENGTH);
-    writeStringToEeprom(WIFI_SSID_ADDRESS, SSID_LENGTH, wifiSsid);
+    copy(wifiSsid, &command.c_str()[14], sizeof(wifiSsid) - 1);
+    writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
     changedWifiCredentials = true;
 
     Serial.print("Set wifi ssid: ");   Serial.println(wifiSsid);
   }
   else if(command.startsWith("set local ssid")) {
-    copy(localSsid, &command.c_str()[15], SSID_LENGTH);
-    writeStringToEeprom(LOCAL_SSID_ADDRESS, SSID_LENGTH, localSsid);
+    copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
+    writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
 
     Serial.print("Set local ssid: ");  Serial.println(localSsid);
   }
-  else if(command.startsWith("set device key")) {
-    copy(deviceKey, &command.c_str()[15], DEVICE_KEY_LENGTH);
-    writeStringToEeprom(DEVICE_KEY_ADDRESS, DEVICE_KEY_LENGTH, deviceKey);
+  else if(command.startsWith("set device token")) {
+    copy(deviceToken, &command.c_str()[15], sizeof(deviceToken) - 1);
+    writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
 
-    Serial.print("Set device key: ");  Serial.println(deviceKey);
+    Serial.print("Set device token: ");  Serial.println(deviceToken);
   }  
-  else if(command.startsWith("set mothership url")) {
-    copy(mothershipUrl, &command.c_str()[18], URL_LENGTH);
-    writeStringToEeprom(DEVICE_KEY_ADDRESS, URL_LENGTH, mothershipUrl);
+  else if(command.startsWith("set mqtt url")) {
+    copy(mqttUrl, &command.c_str()[13], sizeof(mqttUrl) - 1);
+    writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
 
-    Serial.print("Set mothership URL: ");   Serial.println(mothershipUrl);
+    Serial.print("Set mqtt URL: ");   Serial.println(mqttUrl);
     setupPubSubClient();
+
+    // Let's immediately connect our PubSub client
+    reconnectToPubSubServer();
   }
-  else if(command.startsWith("connect")) {
+  else if(command.startsWith("set mqtt port")) {
+    mqttPort = atoi(&command.c_str()[14]);
+    EepromWriteU16(PUB_SUB_PORT_ADDRESS, mqttPort);
+    Serial.print("Set mqtt port: ");   Serial.println(mqttPort);
+    setupPubSubClient();
+
+    // Let's immediately connect our PubSub client
+    reconnectToPubSubServer();
+
+  }
+  else if(command.startsWith("con")) {
     connectToWiFi(wifiSsid, wifiPassword, true);
   }
   else if(command.startsWith("cancel")) {
@@ -297,18 +324,21 @@ void processConfigCommand(const String &command) {
       Serial.println("No connection attempt in progress");
 
   }
-  else if(command.startsWith("show")) {
-    Serial.print("localSsid: ");     Serial.println(localSsid);
-    Serial.print("localPassword: "); Serial.println(localPassword);
-    Serial.print("wifiSsid: ");      Serial.println(wifiSsid);
-    Serial.print("wifiPassword: ");  Serial.println(wifiPassword);
-    Serial.print("mothershipUrl: "); Serial.println(mothershipUrl);
-    Serial.print("deviceKey: ");     Serial.println(deviceKey);
-  }
-  else if(command.startsWith("diag")) {
+  else if(command.startsWith("stat") || command.startsWith("show")) {
+    Serial.println("====================================");
     Serial.println("Wifi Diagnostics:");
     WiFi.printDiag(Serial); 
-    Serial.print("Wifi connection status: ");   Serial.println(getWifiStatusName(WiFi.status()));
+    Serial.print("Wifi status: ");           Serial.println(getWifiStatusName(WiFi.status()));
+    Serial.print("PubSubClient status: ");   Serial.println(getSubPubStatusName(pubSubClient.state()));
+    Serial.println("");
+    Serial.print("localSsid: ");             Serial.println(localSsid);
+    Serial.print("localPassword: ");         Serial.println(localPassword);
+    // Serial.print("wifiSsid: ");              Serial.println(wifiSsid);
+    // Serial.print("wifiPassword: ");          Serial.println(wifiPassword);
+    Serial.print("MQTT Url: ");              Serial.println(mqttUrl);
+    Serial.print("MQTT port: ");             Serial.println(mqttPort);
+    Serial.print("Device Token: ");          Serial.println(deviceToken);
+    Serial.println("====================================");
   }
   else if(command.startsWith("scan")) {
     scanAccessPoints();
@@ -332,6 +362,9 @@ void processConfigCommand(const String &command) {
       }
     }
   }
+  else {
+    Serial.print("Unknown command: ");    Serial.println(command);
+  }
 }
 
 
@@ -350,10 +383,29 @@ const char *getWifiStatusName(wl_status_t status) {
 }
 
 
+const char *getSubPubStatusName(int status) {
+  return
+    status == MQTT_CONNECTION_TIMEOUT      ? "CONNECTION_TIMEOUT" :       // The server didn't respond within the keepalive time
+    status == MQTT_CONNECTION_LOST         ? "CONNECTION_LOST" :          // The network connection was broken
+    status == MQTT_CONNECT_FAILED          ? "CONNECT_FAILED" :           // The network connection failed
+    status == MQTT_DISCONNECTED            ? "DISCONNECTED" :             // The client is disconnected cleanly
+    status == MQTT_CONNECTED               ? "CONNECTED" :                // The cient is connected
+    status == MQTT_CONNECT_BAD_PROTOCOL    ? "CONNECT_BAD_PROTOCOL" :     // The server doesn't support the requested version of MQTT
+    status == MQTT_CONNECT_BAD_CLIENT_ID   ? "CONNECT_BAD_CLIENT_ID" :    // The server rejected the client identifier
+    status == MQTT_CONNECT_UNAVAILABLE     ? "CONNECT_UNAVAILABLE" :      // The server was unable to accept the connection
+    status == MQTT_CONNECT_BAD_CREDENTIALS ? "CONNECT_BAD_CREDENTIALS" :  // The username/password were rejected
+    status == MQTT_CONNECT_UNAUTHORIZED    ? "CONNECT_UNAUTHORIZED" :     // The client was not authorized to connect
+                                             "UNKNOWN";
+}
+
+
+
+
+
 // SerialEvent occurs whenever a new data comes in the hardware serial RX. This
 // routine is run between each time loop() runs, so using delay inside loop can
 // delay response. Multiple bytes of data may be available.
-void serialEvent() {
+void checkForNewInputFromSerialPort() {
   while (Serial.available()) {
     // get the new byte:
     char incomingChar = (char)Serial.read();
@@ -370,6 +422,7 @@ void serialEvent() {
 }
 
 
+// Get a list of wifi hotspots the device can see
 void scanAccessPoints() {
   Serial.println("Scanning available networks...");
 
@@ -606,18 +659,40 @@ int translate(const String &color) {
 
 void writeStringToEeprom(int addr, int length, const char *value)
 {
-    for (int i = 0; i < length; i++)
-          EEPROM.write(addr + i, value[i]);
-          
-    EEPROM.write(addr + length, '\0');
-    EEPROM.commit();
+  for (int i = 0; i < length; i++)
+    EEPROM.write(addr + i, value[i]);
+        
+  EEPROM.write(addr + length, '\0');
+  EEPROM.commit();
 }
 
 
 void readStringFromEeprom(int addr, int length, char container[])
 {
-    for (int i = 0; i < length; i++)
-          container[i] = EEPROM.read(addr + i);
+  for (int i = 0; i < length; i++)
+    container[i] = EEPROM.read(addr + i);
 
-    container[length] = '\0';   // Better safe than sorry!
+  container[length] = '\0';   // Better safe than sorry!
+}
+
+
+// This function will write a 2 byte integer to the eeprom at the specified address and address + 1
+void EepromWriteU16(int addr, U16 value)
+{
+  byte lowByte  = ((value >> 0) & 0xFF);
+  byte highByte = ((value >> 8) & 0xFF);
+
+  EEPROM.write(addr, lowByte);
+  EEPROM.write(addr + 1, highByte);
+  EEPROM.commit();
+}
+
+
+// This function will read a 2 byte integer from the eeprom at the specified address and address + 1
+U16 EepromReadU16(int addr)
+{
+  byte lowByte  = EEPROM.read(addr);
+  byte highByte = EEPROM.read(addr + 1);
+
+  return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
 }
