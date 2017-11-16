@@ -329,8 +329,6 @@ void processConfigCommand(const String &command) {
     Serial.println("");
     Serial.print("localSsid: ");             Serial.println(localSsid);
     Serial.print("localPassword: ");         Serial.println(localPassword);
-    // Serial.print("wifiSsid: ");              Serial.println(wifiSsid);
-    // Serial.print("wifiPassword: ");          Serial.println(wifiPassword);
     Serial.print("MQTT Url: ");              Serial.println(mqttUrl);
     Serial.print("MQTT port: ");             Serial.println(mqttPort);
     Serial.print("Device Token: ");          Serial.println(deviceToken);
