@@ -33,7 +33,7 @@ bool PingClass::ping(IPAddress dest, byte count) {
     
     // Repeat count (how many time send a ping message to destination)
     _options.count = count;
-    // Time interval between two ping (seconds??)
+    // Time interval between two ping milliseconds
     _options.coarse_time = 1;
     // Destination machine
     _options.ip = dest;
