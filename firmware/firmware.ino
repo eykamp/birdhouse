@@ -432,6 +432,8 @@ void scanAccessPoints() {
     }
     json += "]}";
 
+    pubSubClient.publish("v1/devices/me/attributes", json.c_str());
+
     Serial.println(json);
 
   }
