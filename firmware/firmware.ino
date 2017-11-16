@@ -422,17 +422,23 @@ void scanAccessPoints() {
     }
     Serial.println("[* = secured network]");
 
-    String json = "{\"visibleNetworks\":[";
+    String json = "{\"visibleNetworks\":\"["; 
+
     for (int i = 0; i < networksFound; i++) {
-      json += "{\"ssid\": \"" + WiFi.SSID(i) + "\", \"rssi\":" + WiFi.RSSI(i) + "}";
+      json += "{\\\"ssid\\\":" + WiFi.SSID(i) + "\\\",\\\"rssi\\\":" + String(WiFi.RSSI(i)) + "}";
       if(i < networksFound - 1)
         json += ",";
     }
-    json += "]}";
+    json += "]\"}";
 
-    pubSubClient.publish("v1/devices/me/attributes", json.c_str());
+    bool ok = pubSubClient.publish_P("v1/devices/me/attributes", json.c_str(), 0);
+    if(!ok) {
+      Serial.print("Could not publish message: ");  Serial.println(json.c_str());
+    }
+    else 
+      Serial.println("Published");
 
-    Serial.println(json);
+    
 
   }
   Serial.println("");
