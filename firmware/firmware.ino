@@ -118,8 +118,19 @@ void reconnectToPubSubServer() {
     pubSubClient.publish("v1/devices/me/attributes","{'status':'Connected'}");
     // ... and subscribe to any shared attribute changes
     pubSubClient.subscribe("v1/devices/me/attributes");
-  } else {
+
+  } else {    // Connection failed
     Serial.print("failed: ");  Serial.print(getSubPubStatusName(pubSubClient.state()));  Serial.println(" Will try again in 5 seconds");
+    // We know we're connected to the wifi, so let's see if we can ping the MQTT host
+    bool reachable = Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1);   // Try up to 3 pings
+
+    Serial.print("MTQQ host "); Serial.print(mqttUrl); 
+
+    if(reachable) {
+      Serial.print(" is online.  Perhaps the port ("); Serial.print(mqttPort); Serial.println(") is wrong?");
+    } else {
+      Serial.println(" is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?");
+    }
   }
 }
 
