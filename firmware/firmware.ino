@@ -26,7 +26,7 @@ ESP8266WebServer server(80);
 void handleRoot();              // function prototypes for HTTP handlers
 void handleLogin();
 void handleNotFound();
- 
+
 ///// 
 // For persisting values in EEPROM
 const int SSID_LENGTH       = 32;
