@@ -338,7 +338,8 @@ void processConfigCommand(const String &command) {
     scanAccessPoints();
   }
   else if(command.startsWith("ping")) {
-    ping();
+    const int commandPrefixLen = strlen("PING ");
+    ping((command.length() > commandPrefixLen) ? &command.c_str()[commandPrefixLen] : defaultPingTargetHostName);
   }
   else {
     Serial.print("Unknown command: ");    Serial.println(command);
@@ -445,9 +446,7 @@ void scanAccessPoints() {
 }
 
 
-void ping() {
-  const char *target = (command.length() > 5) ? &command.c_str()[5] : defaultPingTargetHostName;
-    
+void ping(const char *target) {
   connectToWiFi(wifiSsid, wifiPassword, false);
 
   Serial.print("Pinging ");   Serial.println(target);
