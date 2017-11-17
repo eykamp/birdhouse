@@ -207,9 +207,6 @@ void setup()
 }
 
 
-
-
-
 void activateLed(String LED) {
 
   Serial.print("Your post was received: ");
@@ -332,7 +329,7 @@ void processConfigCommand(const String &command) {
 
   }
   else if(command.startsWith("stat") || command.startsWith("show")) {
-    Serial.println("====================================");
+    Serial.println("\n====================================");
     Serial.println("Wifi Diagnostics:");
     WiFi.printDiag(Serial); 
     Serial.print("Wifi status: ");           Serial.println(getWifiStatusName(WiFi.status()));
