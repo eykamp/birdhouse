@@ -221,7 +221,8 @@ String visitUrl = "www.yahoo.com";
 
 
 
-bool isConnectingToWifi = false;
+bool isConnectingToWifi = false;    // True while a connection is in process
+
 U32 connectingToWifiDotTimer;
 U32 wifiConnectStartTime;
 U32 lastMillis = 0;
