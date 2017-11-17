@@ -81,9 +81,8 @@ void setupPubSubClient() {
 
   if(WiFi.hostByName(mqttUrl, serverIp)) 
     pubSubClient.setServer(serverIp, mqttPort);
-  else
-  {
-    Serial.print("Could not get IP address for server ");   Serial.println(mqttUrl);
+  } else {
+    Serial.print("\nCould not get IP address for MQTT server ");   Serial.println(mqttUrl);
   }
 }
 
