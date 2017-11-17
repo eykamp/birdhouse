@@ -419,16 +419,7 @@ void scanAccessPoints() {
   {
     Serial.print(networksFound);
     Serial.println(" networks found:");
-    for (int i = 0; i < networksFound; i++)
     {
-      // Print SSID and RSSI for each network found
-      Serial.print(i + 1);
-      Serial.print(": ");
-      Serial.print(WiFi.SSID(i));
-      Serial.print(" (");
-      Serial.print(WiFi.RSSI(i));
-      Serial.print(")");
-      Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " " : "*");
     }
     Serial.println("[* = secured network]");
 
@@ -440,6 +431,9 @@ void scanAccessPoints() {
         json += ",";
     }
     json += "]\"}";
+  for (int i = 0; i < networksFound; i++) {
+    Serial.printf("%d: %s, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
+  }
 
     bool ok = pubSubClient.publish_P("v1/devices/me/attributes", json.c_str(), 0);
     if(!ok) {
