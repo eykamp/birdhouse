@@ -75,19 +75,31 @@ void message_received_from_mothership(char* topic, byte* payload, unsigned int l
 WiFiClient wfclient;
 PubSubClient pubSubClient(wfclient);
 U32 lastPubSubConnectAttempt = 0;
+bool mqttServerConfigured = true;     // Assume we have the credentials in the EEPROM
 
 void setupPubSubClient() {
   IPAddress serverIp;
 
-  if(WiFi.hostByName(mqttUrl, serverIp)) 
+  if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
+    return;
+
+  Serial.print("Looking up IP for "); Serial.print(mqttUrl);
+  if(WiFi.hostByName(mqttUrl, serverIp)) {
+    Serial.println(" OK");
     pubSubClient.setServer(serverIp, mqttPort);
+    mqttServerConfigured = true;
   } else {
     Serial.print("\nCould not get IP address for MQTT server ");   Serial.println(mqttUrl);
   }
 }
 
 
+U32 pubSubConnectFailures = 0;
+
 void loopPubSub() {
+  if(!mqttServerConfigured)
+    return;
+
   // Ensure constant contact with the mother ship
   if(!pubSubClient.connected()) {
     U32 now = millis();
@@ -105,33 +117,50 @@ void loopPubSub() {
 
 // Gets run when we're not connected to the PubSub client
 void reconnectToPubSubServer() {
+  if(!mqttServerConfigured)
+    return;
+
   if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
     return;
 
-  Serial.print("Attempting MQTT connection...");
+  bool verboseMode = pubSubConnectFailures == 0;
+
+  if(verboseMode)
+    Serial.println("Attempting MQTT connection...");
+
   // Attempt to connect
   if (pubSubClient.connect("Birdhouse", deviceToken, "")) {   // ClientID, username, password
-    Serial.println("connected");
-    // Once connected, publish an announcement...
-    pubSubClient.publish("v1/devices/me/attributes","{'status':'Connected'}");
-    // ... and subscribe to any shared attribute changes
-    pubSubClient.subscribe("v1/devices/me/attributes");
-
+    onConnectedToPubSubServer();
   } else {    // Connection failed
-    Serial.print("failed: ");  Serial.print(getSubPubStatusName(pubSubClient.state()));  Serial.println(" Will try again in 5 seconds");
-    // We know we're connected to the wifi, so let's see if we can ping the MQTT host
-    bool reachable = Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1);   // Try up to 3 pings
+    if(verboseMode) {
+      Serial.print("MTQQ connection failed: ");  Serial.println(getSubPubStatusName(pubSubClient.state()));
 
-    Serial.print("MTQQ host "); Serial.print(mqttUrl); 
+      // We know we're connected to the wifi, so let's see if we can ping the MQTT host
+      bool reachable = Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1);   // Try up to 3 pings
 
-    if(reachable) {
-      Serial.print(" is online.  Perhaps the port ("); Serial.print(mqttPort); Serial.println(") is wrong?");
-    } else {
-      Serial.println(" is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?");
+      Serial.print("MTQQ host "); Serial.print(mqttUrl); 
+
+      if(reachable) {
+        if(pubSubClient.state() == MQTT_CONNECT_UNAUTHORIZED) {
+          Serial.printf(" is online.  Looks like the device token (%s) is wrong\n", deviceToken);
+        } else {
+          Serial.printf(" is online.  Perhaps the port (%d) is wrong?\n", mqttPort);
+        }
+      } else {
+        Serial.println(" is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?");
+      }
     }
+    pubSubConnectFailures++;
   }
 }
 
+
+void onConnectedToPubSubServer() {
+  Serial.println("Connected to MTQQ server");                                   // Even if we're not in verbose mode... Victories are to be celebrated!
+  pubSubClient.publish("v1/devices/me/attributes","{'status':'Connected'}");    // Once connected, publish an announcement...
+  pubSubClient.subscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
+  pubSubConnectFailures = 0;
+}
 
 
 const char *defaultPingTargetHostName = "www.google.com";
@@ -224,6 +253,7 @@ bool isConnectingToWifi = false;    // True while a connection is in process
 U32 connectingToWifiDotTimer;
 U32 wifiConnectStartTime;
 U32 lastMillis = 0;
+bool needToReportScanResults = false;
 
 
 void loop() {
@@ -245,6 +275,11 @@ void loop() {
   
   if(needToConnect) {
     contactServer(visitUrl);
+  }
+
+  if(needToReportScanResults && WiFi.scanComplete() >= 0) {
+    printScanResult();
+    needToReportScanResults = false;    
   }
   
 }
@@ -269,17 +304,43 @@ void processConfigCommand(const String &command) {
     copy(wifiPassword, &command.c_str()[12], sizeof(wifiPassword) - 1);
     writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
     changedWifiCredentials = true;
+    pubSubConnectFailures = 0;
 
     Serial.print("Set wifi pw: ");   Serial.println(wifiPassword);
   }
   else if(command.startsWith("set local pw")) {
     copy(localPassword, &command.c_str()[13], sizeof(localPassword) - 1);
     writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
+    pubSubConnectFailures = 0;
 
     Serial.print("Set local pw: ");  Serial.println(localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
     copy(wifiSsid, &command.c_str()[14], sizeof(wifiSsid) - 1);
+    writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
+    changedWifiCredentials = true;
+
+    Serial.print("Set wifi ssid: ");   Serial.println(wifiSsid);
+  }
+  else if(command.startsWith("use")) {
+    if(WiFi.scanComplete() == -1) {
+      Serial.println("Scan running... please wait for it to complete and try again");
+      return;
+    }
+    if(WiFi.scanComplete() == -2) {
+      Serial.println("You must run \"scan\" first!");
+      return;
+    }
+
+    int index = atoi(&command.c_str()[4]);
+    Serial.println(index);
+
+    if(index < 1 || index > WiFi.scanComplete()) {
+      Serial.println("Invalid index");
+      return;
+    }
+
+    copy(wifiSsid, WiFi.SSID(index - 1).c_str(), sizeof(wifiSsid) - 1);
     writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
     changedWifiCredentials = true;
 
@@ -294,12 +355,16 @@ void processConfigCommand(const String &command) {
   else if(command.startsWith("set device token")) {
     copy(deviceToken, &command.c_str()[17], sizeof(deviceToken) - 1);
     writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
+    pubSubConnectFailures = 0;
 
     Serial.print("Set device token: ");  Serial.println(deviceToken);
   }  
   else if(command.startsWith("set mqtt url")) {
     copy(mqttUrl, &command.c_str()[13], sizeof(mqttUrl) - 1);
     writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
+    pubSubConnectFailures = 0;
+    pubSubClient.disconnect();
+    mqttServerConfigured = false;
 
     Serial.print("Set mqtt URL: ");   Serial.println(mqttUrl);
     setupPubSubClient();
@@ -310,6 +375,10 @@ void processConfigCommand(const String &command) {
   else if(command.startsWith("set mqtt port")) {
     mqttPort = atoi(&command.c_str()[14]);
     EepromWriteU16(PUB_SUB_PORT_ADDRESS, mqttPort);
+    pubSubConnectFailures = 0;
+    pubSubClient.disconnect();
+    mqttServerConfigured = false;
+    
     Serial.print("Set mqtt port: ");   Serial.println(mqttPort);
     setupPubSubClient();
 
@@ -344,7 +413,9 @@ void processConfigCommand(const String &command) {
     Serial.println("====================================");
   }
   else if(command.startsWith("scan")) {
-    scanAccessPoints();
+    Serial.println("Scanning available networks...");
+    needToReportScanResults = true;
+    WiFi.scanNetworks(false, true);    // Include hidden access points
   }
   else if(command.startsWith("ping")) {
     const int commandPrefixLen = strlen("PING ");
@@ -408,44 +479,36 @@ void checkForNewInputFromSerialPort() {
 
 
 // Get a list of wifi hotspots the device can see
-void scanAccessPoints() {
-  Serial.println("Scanning available networks...");
+void printScanResult() {
+  int networksFound = WiFi.scanComplete();
+  if(networksFound < 0) {
+    Serial.println("NEGATIVE RESULT!!");    // Should never happen
+    return;
+  }
+  if (networksFound == 0) {
+    Serial.println("Scan completed: No networks found");
+    return;
+  }
 
-  int networksFound = WiFi.scanNetworks();
-  Serial.print("Scan done; ");
-  if (networksFound == 0)
-    Serial.println("no networks found");
-  else
-  {
-    Serial.print(networksFound);
-    Serial.println(" networks found:");
-    {
-    }
-    Serial.println("[* = secured network]");
+  Serial.printf("%d network(s) found\n", networksFound);
 
-    String json = "{\"visibleNetworks\":\"["; 
-
-    for (int i = 0; i < networksFound; i++) {
-      json += "{\\\"ssid\\\":" + WiFi.SSID(i) + "\\\",\\\"rssi\\\":" + String(WiFi.RSSI(i)) + "}";
-      if(i < networksFound - 1)
-        json += ",";
-    }
-    json += "]\"}";
   for (int i = 0; i < networksFound; i++) {
     Serial.printf("%d: %s, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
   }
 
-    bool ok = pubSubClient.publish_P("v1/devices/me/attributes", json.c_str(), 0);
-    if(!ok) {
-      Serial.print("Could not publish message: ");  Serial.println(json.c_str());
-    }
-    else 
-      Serial.println("Published");
+  String json = "{\"visibleNetworks\":\"["; 
 
-    
-
+  for (int i = 0; i < networksFound; i++) {
+    json += "{\\\"ssid\\\":" + WiFi.SSID(i) + "\\\",\\\"rssi\\\":" + String(WiFi.RSSI(i)) + "}";
+    if(i < networksFound - 1)
+      json += ",";
   }
-  Serial.println("");
+  json += "]\"}";
+
+  bool ok = pubSubClient.publish_P("v1/devices/me/attributes", json.c_str(), 0);
+  if(!ok) {
+    Serial.printf("Could not publish message: %s\n", json.c_str());
+  }
 }
 
 
