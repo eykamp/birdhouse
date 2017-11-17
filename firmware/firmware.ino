@@ -133,21 +133,19 @@ void reconnectToPubSubServer() {
     onConnectedToPubSubServer();
   } else {    // Connection failed
     if(verboseMode) {
-      Serial.print("MTQQ connection failed: ");  Serial.println(getSubPubStatusName(pubSubClient.state()));
+      Serial.printf("MTQQ connection failed: %s\n", getSubPubStatusName(pubSubClient.state()));
 
       // We know we're connected to the wifi, so let's see if we can ping the MQTT host
       bool reachable = Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1);   // Try up to 3 pings
 
-      Serial.print("MTQQ host "); Serial.print(mqttUrl); 
-
       if(reachable) {
         if(pubSubClient.state() == MQTT_CONNECT_UNAUTHORIZED) {
-          Serial.printf(" is online.  Looks like the device token (%s) is wrong\n", deviceToken);
+          Serial.printf("MTQQ host: %s is online.  Looks like the device token (%s) is wrong\n", mqttUrl, deviceToken);
         } else {
-          Serial.printf(" is online.  Perhaps the port (%d) is wrong?\n", mqttPort);
+          Serial.printf("MTQQ host: %sis online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
         }
       } else {
-        Serial.println(" is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?");
+        Serial.printf("MTQQ host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
       }
     }
     pubSubConnectFailures++;
@@ -344,20 +342,20 @@ void processConfigCommand(const String &command) {
     writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
     changedWifiCredentials = true;
 
-    Serial.print("Set wifi ssid: ");   Serial.println(wifiSsid);
+    Serial.printf("Set wifi ssid: %s\n", wifiSsid);
   }
   else if(command.startsWith("set local ssid")) {
     copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
     writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
 
-    Serial.print("Set local ssid: ");  Serial.println(localSsid);
+    Serial.printf("Set local ssid: %s", localSsid);
   }
   else if(command.startsWith("set device token")) {
     copy(deviceToken, &command.c_str()[17], sizeof(deviceToken) - 1);
     writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
     pubSubConnectFailures = 0;
 
-    Serial.print("Set device token: ");  Serial.println(deviceToken);
+    Serial.printf("Set device token: %s\n", deviceToken);
   }  
   else if(command.startsWith("set mqtt url")) {
     copy(mqttUrl, &command.c_str()[13], sizeof(mqttUrl) - 1);
@@ -366,7 +364,7 @@ void processConfigCommand(const String &command) {
     pubSubClient.disconnect();
     mqttServerConfigured = false;
 
-    Serial.print("Set mqtt URL: ");   Serial.println(mqttUrl);
+    Serial.printf("Set mqtt URL: %s\n", mqttUrl);
     setupPubSubClient();
 
     // Let's immediately connect our PubSub client
@@ -379,7 +377,7 @@ void processConfigCommand(const String &command) {
     pubSubClient.disconnect();
     mqttServerConfigured = false;
     
-    Serial.print("Set mqtt port: ");   Serial.println(mqttPort);
+    Serial.printf("Set mqtt port: %s\n", mqttPort);
     setupPubSubClient();
 
     // Let's immediately connect our PubSub client
@@ -402,14 +400,14 @@ void processConfigCommand(const String &command) {
     Serial.println("\n====================================");
     Serial.println("Wifi Diagnostics:");
     WiFi.printDiag(Serial); 
-    Serial.print("Wifi status: ");           Serial.println(getWifiStatusName(WiFi.status()));
-    Serial.print("PubSubClient status: ");   Serial.println(getSubPubStatusName(pubSubClient.state()));
-    Serial.println("");
-    Serial.print("localSsid: ");             Serial.println(localSsid);
-    Serial.print("localPassword: ");         Serial.println(localPassword);
-    Serial.print("MQTT Url: ");              Serial.println(mqttUrl);
-    Serial.print("MQTT port: ");             Serial.println(mqttPort);
-    Serial.print("Device Token: ");          Serial.println(deviceToken);
+    Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
+    Serial.printf("PubSubClient status: %s\n", getSubPubStatusName(pubSubClient.state()));
+    Serial.println("====================================");
+    Serial.printf("localSsid: %s\n", localSsid);
+    Serial.printf("localPassword: %s\n", localPassword);
+    Serial.printf("MQTT Url: %s\n", mqttUrl);
+    Serial.printf("MQTT port: %s\n", mqttPort);
+    Serial.printf("Device Token: %s\n", deviceToken);
     Serial.println("====================================");
   }
   else if(command.startsWith("scan")) {
@@ -422,7 +420,7 @@ void processConfigCommand(const String &command) {
     ping((command.length() > commandPrefixLen) ? &command.c_str()[commandPrefixLen] : defaultPingTargetHostName);
   }
   else {
-    Serial.print("Unknown command: ");    Serial.println(command);
+    Serial.printf("Unknown command: %s\n", command.c_str());
   }
 }
 
