@@ -89,18 +89,17 @@ void setupPubSubClient() {
 
 void loopPubSub() {
   // Ensure constant contact with the mother ship
-  if(pubSubClient.connected()) {
-    pubSubClient.loop();
-  }
-  else {
+  if(!pubSubClient.connected()) {
     U32 now = millis();
 
     if (now - lastPubSubConnectAttempt > 5 * SECONDS) {
       reconnectToPubSubServer();      // Attempt to reconnect
       lastPubSubConnectAttempt = now;
+      return;
     }
   }
 
+  pubSubClient.loop();
 }
 
 
