@@ -462,12 +462,12 @@ void ping(const char *target) {
   while(pingCount > 0)
   {
     if(Ping.ping(target, 1)) {
-      Serial.print("Response time:"); Serial.print(Ping.averageTime()); Serial.println("ms");
+      Serial.printf("Response time: %d ms\n", Ping.averageTime());
       pingCount--;
       if(pingCount == 0)
         Serial.println("Ping complete");
     } else {
-      Serial.print("Failure pinging ");   Serial.println(target);
+      Serial.printf("Failure pinging  %s\n", target);
       pingCount = 0;    // Cancel ping if it's not working
     }
   }
