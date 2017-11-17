@@ -214,6 +214,7 @@ void activateLed(String LED) {
   //activate Led pins 
 }
 
+
 bool needToConnect = false;
 String visitUrl = "www.yahoo.com";
 
@@ -241,6 +242,7 @@ void loop() {
 
   if(isConnectingToWifi)
     connectingToWifi();
+
   
   if(needToConnect) {
     contactServer(visitUrl);
