@@ -300,30 +300,30 @@ void processConfigCommand(const String &command) {
   if(command == "uptime") {
     Serial.print("Uptime: ");
     if(millisOveflows > 0) {
-      Serial.print(millisOveflows);   Serial.print("*2^32 + ");
+      Serial.printf("%d*2^32 + ", millisOveflows);
     }
-    Serial.print(millis() / 1000);    Serial.println(" seconds");
+    Serial.printf("%d seconds", millis() / 1000);
   }
     else if(command.startsWith("set wifi pw")) {
     saveWifiPassword(&command.c_str()[12]);
     changedWifiCredentials = true;
     pubSubConnectFailures = 0;
 
-    Serial.print("Set wifi pw: ");   Serial.println(wifiPassword);
+    Serial.printf("Saved wifi pw: %s\n", wifiPassword, 123);
   }
   else if(command.startsWith("set local pw")) {
     copy(localPassword, &command.c_str()[13], sizeof(localPassword) - 1);
     writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
     pubSubConnectFailures = 0;
 
-    Serial.print("Set local pw: ");  Serial.println(localPassword);
+    Serial.printf("Saved local pw: %s\n", localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
     copy(wifiSsid, &command.c_str()[14], sizeof(wifiSsid) - 1);
     writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
     changedWifiCredentials = true;
 
-    Serial.print("Set wifi ssid: ");   Serial.println(wifiSsid);
+    Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
   }
 
   #define COMMAND "use"
