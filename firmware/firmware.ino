@@ -142,7 +142,7 @@ void reconnectToPubSubServer() {
         if(pubSubClient.state() == MQTT_CONNECT_UNAUTHORIZED) {
           Serial.printf("MTQQ host: %s is online.  Looks like the device token (%s) is wrong\n", mqttUrl, deviceToken);
         } else {
-          Serial.printf("MTQQ host: %sis online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
+          Serial.printf("MTQQ host: %s is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
         }
       } else {
         Serial.printf("MTQQ host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
