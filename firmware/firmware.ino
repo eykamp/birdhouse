@@ -322,7 +322,7 @@ void processConfigCommand(const String &command) {
 
   #define COMMAND "use"
   else if(command.startsWith(COMMAND)) {
-    int index = atoi(&command.c_str()[sizeof(COMMAND) + 1]);
+    int index = atoi(&command.c_str()[sizeof(COMMAND)]);
     useWifi(index);
   }
   else if(command.startsWith("set local ssid")) {
@@ -409,7 +409,7 @@ void processConfigCommand(const String &command) {
 
 void useWifi(int index) {
   if(index < 1 || index > WiFi.scanComplete()) {
-    Serial.printf("Invalid index: %s", index);
+    Serial.printf("Invalid index: %s\n", index);
     return;
   }
   
@@ -426,7 +426,7 @@ void useWifi(int index) {
   writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
 
   if(WiFi.encryptionType(index - 1) == ENC_TYPE_NONE) {
-    Serial.println("Connecting to open wifi... clearing wifi password");
+    Serial.println("Connecting to open wifi... clearing password");
     saveWifiPassword("");
   }
 
