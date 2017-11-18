@@ -299,8 +299,7 @@ void processConfigCommand(const String &command) {
     Serial.print(millis() / 1000);    Serial.println(" seconds");
   }
     else if(command.startsWith("set wifi pw")) {
-    copy(wifiPassword, &command.c_str()[12], sizeof(wifiPassword) - 1);
-    writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
+    saveWifiPassword(&command.c_str()[12]);
     changedWifiCredentials = true;
     pubSubConnectFailures = 0;
 
@@ -320,29 +319,11 @@ void processConfigCommand(const String &command) {
 
     Serial.print("Set wifi ssid: ");   Serial.println(wifiSsid);
   }
-  else if(command.startsWith("use")) {
-    if(WiFi.scanComplete() == -1) {
-      Serial.println("Scan running... please wait for it to complete and try again");
-      return;
-    }
-    if(WiFi.scanComplete() == -2) {
-      Serial.println("You must run \"scan\" first!");
-      return;
-    }
 
-    int index = atoi(&command.c_str()[4]);
-    Serial.println(index);
-
-    if(index < 1 || index > WiFi.scanComplete()) {
-      Serial.println("Invalid index");
-      return;
-    }
-
-    copy(wifiSsid, WiFi.SSID(index - 1).c_str(), sizeof(wifiSsid) - 1);
-    writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
-    changedWifiCredentials = true;
-
-    Serial.printf("Set wifi ssid: %s\n", wifiSsid);
+  #define COMMAND "use"
+  else if(command.startsWith(COMMAND)) {
+    int index = atoi(&command.c_str()[sizeof(COMMAND) + 1]);
+    useWifi(index);
   }
   else if(command.startsWith("set local ssid")) {
     copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
@@ -424,6 +405,41 @@ void processConfigCommand(const String &command) {
   }
 }
 
+
+
+void useWifi(int index) {
+  if(index < 1 || index > WiFi.scanComplete()) {
+    Serial.printf("Invalid index: %s", index);
+    return;
+  }
+  
+  if(WiFi.scanComplete() == -1) {
+    Serial.println("Scan running... please wait for it to complete and try again");
+    return;
+  }
+  if(WiFi.scanComplete() == -2) {
+    Serial.println("You must run \"scan\" first!");
+    return;
+  }
+
+  copy(wifiSsid, WiFi.SSID(index - 1).c_str(), sizeof(wifiSsid) - 1);
+  writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
+
+  if(WiFi.encryptionType(index - 1) == ENC_TYPE_NONE) {
+    Serial.println("Connecting to open wifi... clearing wifi password");
+    saveWifiPassword("");
+  }
+
+  changedWifiCredentials = true;
+
+  Serial.printf("Set wifi ssid: %s\n", wifiSsid);
+}
+
+
+void saveWifiPassword(const char *value) {
+  copy(wifiPassword, value, sizeof(wifiPassword) - 1);
+  writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
+}
 
 
 const char *getWifiStatusName(wl_status_t status) {
