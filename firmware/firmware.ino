@@ -358,7 +358,7 @@ void processConfigCommand(const String &command) {
     pubSubClient.disconnect();
     mqttServerConfigured = false;
     
-    Serial.printf("Set mqtt port: %s\n", mqttPort);
+    Serial.printf("Set mqtt port: %d\n", mqttPort);
     setupPubSubClient();
 
     // Let's immediately connect our PubSub client
@@ -387,7 +387,7 @@ void processConfigCommand(const String &command) {
     Serial.printf("localSsid: %s\n", localSsid);
     Serial.printf("localPassword: %s\n", localPassword);
     Serial.printf("MQTT Url: %s\n", mqttUrl);
-    Serial.printf("MQTT port: %s\n", mqttPort);
+    Serial.printf("MQTT port: %d\n", mqttPort);
     Serial.printf("Device Token: %s\n", deviceToken);
     Serial.println("====================================");
   }
