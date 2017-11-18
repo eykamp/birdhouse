@@ -78,10 +78,11 @@ U32 lastPubSubConnectAttempt = 0;
 bool mqttServerConfigured = false;
 
 void setupPubSubClient() {
-  IPAddress serverIp;
 
   if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
     return;
+
+  IPAddress serverIp;
 
   Serial.printf("Looking up IP for %s\n", mqttUrl);
   if(WiFi.hostByName(mqttUrl, serverIp)) {
