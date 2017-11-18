@@ -76,8 +76,11 @@ WiFiClient wfclient;
 PubSubClient pubSubClient(wfclient);
 U32 lastPubSubConnectAttempt = 0;
 bool mqttServerConfigured = false;
+bool mqttServerLookupError = false;
 
 void setupPubSubClient() {
+  if(mqttServerConfigured || mqttServerLookupError )
+    return;
 
   if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
     return;
@@ -90,6 +93,7 @@ void setupPubSubClient() {
     mqttServerConfigured = true;
   } else {
     Serial.printf("Could not get IP address for MQTT server %s\n", mqttUrl);
+    mqttServerLookupError = true;
   }
 }
 
@@ -97,6 +101,8 @@ void setupPubSubClient() {
 U32 pubSubConnectFailures = 0;
 
 void loopPubSub() {
+  setupPubSubClient();
+
   if(!mqttServerConfigured)
     return;
 
@@ -344,6 +350,7 @@ void processConfigCommand(const String &command) {
     pubSubConnectFailures = 0;
     pubSubClient.disconnect();
     mqttServerConfigured = false;
+    mqttServerLookupError = false;
 
     Serial.printf("Saved mqtt URL: %s\n", mqttUrl);
     setupPubSubClient();
@@ -357,6 +364,7 @@ void processConfigCommand(const String &command) {
     pubSubConnectFailures = 0;
     pubSubClient.disconnect();
     mqttServerConfigured = false;
+    mqttServerLookupError = false;
 
     Serial.printf("Saved mqtt port: %d\n", mqttPort);
     setupPubSubClient();
@@ -680,6 +688,7 @@ void setupLocalAccessPoint(const char *ssid, const char *password)
 
 void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConnected = false) {
 
+  mqttServerLookupError = false;
   changedWifiCredentials = false;
 
   if(WiFi.status() == WL_CONNECTED) {   // Already connected
