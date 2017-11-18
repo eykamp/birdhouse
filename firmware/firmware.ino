@@ -83,13 +83,13 @@ void setupPubSubClient() {
   if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
     return;
 
-  Serial.print("Looking up IP for "); Serial.print(mqttUrl);
+  Serial.printf("Looking up IP for %s\n", mqttUrl);
   if(WiFi.hostByName(mqttUrl, serverIp)) {
     Serial.println(" OK");
     pubSubClient.setServer(serverIp, mqttPort);
     mqttServerConfigured = true;
   } else {
-    Serial.print("\nCould not get IP address for MQTT server ");   Serial.println(mqttUrl);
+    Serial.printf("\nCould not get IP address for MQTT server %s\n", mqttUrl);
   }
 }
 
