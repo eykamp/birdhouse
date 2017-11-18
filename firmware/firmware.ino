@@ -85,11 +85,10 @@ void setupPubSubClient() {
 
   Serial.printf("Looking up IP for %s\n", mqttUrl);
   if(WiFi.hostByName(mqttUrl, serverIp)) {
-    Serial.println(" OK");
     pubSubClient.setServer(serverIp, mqttPort);
     mqttServerConfigured = true;
   } else {
-    Serial.printf("\nCould not get IP address for MQTT server %s\n", mqttUrl);
+    Serial.printf("Could not get IP address for MQTT server %s\n", mqttUrl);
   }
 }
 
@@ -140,9 +139,9 @@ void reconnectToPubSubServer() {
 
       if(reachable) {
         if(pubSubClient.state() == MQTT_CONNECT_UNAUTHORIZED) {
-          Serial.printf("MTQQ host: %s is online.  Looks like the device token (%s) is wrong\n", mqttUrl, deviceToken);
+          Serial.printf("MTQQ host: \"%s\" is online.\nLooks like the device token (%s) is wrong?\n", mqttUrl, deviceToken);
         } else {
-          Serial.printf("MTQQ host: %s is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
+          Serial.printf("MTQQ host: \"%s\" is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
         }
       } else {
         Serial.printf("MTQQ host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
@@ -329,7 +328,7 @@ void processConfigCommand(const String &command) {
     copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
     writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
 
-    Serial.printf("Set local ssid: %s", localSsid);
+    Serial.printf("Saved local ssid: %s", localSsid);
   }
   else if(command.startsWith("set device token")) {
     copy(deviceToken, &command.c_str()[17], sizeof(deviceToken) - 1);
@@ -345,7 +344,7 @@ void processConfigCommand(const String &command) {
     pubSubClient.disconnect();
     mqttServerConfigured = false;
 
-    Serial.printf("Set mqtt URL: %s\n", mqttUrl);
+    Serial.printf("Saved mqtt URL: %s\n", mqttUrl);
     setupPubSubClient();
 
     // Let's immediately connect our PubSub client
@@ -357,8 +356,8 @@ void processConfigCommand(const String &command) {
     pubSubConnectFailures = 0;
     pubSubClient.disconnect();
     mqttServerConfigured = false;
-    
-    Serial.printf("Set mqtt port: %d\n", mqttPort);
+
+    Serial.printf("Saved mqtt port: %d\n", mqttPort);
     setupPubSubClient();
 
     // Let's immediately connect our PubSub client
@@ -432,7 +431,7 @@ void useWifi(int index) {
 
   changedWifiCredentials = true;
 
-  Serial.printf("Set wifi ssid: %s\n", wifiSsid);
+  Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
 }
 
 
