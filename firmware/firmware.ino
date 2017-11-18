@@ -75,7 +75,7 @@ void message_received_from_mothership(char* topic, byte* payload, unsigned int l
 WiFiClient wfclient;
 PubSubClient pubSubClient(wfclient);
 U32 lastPubSubConnectAttempt = 0;
-bool mqttServerConfigured = true;     // Assume we have the credentials in the EEPROM
+bool mqttServerConfigured = false;
 
 void setupPubSubClient() {
   IPAddress serverIp;
