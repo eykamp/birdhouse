@@ -325,7 +325,7 @@ void processConfigCommand(const String &command) {
   #define COMMAND "use"
   else if(command.startsWith(COMMAND)) {
     int index = atoi(&command.c_str()[sizeof(COMMAND)]);
-    useWifi(index);
+    setWifiSsidFromScanResults(index);
   }
   else if(command.startsWith("set local ssid")) {
     copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
@@ -428,7 +428,7 @@ void updateWifiPassword(const char *password) {
   Serial.printf("Saved wifi password: %s\n", wifiPassword);
 }
 
-void useWifi(int index) {
+void setWifiSsidFromScanResults(int index) {
   if(index < 1 || index > WiFi.scanComplete()) {
     Serial.printf("Invalid index: %s\n", index);
     return;
