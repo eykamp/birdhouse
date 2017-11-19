@@ -429,19 +429,21 @@ void updateWifiPassword(const char *password) {
 }
 
 void setWifiSsidFromScanResults(int index) {
+  if(WiFi.scanComplete() == -1) {
+    Serial.println("Scan running... please wait for it to complete and try again");
+    return;
+  }
+
+  if(WiFi.scanComplete() == -2) {
+    Serial.println("You must run \"scan\" first!");
+    return;
+  }
+
   if(index < 1 || index > WiFi.scanComplete()) {
     Serial.printf("Invalid index: %s\n", index);
     return;
   }
   
-  if(WiFi.scanComplete() == -1) {
-    Serial.println("Scan running... please wait for it to complete and try again");
-    return;
-  }
-  if(WiFi.scanComplete() == -2) {
-    Serial.println("You must run \"scan\" first!");
-    return;
-  }
 
   copy(wifiSsid, WiFi.SSID(index - 1).c_str(), sizeof(wifiSsid) - 1);
   writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
