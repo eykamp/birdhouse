@@ -306,10 +306,8 @@ void processConfigCommand(const String &command) {
     }
     Serial.printf("%d seconds", millis() / SECONDS);
   }
-    else if(command.startsWith("set wifi pw")) {
-    saveWifiPassword(&command.c_str()[12]);
-    changedWifiCredentials = true;
-    pubSubConnectFailures = 0;
+  else if(command.startsWith("set wifi pw")) {
+    updateWifiPassword(&command.c_str()[12]);
 
     Serial.printf("Saved wifi pw: %s\n", wifiPassword, 123);
   }
@@ -321,11 +319,7 @@ void processConfigCommand(const String &command) {
     Serial.printf("Saved local pw: %s\n", localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
-    copy(wifiSsid, &command.c_str()[14], sizeof(wifiSsid) - 1);
-    writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
-    changedWifiCredentials = true;
-
-    Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
+    updateWifiSsid(&command.c_str()[14]);
   }
 
   #define COMMAND "use"
@@ -416,6 +410,23 @@ void processConfigCommand(const String &command) {
 }
 
 
+
+void updateWifiSsid(const char *ssid) {
+  copy(wifiSsid, ssid, sizeof(wifiSsid) - 1);
+  writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
+  changedWifiCredentials = true;
+
+  Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
+}
+
+void updateWifiPassword(const char *password) {
+  copy(wifiPassword, password, sizeof(wifiPassword) - 1);
+  writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
+  changedWifiCredentials = true;
+  pubSubConnectFailures = 0;
+
+  Serial.printf("Saved wifi password: %s\n", wifiPassword);
+}
 
 void useWifi(int index) {
   if(index < 1 || index > WiFi.scanComplete()) {
