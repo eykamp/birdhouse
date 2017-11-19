@@ -141,19 +141,19 @@ void reconnectToPubSubServer() {
     onConnectedToPubSubServer();
   } else {    // Connection failed
     if(verboseMode) {
-      Serial.printf("MTQQ connection failed: %s\n", getSubPubStatusName(pubSubClient.state()));
+      Serial.printf("MQTT connection failed: %s\n", getSubPubStatusName(pubSubClient.state()));
 
       // We know we're connected to the wifi, so let's see if we can ping the MQTT host
       bool reachable = Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1);   // Try up to 3 pings
 
       if(reachable) {
         if(pubSubClient.state() == MQTT_CONNECT_UNAUTHORIZED) {
-          Serial.printf("MTQQ host: \"%s\" is online.\nLooks like the device token (%s) is wrong?\n", mqttUrl, deviceToken);
+          Serial.printf("MQTT host: \"%s\" is online.\nLooks like the device token (%s) is wrong?\n", mqttUrl, deviceToken);
         } else {
-          Serial.printf("MTQQ host: \"%s\" is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
+          Serial.printf("MQTT host: \"%s\" is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
         }
       } else {
-        Serial.printf("MTQQ host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
+        Serial.printf("MQTT host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
       }
     }
     pubSubConnectFailures++;
