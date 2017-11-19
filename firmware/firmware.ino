@@ -162,7 +162,7 @@ void reconnectToPubSubServer() {
 
 
 void onConnectedToPubSubServer() {
-  Serial.println("Connected to MTQQ server");                                   // Even if we're not in verbose mode... Victories are to be celebrated!
+  Serial.println("Connected to MQTT server");                                   // Even if we're not in verbose mode... Victories are to be celebrated!
   pubSubClient.publish("v1/devices/me/attributes","{'status':'Connected'}");    // Once connected, publish an announcement...
   pubSubClient.subscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
   pubSubConnectFailures = 0;
