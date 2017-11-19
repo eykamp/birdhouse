@@ -61,6 +61,8 @@ U32 millisOveflows = 0;
 
 const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
 
+const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
+
 
 void message_received_from_mothership(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
@@ -667,7 +669,9 @@ void handleNotFound(){
 
 void setupLocalAccessPoint(const char *ssid, const char *password)
 {
-  IPAddress Ip(192,168,1,1);
+  IPAddress Ip;
+  WiFi.hostByName(localAccessPointAddress, Ip);
+
   IPAddress NMask(255,255,255,0);
  
   WiFi.softAPConfig(Ip, Ip, NMask);
