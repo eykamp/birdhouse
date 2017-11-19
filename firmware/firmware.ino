@@ -291,9 +291,9 @@ void loop() {
 }
 
 
-void copy(char *dest, const char *source, U32 size) {
-  strncpy(dest, source, size);
-  dest[size] = '\0';
+void copy(char *dest, const char *source, U32 destSize) {
+  strncpy(dest, source, destSize);
+  dest[destSize] = '\0';
 }
 
 
