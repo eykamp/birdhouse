@@ -304,7 +304,7 @@ void processConfigCommand(const String &command) {
     if(millisOveflows > 0) {
       Serial.printf("%d*2^32 + ", millisOveflows);
     }
-    Serial.printf("%d seconds", millis() / 1000);
+    Serial.printf("%d seconds", millis() / SECONDS);
   }
     else if(command.startsWith("set wifi pw")) {
     saveWifiPassword(&command.c_str()[12]);
