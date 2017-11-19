@@ -678,8 +678,8 @@ void setupLocalAccessPoint(const char *ssid, const char *password)
   WiFi.softAP(ssid, password);  // name, pw, channel, hidden
 
 
-  IPAddress myIp = WiFi.softAPIP();
-  Serial.print("AP IP Address: ");  Serial.println(myIp);
+  Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
+
   const char *dnsName = "birdhouse";
 
   if (MDNS.begin(dnsName)) {              // Start the mDNS responder for birdhouse.local
