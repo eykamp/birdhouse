@@ -676,9 +676,10 @@ void setupLocalAccessPoint(const char *ssid, const char *password)
 
   IPAddress myIp = WiFi.softAPIP();
   Serial.print("AP IP Address: ");  Serial.println(myIp);
+  const char *dnsName = "birdhouse";
 
-  if (MDNS.begin("esp8266")) {              // Start the mDNS responder for esp8266.local
-    Serial.println("mDNS responder started.");
+  if (MDNS.begin(dnsName)) {              // Start the mDNS responder for birdhouse.local
+    Serial.printf("mDNS responder started: %s.local\n", dnsName);
   }
   else {
     Serial.println("Error setting up MDNS responder!");
