@@ -87,7 +87,7 @@ void setupPubSubClient() {
 
   IPAddress serverIp;
 
-  Serial.printf("Looking up IP for %s\n", mqttUrl);
+  Serial.printf("\nLooking up IP for %s\n", mqttUrl);
   if(WiFi.hostByName(mqttUrl, serverIp)) {
     pubSubClient.setServer(serverIp, mqttPort);
     mqttServerConfigured = true;
