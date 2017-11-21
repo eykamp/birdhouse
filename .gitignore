@@ -6,3 +6,5 @@ fake_sensor_config\.py
 provision_config\.py
 
 redlght_greenlight/redlight_greenlight_config\.py
+
+telemetry_manager/telemetry_manager_config\.py
