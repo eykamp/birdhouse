@@ -657,8 +657,7 @@ void handleRoot() {
 }
 
 void handleLogin() {
-  if( ! server.hasArg("LED")
-      || server.arg("LED") == NULL) {
+  if( ! server.hasArg("LED") || server.arg("LED") == NULL) {
     server.send(400, "text/plain", "400: Invalid Request");         // The request is invalid, so send HTTP status 400
     return;
   }
