@@ -226,6 +226,13 @@ void setup()
 
   WiFi.mode(WIFI_AP_STA);  
 
+  // We'll handle these ourselves
+  WiFi.setAutoConnect(false);
+  WiFi.setAutoReconnect(false);
+  // WiFi.wifi_station_set_reconnect_policy(false);
+  // WiFi.wifi_station_set_auto_connect(false);
+
+
   setupPubSubClient();
   pubSubClient.setCallback(message_received_from_mothership);
 
