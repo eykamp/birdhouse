@@ -6,6 +6,7 @@
 #include <EEPROM.h>             // For persisiting values in EEPROM
 #include "ESP8266Ping.h"        // For ping, of course
 
+
 // Indulge me!
 #define U8  uint8_t
 #define S8  int8_t
@@ -268,6 +269,7 @@ bool isConnectingToWifi = false;    // True while a connection is in process
 U32 connectingToWifiDotTimer;
 U32 wifiConnectStartTime;
 U32 lastMillis = 0;
+
 bool needToReportScanResults = false;
 
 
@@ -563,7 +565,7 @@ void printScanResult() {
   json += "]\"}";
 
   bool ok = pubSubClient.publish_P("v1/devices/me/attributes", json.c_str(), 0);
-  
+
   if(!ok) {
     Serial.printf("Could not publish message: %s\n", json.c_str());
   }
@@ -665,6 +667,7 @@ void handleLogin() {
   visitUrl = server.arg("url");
   needToConnect = true;
   activateLed(server.arg("LED"));
+
   server.sendHeader("Location","/");        // Add a header to respond with a new location for the browser to go to the home page again
   server.send(303);                         // Send it back to the browser with an HTTP status 303 (See Other) to redirect
   
