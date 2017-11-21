@@ -25,7 +25,6 @@
 // WiFi Definitions //
 //////////////////////
 
-//WiFiServer server(80);
 ESP8266WebServer server(80);
 void handleRoot();              // function prototypes for HTTP handlers
 void handleLogin();
@@ -46,6 +45,7 @@ char wifiPassword[PASSWORD_LENGTH + 1];
 char deviceToken[DEVICE_KEY_LENGTH + 1];
 char mqttUrl[URL_LENGTH + 1];
 U16 mqttPort;
+U16 wifiChannel = 11;   // TODO: EEPROM, 0 = default, 1-13 are valid values
 
 const int LOCAL_SSID_ADDRESS     = 0;
 const int LOCAL_PASSWORD_ADDRESS = LOCAL_SSID_ADDRESS     + sizeof(localSsid);
@@ -233,6 +233,8 @@ void setup()
   // WiFi.wifi_station_set_auto_connect(false);
 
 
+  initiateConnectionToWifi();
+
   setupPubSubClient();
   pubSubClient.setCallback(message_received_from_mothership);
 
@@ -257,7 +259,7 @@ void activateLed(String LED) {
   //activate Led pins 
 }
 
-
+bool needToReconnectToWifi = false;
 bool needToConnect = false;
 String visitUrl = "www.yahoo.com";
 
@@ -272,6 +274,8 @@ U32 lastMillis = 0;
 
 bool needToReportScanResults = false;
 
+
+U32 lastScanTime = 0;
 
 void loop() {
   U32 now = millis();
@@ -290,10 +294,15 @@ void loop() {
     connectingToWifi();
   }
 
-  
-  if(needToConnect) {
-    contactServer(visitUrl);
+  if(now - lastScanTime > 5 * MINUTES) {
+    startScanning();
   }
+
+  if(needToReconnectToWifi) {
+    connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
+    needToReconnectToWifi = false;
+  }
+
 
   if(needToReportScanResults && WiFi.scanComplete() >= 0) {
     printScanResult();
@@ -408,9 +417,7 @@ void processConfigCommand(const String &command) {
     Serial.println("====================================");
   }
   else if(command.startsWith("scan")) {
-    Serial.println("Scanning available networks...");
-    needToReportScanResults = true;
-    WiFi.scanNetworks(false, true);    // Include hidden access points
+    startScanning();
   }
   else if(command.startsWith("ping")) {
     const int commandPrefixLen = strlen("PING ");
@@ -422,11 +429,21 @@ void processConfigCommand(const String &command) {
 }
 
 
+void startScanning() {
+  if(needToReportScanResults)
+    return;
+  Serial.println("Scanning available networks...");
+  needToReportScanResults = true;
+  WiFi.scanNetworks(false, true);    // Include hidden access points
+  lastScanTime = millis();
+}
+
 
 void updateWifiSsid(const char *ssid) {
   copy(wifiSsid, ssid, sizeof(wifiSsid) - 1);
   writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
   changedWifiCredentials = true;
+  initiateConnectionToWifi();
 
   Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
 }
@@ -436,6 +453,7 @@ void updateWifiPassword(const char *password) {
   writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
   changedWifiCredentials = true;
   pubSubConnectFailures = 0;
+  initiateConnectionToWifi();
 
   Serial.printf("Saved wifi password: %s\n", wifiPassword);
 }
@@ -460,20 +478,9 @@ void setWifiSsidFromScanResults(int index) {
   copy(wifiSsid, WiFi.SSID(index - 1).c_str(), sizeof(wifiSsid) - 1);
   writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
 
-  if(WiFi.encryptionType(index - 1) == ENC_TYPE_NONE) {
-    Serial.println("Connecting to open wifi... clearing password");
-    saveWifiPassword("");
-  }
-
   changedWifiCredentials = true;
 
   Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
-}
-
-
-void saveWifiPassword(const char *value) {
-  copy(wifiPassword, value, sizeof(wifiPassword) - 1);
-  writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
 }
 
 
@@ -664,6 +671,19 @@ void handleLogin() {
     return;
   }
 
+  if(server.hasArg("wifiSsid") && server.arg("wifiSsid") != "") {
+
+    updateWifiSsid(server.arg("wifiSsid").c_str());
+    needToReconnectToWifi = true; 
+
+  }
+
+  if(server.hasArg("wifiPassword") && server.arg("wifiPassword") != "") {
+
+    updateWifiPassword(server.arg("wifiPassword").c_str());
+  }
+  
+
   visitUrl = server.arg("url");
   needToConnect = true;
   activateLed(server.arg("LED"));
@@ -741,50 +761,63 @@ void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConn
     WiFi.disconnect();
   }
 
-  wifiConnectStartTime = millis();      // Initiate new connection
-  Serial.print("Connecting to ");       
-  Serial.println(ssid);
+  initiateConnectionToWifi();
+}
 
-  WiFi.begin(ssid, password);
-  isConnectingToWifi = true;
-  connectingToWifiDotTimer = millis();
- }
+
+void initiateConnectionToWifi()
+{
+  Serial.printf("Starting connection to %s\n", wifiSsid);
+
+  // set passphrase
+  int status = WiFi.begin(wifiSsid, wifiPassword, wifiChannel);
+  Serial.printf("Begin status = %d, %s\n", status, getWifiStatusName((wl_status_t)status));
+
+  if (status == WL_CONNECT_FAILED) {    // Something went wrong
+    Serial.println("Failed to set ssid & pw.  Connect attempt aborted.");
+  } else {                              // Status is probably WL_DISCONNECTED
+    isConnectingToWifi = true;
+    connectingToWifiDotTimer = millis();
+    wifiConnectStartTime = millis();    
+  }
+}
+
 
 
 // Will be run every loop cycle if isConnectingToWifi is true
 void connectingToWifi()
 {
-  if(WiFi.status() != WL_CONNECTED) {
-    if(millis() - connectingToWifiDotTimer > 500) {
-      Serial.print(".");
-      connectingToWifiDotTimer = millis();
-    }
+  if(WiFi.status() == WL_CONNECTED) {   // We just connected!  :-)
 
-    if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
-      Serial.println("");
-      Serial.println("Unable to connect to WiFi!");
-      isConnectingToWifi = false;
-    }
-
+    isConnectingToWifi = false;
+  
+    Serial.println("");
+    Serial.print((millis() - wifiConnectStartTime) / SECONDS);
+    Serial.println(" seconds");
+    Serial.print("Connected to WiFi; Address on the LAN: "); 
+    Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
     return;
   }
 
-  // We're connected!
+  // Still not connected  :-(
 
-  isConnectingToWifi = false;
-  
-  Serial.println("");
-  Serial.print((millis() - wifiConnectStartTime) / 1000);
-  Serial.println(" seconds");
-  Serial.print("Connected to WiFi; Address on the LAN: "); 
-  Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
+  if(millis() - connectingToWifiDotTimer > 500) {
+    Serial.print(".");
+    connectingToWifiDotTimer = millis();
+  }
+
+  if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
+    Serial.println("");
+    Serial.println("Unable to connect to WiFi!");
+    isConnectingToWifi = false;
+  }
 }
 
 
 
-int greenLedPin = 1;
+int redLedPin = 1;
 int yellowLedPin = 2;
-int redLedPin = 3;
+int greenLedPin = 3;
 int translate(const String &color) {
 
   if(color == "green") {
