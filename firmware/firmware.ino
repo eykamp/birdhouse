@@ -723,15 +723,16 @@ void handleNotFound(){
 //}
 
 
+
+
 // Called only in setup
 void setupLocalAccessPoint(const char *ssid, const char *password)
 {
-  IPAddress Ip;
-  WiFi.hostByName(localAccessPointAddress, Ip);
+  IPAddress ip, gateway;
 
-  IPAddress NMask(255,255,255,0);
+  IPAddress subnetMask(255,255,255,0);
  
-  WiFi.softAPConfig(Ip, Ip, NMask);
+  WiFi.softAPConfig(ip, gateway, subnetMask);
   WiFi.softAP(ssid, password);  // name, pw, channel, hidden
 
 
