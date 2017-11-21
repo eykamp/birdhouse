@@ -224,8 +224,7 @@ void setup()
   Serial.print("mqttUrl: ");       Serial.println(mqttUrl);
   Serial.print("deviceToken: ");   Serial.println(deviceToken);
 
-  WiFi.mode(WIFI_AP);  
-  
+  WiFi.mode(WIFI_AP_STA);  
 
   setupPubSubClient();
   pubSubClient.setCallback(message_received_from_mothership);
