@@ -15,7 +15,11 @@
 #define S32 int32_t 
 #define U32 uint32_t            // unsigned long
 
+// Interval definitions
 #define SECONDS 1000
+#define MINUTES 60 * SECONDS
+#define HOURS 60 * MINUTES
+#define DAYS 24 * HOURS
 
 //////////////////////
 // WiFi Definitions //
