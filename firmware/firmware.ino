@@ -278,8 +278,9 @@ void loop() {
   server.handleClient();
   checkForNewInputFromSerialPort();
 
-  if(isConnectingToWifi)
+  if(isConnectingToWifi) {
     connectingToWifi();
+  }
 
   
   if(needToConnect) {
@@ -307,7 +308,7 @@ void processConfigCommand(const String &command) {
     if(millisOveflows > 0) {
       Serial.printf("%d*2^32 + ", millisOveflows);
     }
-    Serial.printf("%d seconds", millis() / SECONDS);
+    Serial.printf("%d seconds\n", millis() / SECONDS);
   }
   else if(command.startsWith("set wifi pw")) {
     updateWifiPassword(&command.c_str()[12]);
@@ -433,7 +434,7 @@ void updateWifiPassword(const char *password) {
 
 void setWifiSsidFromScanResults(int index) {
   if(WiFi.scanComplete() == -1) {
-    Serial.println("Scan running... please wait for it to complete and try again");
+    Serial.println("Scan running... please wait for it to complete and try again.");
     return;
   }
 
@@ -683,6 +684,7 @@ void handleNotFound(){
 //}
 
 
+// Called only in setup
 void setupLocalAccessPoint(const char *ssid, const char *password)
 {
   IPAddress Ip;
@@ -778,8 +780,6 @@ int translate(const String &color) {
   else return 0;
  
 }
-
-
 
 
 void writeStringToEeprom(int addr, int length, const char *value)
