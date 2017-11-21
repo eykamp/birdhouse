@@ -544,16 +544,27 @@ void printScanResult() {
     Serial.printf("%d: %s <<%s>>, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
   }
 
-  String json = "{\"visibleNetworks\":\"["; 
+  // This is the format the Google Location services uses.  We'll create a list of these packets here so they can be passed through by the microservice
+  // {
+  //   "macAddress": "00:25:9c:cf:1c:ac",
+  //   "signalStrength": -43,
+  //   "age": 0,
+  //   "channel": 11,
+  //   "signalToNoiseRatio": 0
+  // }
+
+  String json = "{\"visibleHotspots\":\"["; 
 
   for (int i = 0; i < networksFound; i++) {
-    json += "{\\\"ssid\\\":" + WiFi.SSID(i) + "\\\",\\\"rssi\\\":" + String(WiFi.RSSI(i)) + "}";
+    json += "{\\\"macAddress\\\":\\\"" + WiFi.BSSIDstr(i) + "\\\",\\\"signalStrength\\\":" + String(WiFi.RSSI(i)) + 
+                ", \\\"age\\\": 0, \\\"channel\\\":" + String(WiFi.channel(i)) + ",\\\"signalToNoiseRatio\\\": 0 }";
     if(i < networksFound - 1)
       json += ",";
   }
   json += "]\"}";
 
   bool ok = pubSubClient.publish_P("v1/devices/me/attributes", json.c_str(), 0);
+  
   if(!ok) {
     Serial.printf("Could not publish message: %s\n", json.c_str());
   }
