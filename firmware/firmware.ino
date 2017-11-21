@@ -695,7 +695,7 @@ void handleLogin() {
 
 void handleNotFound(){
   server.send(200, "text/plain", "Not found!! Try /");
- 
+  Serial.println("handled!");
 //  client.print(getHeader());
 //  client.print("see ya");
 //  client.print(getFooter());
