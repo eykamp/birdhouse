@@ -763,7 +763,7 @@ void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConn
 
 void initiateConnectionToWifi()
 {
-  Serial.printf("Starting connection to %s\n", wifiSsid);
+  Serial.printf("Starting connection to %s...\n", wifiSsid);
 
   // set passphrase
   int status = WiFi.begin(wifiSsid, wifiPassword, wifiChannel);
