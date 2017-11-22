@@ -724,6 +724,8 @@ void handleNotFound(){
 void setupLocalAccessPoint(const char *ssid, const char *password)
 {
   IPAddress ip, gateway;
+  WiFi.hostByName("192.168.1.1", ip);
+  WiFi.hostByName("192.168.1.2", gateway);
 
   IPAddress subnetMask(255,255,255,0);
  
