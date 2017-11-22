@@ -469,18 +469,13 @@ void setWifiSsidFromScanResults(int index) {
     return;
   }
 
+  // Networks are 0-indexed, but user will be selecting a network based on 1-indexed display
   if(index < 1 || index > WiFi.scanComplete()) {
     Serial.printf("Invalid index: %s\n", index);
     return;
   }
   
-
-  copy(wifiSsid, WiFi.SSID(index - 1).c_str(), sizeof(wifiSsid) - 1);
-  writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
-
-  changedWifiCredentials = true;
-
-  Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
+  updateWifiSsid(SSID(index - 1).c_str());
 }
 
 
