@@ -475,7 +475,7 @@ void setWifiSsidFromScanResults(int index) {
     return;
   }
   
-  updateWifiSsid(SSID(index - 1).c_str());
+  updateWifiSsid(WiFi.SSID(index - 1).c_str());
 }
 
 
