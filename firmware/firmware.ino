@@ -648,7 +648,12 @@ void handleRoot() {
   "<input type='radio' name='LED' value = 'red'>"
   "<input type='radio' name='LED' value = 'yellow'>"
   "<input type='radio' name='LED' value = 'green'>"
+  "<br>url to connect:"
   "<input type='text' name='url' value = '' size='30'>"
+  "<br>wifi ssid to connect:"
+  "<input type='text' name='wifiSsid' value = 'optional' size='30'>"
+  "<br>wifi password to connect:"
+  "<input type='text' name='wifiPassword' value = 'optional' size='30'>"
   "<input type='submit' value='Submit'></form>"); 
 //  client.print(getHeader());
 //  client.print("howdy");
