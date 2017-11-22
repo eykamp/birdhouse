@@ -566,7 +566,7 @@ void printScanResult() {
   }
   json += "]\"}";
 
-  bool ok = pubSubClient.publish_P("v1/devices/me/attributes", json.c_str(), 0);
+  bool ok = pubSubClient.publish_P("v1/devices/me/attributes", (U8 *)json.c_str(), strlen(json.c_str()), 0);
 
   if(!ok) {
     Serial.printf("Could not publish message: %s\n", json.c_str());
