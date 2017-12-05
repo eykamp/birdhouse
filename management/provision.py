@@ -57,10 +57,19 @@ def main():
         "nonce": 0
     }
     device = tbapi.add_device(make_device_name(cust_name), sensor_type, shared_attributes, server_attributes)
+    device_id = tbapi.get_id(device)
+    
+    # We need to store the device token as a server attribute so our REST services can get access to it
+    device_token = tbapi.get_device_token(device_id)
 
+    server_attributes = {
+        "device_token": device_token
+    }
+
+    tbapi.set_server_attributes(device_id, server_attributes)
 
     # Upate the dash def. to point at the device we just created (modifies dash_def)
-    update_dash_def(dash_def, cust_name, tbapi.get_id(device))
+    update_dash_def(dash_def, cust_name, device_id)
 
     # Create a new dash with our definition, and assign it to the new customer    
     dash = tbapi.create_dashboard_for_customer(cust_name + ' Dash', dash_def)
@@ -75,7 +84,6 @@ def main():
 
 
 
-    # device_id = tbapi.get_id(device)
 
     # assign_device_to_public_user(token, device_id)
 
