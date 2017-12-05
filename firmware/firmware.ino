@@ -14,6 +14,7 @@
 #define U16 uint16_t
 #define S32 int32_t 
 #define U32 uint32_t            // unsigned long
+#define F32 float
 
 // Interval definitions
 #define SECONDS 1000
