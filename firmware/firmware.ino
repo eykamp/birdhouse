@@ -408,7 +408,7 @@ void processConfigCommand(const String &command) {
     Serial.println("Wifi Diagnostics:");
     WiFi.printDiag(Serial); 
     Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
-    Serial.printf("PubSubClient status: %s\n", getSubPubStatusName(pubSubClient.state()));
+    Serial.printf("MQTT status: %s\n", getSubPubStatusName(pubSubClient.state()));
     Serial.println("====================================");
     Serial.printf("localSsid: %s\n", localSsid);
     Serial.printf("localPassword: %s\n", localPassword);
