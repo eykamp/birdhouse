@@ -26,10 +26,11 @@
 // WiFi Definitions //
 //////////////////////
 
-ESP8266WebServer server(80);
 void handleRoot();              // function prototypes for HTTP handlers
 void handleLogin();
 void handleNotFound();
+#define WEB_PORT 80
+ESP8266WebServer server(WEB_PORT);
 
 ///// 
 // For persisting values in EEPROM
