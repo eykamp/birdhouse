@@ -24,7 +24,9 @@ app = web.application(urls, globals())
 class handle_hotspots:
     def POST(self):
         try:
-            incoming_data = json.loads(web.data().decode(data_encoding))
+            data = web.data()
+            decoded = data.decode(data_encoding)
+            incoming_data = json.loads(decoded)
             print(incoming_data)
 
             known_lat = incoming_data["latitude"]
@@ -34,14 +36,14 @@ class handle_hotspots:
             print("Cannot parse incoming packet:", web.data())
 
             # Diagnose common configuration problems
-            if "$ss" in web.data():
-                pos = data.find("$ss")
+            if '$ss' in decoded:
+                pos = decoded.find('$ss')
                 while(pos > -1):
-                    end = data.find(" ", pos)
-                    word = data[pos+4:end].strip(',')
+                    end = decoded.find(" ", pos)
+                    word = decoded[pos+4:end].strip(',')
                     print("Missing server attribute", word)
 
-                    pos = data.find("$ss", pos + 1)
+                    pos = decoded.find('$ss', pos + 1)
             return
 
         results = gmaps.geolocate(wifi_access_points=incoming_data["hotspots"])
