@@ -46,7 +46,6 @@ def main():
     # Create new customer and device records on the server
     customer = tbapi.add_customer(cust_name, cust_address, cust_address2, cust_city, cust_state, cust_zip, cust_country, cust_email, cust_phone)
 
-
     server_attributes = {
         "latitude": cust_lat,
         "longitude": cust_lon
@@ -58,6 +57,7 @@ def main():
     }
     device = tbapi.add_device(make_device_name(cust_name), sensor_type, shared_attributes, server_attributes)
     device_id = tbapi.get_id(device)
+
     
     # We need to store the device token as a server attribute so our REST services can get access to it
     device_token = tbapi.get_device_token(device_id)
