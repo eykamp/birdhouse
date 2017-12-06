@@ -353,7 +353,7 @@ void processConfigCommand(const String &command) {
     copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
     writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
 
-    Serial.printf("Saved local ssid: %s", localSsid);
+    Serial.printf("Saved local ssid: %s\n", localSsid);
   }
   else if(command.startsWith("set device token")) {
     copy(deviceToken, &command.c_str()[17], sizeof(deviceToken) - 1);
