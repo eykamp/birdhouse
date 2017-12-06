@@ -67,6 +67,7 @@ U32 millisOveflows = 0;
 const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
 
 const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
+const char *localGatewayAddress = "192.168.1.2";
 
 
 void message_received_from_mothership(char* topic, byte* payload, unsigned int length) {
@@ -726,12 +727,12 @@ void handleNotFound(){
 
 
 
-// Called only in setup
+// Called from setup
 void setupLocalAccessPoint(const char *ssid, const char *password)
 {
   IPAddress ip, gateway;
-  WiFi.hostByName("192.168.1.1", ip);
-  WiFi.hostByName("192.168.1.2", gateway);
+  WiFi.hostByName(localAccessPointAddress, ip);
+  WiFi.hostByName(localGatewayAddress, gateway);
 
   IPAddress subnetMask(255,255,255,0);
  
