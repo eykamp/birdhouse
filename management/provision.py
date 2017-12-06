@@ -30,6 +30,8 @@ cust_lon = None     # Will be populated by geocoder if empty
 
 
 def main():
+    cleanup = True
+
     tbapi = TbApi(motherShipUrl, username, password)
 
     # Get a definition of our template dashboard
@@ -76,12 +78,13 @@ def main():
     tbapi.assign_dash_to_user(tbapi.get_id(dash), tbapi.get_id(customer))
     
 
-    # input("Press Enter to continue...")
+    if cleanup:
+        # input("Press Enter to continue...")   # Don't run from Sublime with this line enabled!!!
 
-    tbapi.delete_customer_by_id(tbapi.get_id(customer))
-    tbapi.delete_device(tbapi.get_id(device))
-    tbapi.delete_dashboard(tbapi.get_id(dash))
-
+        print("Cleaning up!")
+        tbapi.delete_dashboard(tbapi.get_id(dash))
+        tbapi.delete_device(device_id)
+        tbapi.delete_customer_by_id(tbapi.get_id(customer))
 
 
 
