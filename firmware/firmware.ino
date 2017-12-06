@@ -305,12 +305,10 @@ void loop() {
     needToReconnectToWifi = false;
   }
 
-
   if(needToReportScanResults && WiFi.scanComplete() >= 0) {
     printScanResult();
     needToReportScanResults = false;    
   }
-  
 }
 
 
