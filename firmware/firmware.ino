@@ -133,13 +133,14 @@ const char *localGatewayAddress = "192.168.1.2";
 void connectToWiFi(const char*, const char*, bool); // Forward declare
 void activateLed(U32 ledMask);
 
+StaticJsonBuffer<1024> jsonBuffer;    // Reusable buffer for sending/receiving json
+
+
 
 void message_received_from_mothership(char* topic, byte* payload, unsigned int length) {
   Serial.printf("Message arrived [%s]\n", topic);
 
   // See https://github.com/bblanchon/ArduinoJson for usage
-  StaticJsonBuffer<200> jsonBuffer;
-
   JsonObject &root = jsonBuffer.parseObject(payload);
 
   const char *color = root["LED"];
@@ -336,14 +337,16 @@ void onConnectedToPubSubServer() {
   Serial.println("Connected to MQTT server");                          // Even if we're not in verbose mode... Victories are to be celebrated!
   mqttPublishAttribute("{'status':'Connected'}");                      // Once connected, publish an announcement...
   mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
+
+  // Send some info about ourselves to the server
+  sendLocalCredentialsToServer();
+  sendTempSensorToServer();
+
   pubSubConnectFailures = 0;
 }
 
 
 const char *defaultPingTargetHostName = "www.google.com";
-
-
-
 
 
 const U32 MAX_COMMAND_LENGTH = 128;
@@ -401,7 +404,6 @@ void setup()
   Serial.printf("MQTT Url: %s\n", mqttUrl);
   Serial.printf("MQTT Port: %d\n", mqttPort);
 
-
   Serial.printf("DeviceToken: %s\n", deviceToken);
 
   WiFi.mode(WIFI_AP_STA);  
@@ -430,6 +432,29 @@ void setup()
   connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
 
   Serial.println("Done setting up.");
+}
+
+
+void sendLocalCredentialsToServer() {
+  JsonObject &root = jsonBuffer.createObject();
+  root["localPassword"] = localPassword;
+  root["localSsid"] = localSsid;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json.c_str());
+}
+
+
+void sendTempSensorToServer() {
+  JsonObject &root = jsonBuffer.createObject();
+  root["temperatureSensor"] = getTemperatureSensorName();
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json.c_str());
 }
 
 
@@ -536,11 +561,15 @@ void setupSensors() {
     TempFilter3.SetCurrent(t);
 
     Serial.printf("Temperature sensor: %s\n", getTemperatureSensorName());
+
+
+
     char str_temp[6];
     dtostrf(t, 4, 2, str_temp);
 
     Serial.printf("Initializing temperature filter %s\n", str_temp);
   }
+
 
   pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM10, INPUT_PULLUP);
   pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM25, INPUT_PULLUP);
@@ -729,6 +758,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       bool ok = mqttPublish("v1/devices/me/telemetry", json.c_str());
       if(!ok) {
         Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
+        Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
 
 #     ifndef DISABLE_MQTT
@@ -860,6 +890,8 @@ void processConfigCommand(const String &command) {
     writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
     pubSubConnectFailures = 0;
 
+    sendLocalCredentialsToServer();
+
     Serial.printf("Saved local pw: %s\n", localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
@@ -874,6 +906,8 @@ void processConfigCommand(const String &command) {
   else if(command.startsWith("set local ssid")) {
     copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
     writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
+    
+    sendLocalCredentialsToServer();
 
     Serial.printf("Saved local ssid: %s\n", localSsid);
   }
