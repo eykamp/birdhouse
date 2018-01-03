@@ -35,6 +35,8 @@
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
 
+#define SOFTWARE_VERSION "0.1 alpha"
+
 // Define this to disable MQTT
 // #define DISABLE_MQTT
 
@@ -342,13 +344,12 @@ bool mqttSubscribe(const char* topic) {
 
 void onConnectedToPubSubServer() {
   Serial.println("Connected to MQTT server");                          // Even if we're not in verbose mode... Victories are to be celebrated!
-  mqttPublishAttribute("{'status':'Connected'}");                      // Once connected, publish an announcement...
   mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
-  // Send some info about ourselves to the server
+  // Announce ourselves to the server
   publishLocalCredentials();
   publishSampleDuration();
-  publishTempSensorName();
+  publishTempSensorNameAndSoftwareVersion();
 
   pubSubConnectFailures = 0;
 }
@@ -468,9 +469,11 @@ void publishLocalCredentials() {
 }
 
 
-void publishTempSensorName() {
+void publishTempSensorNameAndSoftwareVersion() {
   JsonObject &root = jsonBuffer.createObject();
   root["temperatureSensor"] = getTemperatureSensorName();
+  root["firmwareVersion"] = SOFTWARE_VERSION;
+  root["status"] = "Connected";
 
   String json;
   root.printTo(json);
