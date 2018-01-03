@@ -1,3 +1,6 @@
+// TODO: No AQ readings for 1 min after turned on (as per specs)
+// TODO: No AQ measurements when humidity > 95% (as per specs)
+
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>   // Include the WebServer library
@@ -90,7 +93,8 @@ enum Leds {
 };
 
 
-#define SAMPLE_PERIOD_DURATION  5 * SECONDS * MILLIS_TO_MICROS//30 * SECONDS
+// #define SAMPLE_PERIOD_DURATION  30 * SECONDS * MILLIS_TO_MICROS//30 * SECONDS
+#define SAMPLE_PERIOD_DURATION (U32(sampleDuration * SECONDS * MILLIS_TO_MICROS))
 
 ///// 
 // For persisting values in EEPROM
@@ -106,17 +110,20 @@ char wifiSsid[SSID_LENGTH + 1];
 char wifiPassword[PASSWORD_LENGTH + 1];
 char deviceToken[DEVICE_KEY_LENGTH + 1];
 char mqttUrl[URL_LENGTH + 1];
+
 U16 mqttPort;
 U16 wifiChannel = 11;   // TODO: EEPROM, 0 = default, 1-13 are valid values
+U16 sampleDuration;     // In seconds
 
-const int LOCAL_SSID_ADDRESS     = 0;
-const int LOCAL_PASSWORD_ADDRESS = LOCAL_SSID_ADDRESS     + sizeof(localSsid);
-const int WIFI_SSID_ADDRESS      = LOCAL_PASSWORD_ADDRESS + sizeof(localPassword);
-const int WIFI_PASSWORD_ADDRESS  = WIFI_SSID_ADDRESS      + sizeof(wifiSsid);
-const int DEVICE_KEY_ADDRESS     = WIFI_PASSWORD_ADDRESS  + sizeof(wifiPassword);
-const int MQTT_URL_ADDRESS       = DEVICE_KEY_ADDRESS     + sizeof(deviceToken);
-const int PUB_SUB_PORT_ADDRESS   = MQTT_URL_ADDRESS       + sizeof(mqttUrl);
-const int NEXT_ADDRESS           = PUB_SUB_PORT_ADDRESS   + sizeof(mqttPort);
+const int LOCAL_SSID_ADDRESS      = 0;
+const int LOCAL_PASSWORD_ADDRESS  = LOCAL_SSID_ADDRESS      + sizeof(localSsid);
+const int WIFI_SSID_ADDRESS       = LOCAL_PASSWORD_ADDRESS  + sizeof(localPassword);
+const int WIFI_PASSWORD_ADDRESS   = WIFI_SSID_ADDRESS       + sizeof(wifiSsid);
+const int DEVICE_KEY_ADDRESS      = WIFI_PASSWORD_ADDRESS   + sizeof(wifiPassword);
+const int MQTT_URL_ADDRESS        = DEVICE_KEY_ADDRESS      + sizeof(deviceToken);
+const int PUB_SUB_PORT_ADDRESS    = MQTT_URL_ADDRESS        + sizeof(mqttUrl);
+const int SAMPLE_DURATION_ADDRESS = PUB_SUB_PORT_ADDRESS    + sizeof(mqttPort);
+const int NEXT_ADDRESS            = SAMPLE_DURATION_ADDRESS + sizeof(sampleDuration);
 
 const int EEPROM_SIZE = NEXT_ADDRESS;
 
@@ -339,8 +346,9 @@ void onConnectedToPubSubServer() {
   mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Send some info about ourselves to the server
-  sendLocalCredentialsToServer();
-  sendTempSensorToServer();
+  publishLocalCredentials();
+  publishSampleDuration();
+  publishTempSensorName();
 
   pubSubConnectFailures = 0;
 }
@@ -394,7 +402,8 @@ void setup()
   readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  sizeof(wifiPassword)  - 1, wifiPassword);
   readStringFromEeprom(DEVICE_KEY_ADDRESS,     sizeof(deviceToken)   - 1, deviceToken);
   readStringFromEeprom(MQTT_URL_ADDRESS,       sizeof(mqttUrl)       - 1, mqttUrl);
-  mqttPort = EepromReadU16(PUB_SUB_PORT_ADDRESS);
+  mqttPort       = EepromReadU16(PUB_SUB_PORT_ADDRESS);
+  sampleDuration = EepromReadU16(SAMPLE_DURATION_ADDRESS);
 
   
   Serial.printf("Local SSID: %s\n", localSsid);
@@ -403,6 +412,7 @@ void setup()
   Serial.printf("WiFi Password: %s\n", wifiPassword);
   Serial.printf("MQTT Url: %s\n", mqttUrl);
   Serial.printf("MQTT Port: %d\n", mqttPort);
+  Serial.printf("Sampling duration: %d seconds\n", sampleDuration);
 
   Serial.printf("DeviceToken: %s\n", deviceToken);
 
@@ -435,7 +445,18 @@ void setup()
 }
 
 
-void sendLocalCredentialsToServer() {
+void publishSampleDuration() {
+  JsonObject &root = jsonBuffer.createObject();
+  root["sampleDuration"] = sampleDuration;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json.c_str());  
+}
+
+
+void publishLocalCredentials() {
   JsonObject &root = jsonBuffer.createObject();
   root["localPassword"] = localPassword;
   root["localSsid"] = localSsid;
@@ -447,7 +468,7 @@ void sendLocalCredentialsToServer() {
 }
 
 
-void sendTempSensorToServer() {
+void publishTempSensorName() {
   JsonObject &root = jsonBuffer.createObject();
   root["temperatureSensor"] = getTemperatureSensorName();
 
@@ -478,8 +499,6 @@ U32 connectingToWifiDotTimer;
 U32 wifiConnectStartTime;
 U32 lastMillis = 0;
 
-bool needToReportScanResults = false;
-
 
 U32 lastScanTime = 0;
 
@@ -503,25 +522,11 @@ void loop() {
     connectingToWifi();
   }
 
-  if(now_millis - lastScanTime > 30 * MINUTES) {
-    startScanning();
-  }
-
   if(needToReconnectToWifi) {
     connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
     needToReconnectToWifi = false;
   }
-
-  if(needToReportScanResults && WiFi.scanComplete() >= 0) {
-    printScanResult();
-    needToReportScanResults = false;    
-  }
 }
-
-
-U32 lowpulseoccupancy25 = 0;
-U32 lowpulseoccupancy10 = 0;
-
 
 
 
@@ -579,11 +584,11 @@ void setupSensors() {
 
   pinMode(SHARP_LED_POWER, OUTPUT);
 
-  initializeShinyeiTimers();
+  resetDataCollection();
 }
 
 
-U32 samplingPeriodStartTime = micros();
+U32 samplingPeriodStartTime;
 
 const char *getTemperatureSensorName() {
   if(!BME_ok)
@@ -690,70 +695,101 @@ void loopSensors() {
 
 
 
-
-
-
   if (doneSampling) {
     reportMeasurements();
 
-    // Start the cycle anew
-    samplingPeriodStartTime = micros();
+    resetDataCollection();
+
+    if(now_millis - lastScanTime > 30 * MINUTES) {
+      scanVisibleNetworks();
+    }
   }
 
+}
 
+
+void resetDataCollection() {
+  // Start the cycle anew
+  samplingPeriodStartTime = micros();
+
+  bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
+  bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
+
+  durationP1 = 0;
+  durationP2 = 0;
+  triggerOnP1 = samplingPeriodStartTime;
+  triggerOnP2 = samplingPeriodStartTime;
+    
+  triggerP1 = !valP1;
+  triggerP2 = !valP2;
+
+ Serial.printf("P1 / P2 starting %s / %s\n", valP1 ? "HIGH" : "LOW",valP2 ? "HIGH" : "LOW");
+}
+
+
+
+// Generates PM10 and PM2.5 count from LPO.
+// Derived from code created by Chris Nafis from graph provided by Shinyei
+// http://www.howmuchsnow.com/arduino/airquality/grovedust/
+// ratio is a number between 0 and 100
+F64 LpoToParticleCount(F64 ratio) { 
+  return 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) + 520 * ratio + 0.62;  // Particles per .01 ft^3
+}
+
+F64 sphericalVolume(F64 radius) {
+  static const F64 pi = 3.14159;
+  return (4.0 / 3.0) * pi * pow(radius, 3);
 }
 
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
-
     // Function creates particle count and mass concentration
     // from PPD-42 low pulse occupancy (LPO).
       
-      // Generates PM10 and PM2.5 count from LPO.
-      // Derived from code created by Chris Nafis
-      // http://www.howmuchsnow.com/arduino/airquality/grovedust/
 
   Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > SAMPLE_PERIOD_DURATION || 
-                                                                               durationP2 > SAMPLE_PERIOD_DURATION) ? "ERROR" : "");
+                                                                                   durationP2 > SAMPLE_PERIOD_DURATION) ? "ERROR" : "");
       
-      //               microseconds            milliseconds               1000      
-      F32 ratioP1 = (F32)durationP1 / ((F32)SAMPLE_PERIOD_DURATION) * 100;    // Generate a percentage expressed as an integer between 0 and 100
-      F32 ratioP2 = (F32)durationP2 / ((F32)SAMPLE_PERIOD_DURATION) * 100;
+      //               microseconds            microseconds           
+      F64 ratioP1 = (F64)durationP1 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
+      F64 ratioP2 = (F64)durationP2 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;
 
 Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(ratioP2).c_str());
 
-      F32 countP1 = 1.1 * pow(ratioP1, 3) - 3.8 * pow(ratioP1, 2) + 520 * ratioP1 + 0.62;
-      F32 countP2 = 1.1 * pow(ratioP2, 3) - 3.8 * pow(ratioP2, 2) + 520 * ratioP2 + 0.62;
-      F32 PM10count = countP1;
-      F32 PM25count = countP2 - countP1;
+      F64 countP1 = LpoToParticleCount(ratioP1);  // Particles / .01 ft^3
+      F64 countP2 = LpoToParticleCount(ratioP2);  // Particles / .01 ft^3
+
+      F64 PM10count = countP1;
+      F64 PM25count = countP2 - countP1;
       
       // Assumes density, shape, and size of dust
-      // to estimate mass concentration from particle
-      // count. This method was described in a 2009
-      // paper by Uva, M., Falcone, R., McClellan, A., and Ostapowicz, E.
-      // http://wireless.ece.drexel.edu/research/sd_air_quality.pdf
-      
-      const F64 pi = 3.14159;
-      const F64 K = 3531.5;
-      const F64 density = 1.65 * pow(10, 12);
+      // to estimate mass concentration from particle count.
+      // This method was described in a 2009 paper
+      // Preliminary Screening System for Ambient Air Quality in Southeast Philadelphia by Uva, M., Falcone, R., McClellan, A., and Ostapowicz, E.
+      // http://www.cleanair.org/sites/default/files/Drexel%20Air%20Monitoring_-_Final_Report_-_Team_19_0.pdf
+      // http://www.eunetair.it/cost/meetings/Istanbul/01-PRESENTATIONS/06_WG3-WG4-SESSION_WG3/04_ISTANBUL_WG-MC-MEETING_Jovasevic-Stojanovic.pdf
+      //
+      // This method does not use the correction factors, based on the presence of humidity and rain in the paper.
+      //
+      // convert from particles/0.01 ft3 to μg/m3
+      const F64 K = 3531.5; // .01 ft^3 / m^3    
+      const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
 
-      // begins PM10 mass concentration algorithm
-      const F64 r10 = 2.6 * pow(10, -6);
-      const F64 vol10 = (4.0f / 3.0f) * pi * pow(r10, 3);
-      const F64 mass10 = density * vol10;
-      F32 PM10conc = PM10count * K * mass10;
+      // PM10 mass concentration algorithm
+      static const F64 mass10 = density * sphericalVolume(2.6 * pow(10, -6));     // μg/particle; The radius of a particle in the channel >2.5 μm is 2.60 μm
+      F64 PM10conc = PM10count * K * mass10;    // μg/m^3
       
-      // next, PM2.5 mass concentration algorithm
-      const F64 r25 = 0.44 * pow(10, -6);
-      const F64 vol25 = (4.0 / 3.0) * pi * pow(r25, 3);
-      const F64 mass25 = density * vol25;
-      F32 PM25conc = PM25count * K * mass25;
+      // PM2.5 mass concentration algorithm
+      static const F64 mass25 = density * sphericalVolume( 0.44 * pow(10, -6));   // μg/particle; The radius of a particle in the channel <2.5 μm is 0.44 μm
+      F64 PM25conc = PM25count * K * mass25;    // μg/m^3
       
 
       // TODO: Convert to arduinoJson
-      String json = "{\"shinyeiPM10conc\":" + String(PM10conc) + ",\"shinyeiPM10count\":" + String(PM10count) + 
-                    ",\"shinyeiPM25conc\":" + String(PM25conc) + ",\"shinyeiPM25count\":" + String(PM25count) + "}";
+      String json = "{\"shinyeiPM10conc\":"  + String(PM10conc) + ",\"shinyeiPM10count\":" + String(PM10count) + 
+                    ",\"shinyeiPM10ratio\":" + String(ratioP1)  + ",\"shinyeiPM25ratio\":" + String(ratioP2) + 
+                    ",\"shinyeiPM10mass\":"  + String(mass10)   + ",\"shinyeiPM25mass\":"  + String(mass25) + 
+                    ",\"shinyeiPM25conc\":"  + String(PM25conc) + ",\"shinyeiPM25count\":" + String(PM25count) + "}";
 
       bool ok = mqttPublish("v1/devices/me/telemetry", json.c_str());
       if(!ok) {
@@ -836,25 +872,9 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
   }
-
-  initializeShinyeiTimers();
 }
 
 
-void initializeShinyeiTimers() {
-  bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
-  bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
-
-  durationP1 = 0;
-  durationP2 = 0;
-  triggerOnP1 = now_micros;
-  triggerOnP2 = now_micros;
-    
-  triggerP1 = !valP1;
-  triggerP2 = !valP2;
-
- Serial.printf("P1 / P2 starting %s / %s\n", valP1 ? "HIGH" : "LOW",valP2 ? "HIGH" : "LOW");
-}
 
 
 
@@ -890,7 +910,7 @@ void processConfigCommand(const String &command) {
     writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
     pubSubConnectFailures = 0;
 
-    sendLocalCredentialsToServer();
+    publishLocalCredentials();
 
     Serial.printf("Saved local pw: %s\n", localPassword);
   }
@@ -907,7 +927,7 @@ void processConfigCommand(const String &command) {
     copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
     writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
     
-    sendLocalCredentialsToServer();
+    publishLocalCredentials();
 
     Serial.printf("Saved local ssid: %s\n", localSsid);
   }
@@ -947,6 +967,13 @@ void processConfigCommand(const String &command) {
     reconnectToPubSubServer();
 
   }
+  else if (command.startsWith("set sample duration")) {
+    sampleDuration = atoi(&command.c_str()[20]);
+    EepromWriteU16(SAMPLE_DURATION_ADDRESS, sampleDuration);
+
+    Serial.printf("Saved sample duration: %d seconds\n", sampleDuration);
+    publishSampleDuration();
+  }
   else if(command.startsWith("con")) {
     connectToWiFi(wifiSsid, wifiPassword, true);
   }
@@ -963,19 +990,20 @@ void processConfigCommand(const String &command) {
     Serial.println("\n====================================");
     Serial.println("Wifi Diagnostics:");
     WiFi.printDiag(Serial); 
+    Serial.println("====================================");
+    Serial.printf("Local ssid: %s\n", localSsid);
+    Serial.printf("Local password: %s\n", localPassword);
+    Serial.printf("MQTT url: %s\n", mqttUrl);
+    Serial.printf("MQTT port: %d\n", mqttPort);
+    Serial.printf("Device token: %s\n", deviceToken);
+    Serial.printf("Temperature sensor %s\n", BME_ok ? "OK" : "Not found");
+    Serial.println("====================================");
     Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
     Serial.printf("MQTT status: %s\n", getSubPubStatusName(mqttState()));
-    Serial.println("====================================");
-    Serial.printf("localSsid: %s\n", localSsid);
-    Serial.printf("localPassword: %s\n", localPassword);
-    Serial.printf("MQTT Url: %s\n", mqttUrl);
-    Serial.printf("MQTT port: %d\n", mqttPort);
-    Serial.printf("Device Token: %s\n", deviceToken);
-    Serial.println("====================================");
-    Serial.printf("Temperature sensor %s\n", BME_ok ? "OK" : "Not found");
+    Serial.printf("Sampling duration: %d seconds   [set sample duration <n>]\n", sampleDuration);
   }
   else if(command.startsWith("scan")) {
-    startScanning();
+    scanVisibleNetworks();  
   }
   else if(command.startsWith("ping")) {
     const int commandPrefixLen = strlen("PING ");
@@ -987,13 +1015,29 @@ void processConfigCommand(const String &command) {
 }
 
 
-void startScanning() {
-  if(needToReportScanResults)
-    return;
-  Serial.println("Scanning available networks...");
-  needToReportScanResults = true;
+void printScanResult(U32 duration);     // Forward declare
+
+void scanVisibleNetworks() {
+  Serial.println("Pausing data collection while we scan available networks...");
   WiFi.scanNetworks(false, true);    // Include hidden access points
+
+
+  U32 scanStartTime = millis();
+
+  // Wait for scan to complete with max 30 seconds
+  const int maxTime = 30;
+  while(!WiFi.scanComplete()) { 
+    if(millis() - scanStartTime > maxTime * SECONDS) {
+      Serial.printf("Scan timed out (max %d seconds)\n", maxTime);
+      lastScanTime = millis();
+      return;
+    }
+  }
+
+  printScanResult(millis() - scanStartTime);
+
   lastScanTime = millis();
+  resetDataCollection();
 }
 
 
@@ -1088,18 +1132,18 @@ void checkForNewInputFromSerialPort() {
 
 
 // Get a list of wifi hotspots the device can see
-void printScanResult() {
+void printScanResult(U32 duration) {
   int networksFound = WiFi.scanComplete();
   if(networksFound < 0) {
     Serial.println("NEGATIVE RESULT!!");    // Should never happen
     return;
   }
   if (networksFound == 0) {
-    Serial.println("Scan completed: No networks found");
+    Serial.printf("Scan completed (%d seconds): No networks found\n", duration / SECONDS);
     return;
   }
 
-  Serial.printf("%d network(s) found\n", networksFound);
+  Serial.printf("%d network(s) found (%d seconds)\n", networksFound, duration / SECONDS);
 
   for (int i = 0; i < networksFound; i++) {
     Serial.printf("%d: %s <<%s>>, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
