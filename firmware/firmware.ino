@@ -776,15 +776,17 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       // This method does not use the correction factors, based on the presence of humidity and rain in the paper.
       //
       // convert from particles/0.01 ft3 to μg/m3
-      const F64 K = 3531.5; // .01 ft^3 / m^3    
-      const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
+      static const F64 K = 3531.5; // .01 ft^3 / m^3    
+      static const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
 
       // PM10 mass concentration algorithm
-      static const F64 mass10 = density * sphericalVolume(2.6 * pow(10, -6));     // μg/particle; The radius of a particle in the channel >2.5 μm is 2.60 μm (from paper)
+      static const F64 largeParticleRadius = 2.6 * pow(10, -6);     // The radius of a particle in the channel >2.5 μm is 2.60 μm (from paper)
+      static const F64 mass10 = density * sphericalVolume(largeParticleRadius);     // μg/particle
       F64 PM10conc = PM10count * K * mass10;    // μg/m^3
       
       // PM2.5 mass concentration algorithm
-      static const F64 mass25 = density * sphericalVolume( 0.44 * pow(10, -6));   // μg/particle; The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
+      static const F64 smallParticleRadius = 0.44 * pow(10, -6);    // The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
+      static const F64 mass25 = density * sphericalVolume(smallParticleRadius);   // μg/particle
       F64 PM25conc = PM25count * K * mass25;    // μg/m^3
       
 
