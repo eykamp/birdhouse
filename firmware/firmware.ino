@@ -10,6 +10,11 @@
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
+
+// OTA Updates
+#include <ArduinoOTA.h>
+#include <ESP8266httpUpdate.h>
+
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
 
@@ -445,6 +450,8 @@ void setup()
   setupLocalAccessPoint(localSsid, localPassword);
   connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
 
+  setupOta();
+
   Serial.println("Done setting up.");
 }
 
@@ -704,13 +711,40 @@ void loopSensors() {
   if (doneSampling) {
     reportMeasurements();
 
-    resetDataCollection();
 
     if(now_millis - lastScanTime > 30 * MINUTES) {
       scanVisibleNetworks();
     }
+
+    if(now_millis - lastScanTime > 25 * SECONDS) {
+      checkForFirmwareUpdates();
+    }
+
+    resetDataCollection();
   }
 
+}
+
+
+void checkForFirmwareUpdates() {
+  if(WiFi.status() != WL_CONNECTED)
+    return;
+
+  Serial.println("[update] Checking for firmware updates");
+
+  t_httpUpdate_return ret = ESPhttpUpdate.update("www.sensorbot.org", 8989, "/update/", SOFTWARE_VERSION);
+
+  switch(ret) {
+    case HTTP_UPDATE_FAILED:
+        Serial.printf("[update] Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+        break;
+    case HTTP_UPDATE_NO_UPDATES:
+        Serial.println("[update] No firmware updates available.");
+        break;
+    case HTTP_UPDATE_OK:
+        Serial.println("[update] Updated ok."); // may not called we reboot the ESP
+        break;
+  }
 }
 
 
@@ -1506,4 +1540,64 @@ U16 EepromReadU16(int addr)
   byte highByte = EEPROM.read(addr + 1);
 
   return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
+}
+
+
+void publishOtaStatusMessage(const String &msg) {
+  JsonObject &root = jsonBuffer.createObject();
+  root["otaUpdate"] = msg;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json.c_str());  
+}
+
+
+
+void setupOta() {
+
+  // Are these ever called?
+  ArduinoOTA.onStart([]() {
+    activateLed(RED | YELLOW);
+    Serial.println("OTA updates started");
+    publishOtaStatusMessage("Starting update");
+  });
+
+
+  ArduinoOTA.onEnd([]() {
+    Serial.println("OTA updates finished");
+    publishOtaStatusMessage("Update successful");
+    for(int i = 0; i < 10; i++) { activateLed(GREEN); delay(50); activateLed(NONE); delay(50); }
+    activateLed(RED | YELLOW | GREEN);
+  });
+
+
+  static bool lastProgressUpdate = false;
+
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    activateLed(YELLOW | lastProgressUpdate ? GREEN : RED);
+    lastProgressUpdate = !lastProgressUpdate;
+  });
+
+
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+
+    String msg;
+    if (error == OTA_AUTH_ERROR)         msg = "Auth Failed";
+    else if (error == OTA_BEGIN_ERROR)   msg = "Begin Failed";
+    else if (error == OTA_CONNECT_ERROR) msg = "Connect Failed";
+    else if (error == OTA_RECEIVE_ERROR) msg = "Receive Failed";
+    else if (error == OTA_END_ERROR)     msg = "End Failed";
+
+    Serial.println(msg);
+    publishOtaStatusMessage("Update failed: " + msg);
+
+    ESP.restart();
+  });
+
+
+  ArduinoOTA.begin();
 }
