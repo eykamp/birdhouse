@@ -999,6 +999,7 @@ void processConfigCommand(const String &command) {
     Serial.println("Wifi Diagnostics:");
     WiFi.printDiag(Serial); 
     Serial.println("====================================");
+    Serial.printf("Free sketch space: %d\n", ESP.getFreeSketchSpace());
     Serial.printf("Local ssid: %s\n", localSsid);
     Serial.printf("Local password: %s\n", localPassword);
     Serial.printf("MQTT url: %s\n", mqttUrl);
