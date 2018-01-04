@@ -375,6 +375,9 @@ void setup()
   Serial.println(" ___/ /  __/ / / (__  ) /_/ / /  / /_/ / /_/ / /_  ");
   Serial.println("/____/\\___/_/ /_/____/\\____/_/  /_.___/\\____/\\__/  ");
   Serial.println("");
+  Serial.println("");
+  Serial.printf("Firmware Version %s\n", SOFTWARE_VERSION);
+  Serial.println("");
 
 # ifdef DISABLE_MQTT
     Serial.println("\n\n*** MQTT FUNCTIONALITY DISABLED IN THIS BUILD! ***\n");
