@@ -40,7 +40,7 @@
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
 
-#define SOFTWARE_VERSION "0.6"
+#define SOFTWARE_VERSION "0.7"    // 2018-01-04 14:56
 
 // Define this to disable MQTT
 // #define DISABLE_MQTT
@@ -827,10 +827,11 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       
 
       // TODO: Convert to arduinoJson
-      String json = "{\"shinyeiPM10conc\":"  + String(PM10conc) + ",\"shinyeiPM10count\":" + String(PM10count) + 
-                    ",\"shinyeiPM10ratio\":" + String(ratioP1)  + ",\"shinyeiPM25ratio\":" + String(ratioP2) + 
-                    ",\"shinyeiPM10mass\":"  + String(mass10)   + ",\"shinyeiPM25mass\":"  + String(mass25) + 
-                    ",\"shinyeiPM25conc\":"  + String(PM25conc) + ",\"shinyeiPM25count\":" + String(PM25count) + "}";
+      String json = "{\"shinyeiPM10conc\":"      + String(PM10conc)     + ",\"shinyeiPM10count\":"     + String(PM10count) + 
+                    ",\"shinyeiPM10ratio\":"     + String(ratioP1)      + ",\"shinyeiPM25ratio\":"     + String(ratioP2) + 
+                    ",\"shinyeiPM10mass\":"      + String(mass10)       + ",\"shinyeiPM25mass\":"      + String(mass25) + 
+                    ",\"shinyeiPM10duration\":"  + String(durationP1)   + ",\"shinyeiPM25duration\":"  + String(durationP2) + 
+                    ",\"shinyeiPM25conc\":"      + String(PM25conc)     + ",\"shinyeiPM25count\":"     + String(PM25count) + "}";
 
       bool ok = mqttPublish("v1/devices/me/telemetry", json.c_str());
       if(!ok) {
