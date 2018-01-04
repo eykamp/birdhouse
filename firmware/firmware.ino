@@ -621,8 +621,8 @@ void loopSensors() {
   bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
   bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
 
-  if(valP1 == LOW || valP2 == LOW)  // Collecting
-    Serial.print(".");
+  // if(valP1 == LOW || valP2 == LOW)  // Collecting
+  //   Serial.print(".");
 
 
   bool doneSampling = (now_micros - samplingPeriodStartTime) > SAMPLE_PERIOD_DURATION;
