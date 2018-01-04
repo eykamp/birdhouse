@@ -30,6 +30,8 @@ cust_lon = None     # Will be populated by geocoder if empty
 
 
 def main():
+    cleanup = True
+
     tbapi = TbApi(motherShipUrl, username, password)
 
     # Get a definition of our template dashboard
@@ -46,7 +48,6 @@ def main():
     # Create new customer and device records on the server
     customer = tbapi.add_customer(cust_name, cust_address, cust_address2, cust_city, cust_state, cust_zip, cust_country, cust_email, cust_phone)
 
-
     server_attributes = {
         "latitude": cust_lat,
         "longitude": cust_lon
@@ -57,25 +58,35 @@ def main():
         "nonce": 0
     }
     device = tbapi.add_device(make_device_name(cust_name), sensor_type, shared_attributes, server_attributes)
+    device_id = tbapi.get_id(device)
 
+    
+    # We need to store the device token as a server attribute so our REST services can get access to it
+    device_token = tbapi.get_device_token(device_id)
+
+    server_attributes = {
+        "device_token": device_token
+    }
+
+    tbapi.set_server_attributes(device_id, server_attributes)
 
     # Upate the dash def. to point at the device we just created (modifies dash_def)
-    update_dash_def(dash_def, cust_name, tbapi.get_id(device))
+    update_dash_def(dash_def, cust_name, device_id)
 
     # Create a new dash with our definition, and assign it to the new customer    
     dash = tbapi.create_dashboard_for_customer(cust_name + ' Dash', dash_def)
     tbapi.assign_dash_to_user(tbapi.get_id(dash), tbapi.get_id(customer))
     
 
-    # input("Press Enter to continue...")
+    if cleanup:
+        # input("Press Enter to continue...")   # Don't run from Sublime with this line enabled!!!
 
-    tbapi.delete_customer_by_id(tbapi.get_id(customer))
-    tbapi.delete_device(tbapi.get_id(device))
-    tbapi.delete_dashboard(tbapi.get_id(dash))
+        print("Cleaning up!")
+        tbapi.delete_dashboard(tbapi.get_id(dash))
+        tbapi.delete_device(device_id)
+        tbapi.delete_customer_by_id(tbapi.get_id(customer))
 
 
-
-    # device_id = tbapi.get_id(device)
 
     # assign_device_to_public_user(token, device_id)
 
