@@ -642,7 +642,6 @@ void loopSensors() {
     U32 overage = (now_micros - samplingPeriodStartTime) - SAMPLE_PERIOD_DURATION;
 
     if(valP1 == LOW) {
-      // TODO: Verify and simplify
       durationP1 += now_micros - triggerOnP1 - overage;
     }
     if(valP2 == LOW) {
