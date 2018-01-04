@@ -771,7 +771,7 @@ void resetDataCollection() {
 // Derived from code created by Chris Nafis from graph provided by Shinyei
 // http://www.howmuchsnow.com/arduino/airquality/grovedust/
 // ratio is a number between 0 and 100
-F64 LpoToParticleCount(F64 ratio) { 
+F64 lpoToParticleCount(F64 ratio) { 
   return 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) + 520 * ratio + 0.62;  // Particles per .01 ft^3
 }
 
@@ -791,13 +791,13 @@ void reportMeasurements() {
                                                                                    durationP2 > SAMPLE_PERIOD_DURATION) ? "ERROR" : "");
       
       //               microseconds            microseconds           
-      F64 ratioP1 = (F64)durationP1 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
-      F64 ratioP2 = (F64)durationP2 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;
+      F64 ratioP1 = durationP1 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
+      F64 ratioP2 = durationP2 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;
 
 Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(ratioP2).c_str());
 
-      F64 countP1 = LpoToParticleCount(ratioP1);  // Particles / .01 ft^3
-      F64 countP2 = LpoToParticleCount(ratioP2);  // Particles / .01 ft^3
+      F64 countP1 = lpoToParticleCount(ratioP1);  // Particles / .01 ft^3
+      F64 countP2 = lpoToParticleCount(ratioP2);  // Particles / .01 ft^3
 
       F64 PM10count = countP1;
       F64 PM25count = countP2 - countP1;
