@@ -59,6 +59,33 @@ ExponentialFilter<F32> TempFilter1(30, 0);
 ExponentialFilter<F32> TempFilter2(20, 0);
 ExponentialFilter<F32> TempFilter3(15, 0);
 
+static const F64 Conc10InitialVal = 20;
+static const F64 Conc25InitialVal = .05;
+static const F64 Count10InitialVal = .5;
+static const F64 Count25InitialVal = 0;
+
+ExponentialFilter<F64> Conc10Filter1(3, Conc10InitialVal);
+ExponentialFilter<F64> Conc10Filter2(5, Conc10InitialVal);
+ExponentialFilter<F64> Conc10Filter3(10, Conc10InitialVal);
+ExponentialFilter<F64> Conc10Filter4(20, Conc10InitialVal);
+
+ExponentialFilter<F64> Conc25Filter1(3, Conc25InitialVal);
+ExponentialFilter<F64> Conc25Filter2(5, Conc25InitialVal);
+ExponentialFilter<F64> Conc25Filter3(10, Conc25InitialVal);
+ExponentialFilter<F64> Conc25Filter4(20, Conc25InitialVal);
+
+
+ExponentialFilter<F64> Count10Filter1(3, Count10InitialVal);
+ExponentialFilter<F64> Count10Filter2(5, Count10InitialVal);
+ExponentialFilter<F64> Count10Filter3(10, Count10InitialVal);
+ExponentialFilter<F64> Count10Filter4(20, Count10InitialVal);
+
+ExponentialFilter<F64> Count25Filter1(3, Count25InitialVal);
+ExponentialFilter<F64> Count25Filter2(5, Count25InitialVal);
+ExponentialFilter<F64> Count25Filter3(10, Count25InitialVal);
+ExponentialFilter<F64> Count25Filter4(20, Count25InitialVal);
+
+
 
 // Verified
 // #define D0    16
@@ -585,8 +612,6 @@ void setupSensors() {
 
     Serial.printf("Temperature sensor: %s\n", getTemperatureSensorName());
 
-
-
     char str_temp[6];
     dtostrf(t, 4, 2, str_temp);
 
@@ -829,16 +854,78 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       static const F64 smallParticleRadius = 0.44 * pow(10, -6);    // The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
       static const F64 mass25 = density * sphericalVolume(smallParticleRadius);   // μg/particle
       F64 PM25conc = PM25count * K * mass25;    // μg/m^3
+
+
+      Conc10Filter1.Filter(PM10conc);
+      Conc10Filter2.Filter(PM10conc);
+      Conc10Filter3.Filter(PM10conc);
+      Conc10Filter4.Filter(PM10conc);
+
+      Conc25Filter1.Filter(PM25conc);
+      Conc25Filter2.Filter(PM25conc);
+      Conc25Filter3.Filter(PM25conc);
+      Conc25Filter4.Filter(PM25conc);
+      
+      Count10Filter1.Filter(PM10count);
+      Count10Filter2.Filter(PM10count);
+      Count10Filter3.Filter(PM10count);
+      Count10Filter4.Filter(PM10count);
+      
+      Count25Filter1.Filter(PM25count);
+      Count25Filter2.Filter(PM25count);
+      Count25Filter3.Filter(PM25count);
+      Count25Filter4.Filter(PM25count);
       
 
-      // TODO: Convert to arduinoJson
-      String json = "{\"shinyeiPM10conc\":"      + String(PM10conc)     + ",\"shinyeiPM10count\":"     + String(PM10count) + 
-                    ",\"shinyeiPM10ratio\":"     + String(ratioP1)      + ",\"shinyeiPM25ratio\":"     + String(ratioP2) + 
-                    ",\"shinyeiPM10mass\":"      + String(mass10)       + ",\"shinyeiPM25mass\":"      + String(mass25) + 
-                    ",\"shinyeiPM10duration\":"  + String(durationP1)   + ",\"shinyeiPM25duration\":"  + String(durationP2) + 
-                    ",\"shinyeiPM25conc\":"      + String(PM25conc)     + ",\"shinyeiPM25count\":"     + String(PM25count) + "}";
 
-      bool ok = mqttPublish("v1/devices/me/telemetry", json.c_str());
+      JsonObject &root = jsonBuffer.createObject();
+
+      root["shinyeiPM10conc"] = PM10conc;
+      root["shinyeiPM10ratio"] = ratioP1;
+      root["shinyeiPM10mass"] = mass10;
+      root["shinyeiPM10duration"] = durationP1;
+      root["shinyeiPM25conc"] = PM25conc;
+      root["shinyeiPM10count"] = PM10count;
+      root["shinyeiPM25ratio"] = ratioP1;
+      root["shinyeiPM25mass"] = mass10;
+      root["shinyeiPM25duration"] = durationP1;
+      root["shinyeiPM25count"] = PM25count;
+
+      root["ashinyeiPM10conc"] = Conc10Filter1.Current();
+      root["bshinyeiPM10conc"] = Conc10Filter2.Current();
+      root["cshinyeiPM10conc"] = Conc10Filter3.Current();
+      root["dshinyeiPM10conc"] = Conc10Filter4.Current();
+      root["ashinyeiPM25conc"] = Conc25Filter1.Current();
+      root["bshinyeiPM25conc"] = Conc25Filter2.Current();
+      root["cshinyeiPM25conc"] = Conc25Filter3.Current();
+      root["dshinyeiPM25conc"] = Conc25Filter4.Current();
+      root["ashinyeiPM10count"] = Count10Filter1.Current();
+      root["bshinyeiPM10count"] = Count10Filter2.Current();
+      root["cshinyeiPM10count"] = Count10Filter3.Current();
+      root["dshinyeiPM10count"] = Count10Filter4.Current();
+      root["ashinyeiPM25count"] = Count25Filter1.Current();
+      root["bshinyeiPM25count"] = Count25Filter2.Current();
+      root["cshinyeiPM25count"] = Count25Filter3.Current();
+      root["dshinyeiPM25count"] = Count25Filter4.Current();
+
+      String json;
+      root.printTo(json);
+
+      bool ok = mqttPublishTelemetry(json);  
+
+
+
+
+      // // TODO: Convert to arduinoJson
+      // String json = "{\"shinyeiPM10conc\":"      + String(PM10conc)     + ",\"shinyeiPM10count\":"     + String(PM10count) + 
+      //               ",\"shinyeiPM10ratio\":"     + String(ratioP1)      + ",\"shinyeiPM25ratio\":"     + String(ratioP2) + 
+      //               ",\"shinyeiPM10mass\":"      + String(mass10)       + ",\"shinyeiPM25mass\":"      + String(mass25) + 
+      //               ",\"shinyeiPM10duration\":"  + String(durationP1)   + ",\"shinyeiPM25duration\":"  + String(durationP2) + 
+      //               ",\"shinyeiPM25conc\":"      + String(PM25conc)     + ",\"shinyeiPM25count\":"     + String(PM25count) + "}";
+
+
+
+      // bool ok = mqttPublishTelemetry("v1/devices/me/telemetry", json);
       if(!ok) {
         Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
