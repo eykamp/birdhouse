@@ -594,13 +594,13 @@ void setupSensors() {
   }
 
 
-  pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM10, INPUT_PULLUP);
-  pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM25, INPUT_PULLUP);
-  pinMode(SHINYEI_LEVEL_PIN, OUTPUT);
+  pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM10, INPUT);
+  pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM25, INPUT);
+  // pinMode(SHINYEI_LEVEL_PIN, OUTPUT);
 
-  analogWrite(SHINYEI_LEVEL_PIN, 1.0);  //????
+  // analogWrite(SHINYEI_LEVEL_PIN, 1.0);  //????
 
-  pinMode(SHARP_LED_POWER, OUTPUT);
+  // pinMode(SHARP_LED_POWER, OUTPUT);
 
   resetDataCollection();
 }
