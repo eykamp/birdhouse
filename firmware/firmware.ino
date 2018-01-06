@@ -913,19 +913,6 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
 
       bool ok = mqttPublishTelemetry(json);  
 
-
-
-
-      // // TODO: Convert to arduinoJson
-      // String json = "{\"shinyeiPM10conc\":"      + String(PM10conc)     + ",\"shinyeiPM10count\":"     + String(PM10count) + 
-      //               ",\"shinyeiPM10ratio\":"     + String(ratioP1)      + ",\"shinyeiPM25ratio\":"     + String(ratioP2) + 
-      //               ",\"shinyeiPM10mass\":"      + String(mass10)       + ",\"shinyeiPM25mass\":"      + String(mass25) + 
-      //               ",\"shinyeiPM10duration\":"  + String(durationP1)   + ",\"shinyeiPM25duration\":"  + String(durationP2) + 
-      //               ",\"shinyeiPM25conc\":"      + String(PM25conc)     + ",\"shinyeiPM25count\":"     + String(PM25count) + "}";
-
-
-
-      // bool ok = mqttPublishTelemetry("v1/devices/me/telemetry", json);
       if(!ok) {
         Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
