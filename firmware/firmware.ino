@@ -40,7 +40,7 @@
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
 
-#define SOFTWARE_VERSION "0.16"    // now
+#define SOFTWARE_VERSION "0.16"  
 
 // Define this to disable MQTT
 // #define DISABLE_MQTT
@@ -886,7 +886,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       root["shinyeiPM10duration"] = durationP1;
       root["shinyeiPM10count"] = PM10count;
       root["shinyeiPM25conc"] = PM25conc;
-      root["shinyeiPM25ratio"] = ratioP25;
+      root["shinyeiPM25ratio"] = ratioP2;
       root["shinyeiPM25mass"] = mass25;
       root["shinyeiPM25duration"] = durationP2;
       root["shinyeiPM25count"] = PM25count;
