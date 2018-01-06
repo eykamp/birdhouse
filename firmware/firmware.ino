@@ -322,8 +322,13 @@ void mqttSetCallback(MQTT_CALLBACK_SIGNATURE) {
 }
 
 
-bool mqttPublishAttribute(const char* payload) {
-  return mqttPublish("v1/devices/me/attributes", payload);
+bool mqttPublishAttribute(const String &payload) {
+  return mqttPublish("v1/devices/me/attributes", payload.c_str());
+}
+
+
+bool mqttPublishTelemetry(const String &payload) {
+  return mqttPublish("v1/devices/me/telemetry", payload.c_str());
 }
 
 
@@ -463,7 +468,7 @@ void publishSampleDuration() {
   String json;
   root.printTo(json);
 
-  mqttPublishAttribute(json.c_str());  
+  mqttPublishAttribute(json);  
 }
 
 
@@ -475,7 +480,7 @@ void publishLocalCredentials() {
   String json;
   root.printTo(json);
 
-  mqttPublishAttribute(json.c_str());
+  mqttPublishAttribute(json);
 }
 
 
@@ -488,7 +493,7 @@ void publishTempSensorNameAndSoftwareVersion() {
   String json;
   root.printTo(json);
 
-  mqttPublishAttribute(json.c_str());
+  mqttPublishAttribute(json);
 }
 
 
@@ -879,7 +884,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
     // TODO: Convert to arduinoJson
     json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + "}";
 
-    ok = mqttPublish("v1/devices/me/telemetry", json.c_str());
+    ok = mqttPublishTelemetry(json);
     if(!ok) {
       Serial.printf("Could not publish environmental data: %s\n", json.c_str());
     }
@@ -909,7 +914,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
 
     // TODO: Convert to arduinoJson
     json = "{\"atemperature\":" + String(TempFilter1.Current()) + ",\"btemperature\":" + String(TempFilter2.Current()) + ",\"ctemperature\":" + String(TempFilter3.Current()) + "}";
-    ok = mqttPublish("v1/devices/me/telemetry", json.c_str());
+    ok = mqttPublishTelemetry(json);
     if(!ok) {
       Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
@@ -1212,7 +1217,7 @@ void printScanResult(U32 duration) {
   }
   json += "]\"}";
 
-  bool ok = mqttPublishAttribute(json.c_str());
+  bool ok = mqttPublishAttribute(json);
 
   if(!ok) {
     Serial.printf("Could not publish message: %s\n", json.c_str());
@@ -1550,7 +1555,7 @@ void publishOtaStatusMessage(const String &msg) {
   String json;
   root.printTo(json);
 
-  mqttPublishAttribute(json.c_str());  
+  mqttPublishAttribute(json);  
 }
 
 
