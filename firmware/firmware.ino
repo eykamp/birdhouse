@@ -40,7 +40,7 @@
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
 
-#define SOFTWARE_VERSION "0.7"    // 2018-01-04 14:56
+#define SOFTWARE_VERSION "0.15"    // now
 
 // Define this to disable MQTT
 // #define DISABLE_MQTT
