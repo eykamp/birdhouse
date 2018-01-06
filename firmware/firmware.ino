@@ -54,7 +54,7 @@ ESP8266WebServer server(WEB_PORT);
 
 
 // Create a new exponential filter with a weight of 5 and an initial value of 0. 
-// Bigger number hew truer to the unfiltered data
+// Bigger numbers hew truer to the unfiltered data
 ExponentialFilter<F32> TempFilter1(30, 0);
 ExponentialFilter<F32> TempFilter2(20, 0);
 ExponentialFilter<F32> TempFilter3(15, 0);
