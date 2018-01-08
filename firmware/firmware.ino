@@ -18,7 +18,7 @@
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
 
-#define SOFTWARE_VERSION "0.24"  
+#define FIRMWARE_VERSION "0.29"
 
 // Indulge me!
 #define U8  uint8_t
