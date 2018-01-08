@@ -1126,20 +1126,20 @@ void processConfigCommand(const String &command) {
 
     Serial.printf("Set device token: %s... need to reset device!\n", deviceToken);
   }  
-  else if(command.startsWith("set mqtt url")) {
-    copy(mqttUrl, &command.c_str()[13], sizeof(mqttUrl) - 1);
-    writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
-    pubSubConnectFailures = 0;
-    mqttDisconnect();
-    mqttServerConfigured = false;
-    mqttServerLookupError = false;
+  // else if(command.startsWith("set mqtt url")) {
+  //   copy(mqttUrl, &command.c_str()[13], sizeof(mqttUrl) - 1);
+  //   writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
+  //   pubSubConnectFailures = 0;
+  //   mqttDisconnect();
+  //   mqttServerConfigured = false;
+  //   mqttServerLookupError = false;
 
-    Serial.printf("Saved mqtt URL: %s\n", mqttUrl);
-    setupPubSubClient();
+  //   Serial.printf("Saved mqtt URL: %s\n", mqttUrl);
+  //   setupPubSubClient();
 
-    // Let's immediately connect our PubSub client
-    reconnectToPubSubServer();
-  }
+  //   // Let's immediately connect our PubSub client
+  //   reconnectToPubSubServer();
+  // }
   else if(command.startsWith("set mqtt port")) {
     mqttPort = atoi(&command.c_str()[14]);
     EepromWriteU16(PUB_SUB_PORT_ADDRESS, mqttPort);
