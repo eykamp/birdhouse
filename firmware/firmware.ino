@@ -526,7 +526,7 @@ void publishTempSensorNameAndSoftwareVersion() {
 
 
 void activateLed(U32 ledMask) {
-  Serial.printf("LED Mask: %d %d %d %d\n", ledMask, (ledMask & RED) ? HIGH : LOW, (ledMask & YELLOW) ? HIGH : LOW, (ledMask & GREEN) ? HIGH : LOW);
+  Serial.printf("[led] LED Mask: %d %d %d %d\n", ledMask, (ledMask & RED) ? HIGH : LOW, (ledMask & YELLOW) ? HIGH : LOW, (ledMask & GREEN) ? HIGH : LOW);
   digitalWrite(LED_RED, (ledMask & RED) ? HIGH : LOW);
   digitalWrite(LED_YELLOW, (ledMask & YELLOW) ? HIGH : LOW);
   digitalWrite(LED_GREEN, (ledMask & GREEN) ? HIGH : LOW);
