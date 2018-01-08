@@ -53,6 +53,12 @@
 ESP8266WebServer server(WEB_PORT);
 
 
+// Where do we check for firmware updates?
+#define UPDATE_SERVER "www.sensorbot.org"
+#define UPDATE_PORT 8989
+
+
+
 // Create a new exponential filter with a weight of 5 and an initial value of 0. 
 // Bigger numbers hew truer to the unfiltered data
 ExponentialFilter<F32> TempFilter1(30, 0);
@@ -762,7 +768,10 @@ void checkForFirmwareUpdates() {
 
   Serial.println("[update] Checking for firmware updates");
 
-  t_httpUpdate_return ret = ESPhttpUpdate.update("www.sensorbot.org", 8989, "/update/", SOFTWARE_VERSION);
+
+
+
+  t_httpUpdate_return ret = ESPhttpUpdate.update(UPDATE_SERVER, UPDATE_PORT, "/update/", FIRMWARE_VERSION);
 
   switch(ret) {
     case HTTP_UPDATE_FAILED:
