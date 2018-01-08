@@ -18,6 +18,7 @@
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
 
+#define SOFTWARE_VERSION "0.24"  
 
 // Indulge me!
 #define U8  uint8_t
@@ -40,7 +41,6 @@
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
 
-#define SOFTWARE_VERSION "0.16"  
 
 // Define this to disable MQTT
 // #define DISABLE_MQTT
@@ -174,14 +174,12 @@ const char *localGatewayAddress = "192.168.1.2";
 void connectToWiFi(const char*, const char*, bool); // Forward declare
 void activateLed(U32 ledMask);
 
-StaticJsonBuffer<1024> jsonBuffer;    // Reusable buffer for sending/receiving json
-
-
 
 void message_received_from_mothership(char* topic, byte* payload, unsigned int length) {
   Serial.printf("Message arrived [%s]\n", topic);
 
   // See https://github.com/bblanchon/ArduinoJson for usage
+  StaticJsonBuffer<2048> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(payload);
 
   const char *color = root["LED"];
@@ -387,6 +385,7 @@ void onConnectedToPubSubServer() {
   publishLocalCredentials();
   publishSampleDuration();
   publishTempSensorNameAndSoftwareVersion();
+  publishStatusMessage("Connected");
 
   pubSubConnectFailures = 0;
 }
@@ -489,6 +488,7 @@ void setup()
 
 
 void publishSampleDuration() {
+  StaticJsonBuffer<128> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["sampleDuration"] = sampleDuration;
 
@@ -500,6 +500,7 @@ void publishSampleDuration() {
 
 
 void publishLocalCredentials() {
+  StaticJsonBuffer<128> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["localPassword"] = localPassword;
   root["localSsid"] = localSsid;
@@ -512,10 +513,10 @@ void publishLocalCredentials() {
 
 
 void publishTempSensorNameAndSoftwareVersion() {
+  StaticJsonBuffer<128> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["temperatureSensor"] = getTemperatureSensorName();
   root["firmwareVersion"] = SOFTWARE_VERSION;
-  root["status"] = "Connected";
 
   String json;
   root.printTo(json);
@@ -635,7 +636,7 @@ U32 samplingPeriodStartTime;
 
 const char *getTemperatureSensorName() {
   if(!BME_ok)
-    return "Error initializing temperature sensor.  No temperature or humidity data available";
+    return "No temperature sensor detected";
 
   switch(bme.chipModel()) {
     case BME280::ChipModel_BME280:
@@ -811,10 +812,13 @@ F64 sphericalVolume(F64 radius) {
 }
 
 
+
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
     // Function creates particle count and mass concentration
     // from PPD-42 low pulse occupancy (LPO).
+
+      publishStatusMessage("reporting 1");
       
 
   Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > SAMPLE_PERIOD_DURATION || 
@@ -856,6 +860,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       F64 PM25conc = PM25count * K * mass25;    // μg/m^3
 
 
+publishStatusMessage("reporting 1.5");
       Conc10Filter1.Filter(PM10conc);
       Conc10Filter2.Filter(PM10conc);
       Conc10Filter3.Filter(PM10conc);
@@ -877,41 +882,76 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       Count25Filter4.Filter(PM25count);
       
 
+      // StaticJsonBuffer<1024> jsonBuffer;
+      // JsonObject &root = jsonBuffer.createObject();
 
-      JsonObject &root = jsonBuffer.createObject();
+      // root["shinyeiPM10conc"] = PM10conc;
+      // root["shinyeiPM10ratio"] = ratioP1;
+      // root["shinyeiPM10mass"] = mass10;
+      // root["shinyeiPM10duration"] = durationP1;
+      // root["shinyeiPM10count"] = PM10count;
+      // root["shinyeiPM25conc"] = PM25conc;
+      // root["shinyeiPM25ratio"] = ratioP2;
+      // root["shinyeiPM25mass"] = mass25;
+      // root["shinyeiPM25duration"] = durationP2;
+      // root["shinyeiPM25count"] = PM25count;
+      // root["ashinyeiPM10conc"] = Conc10Filter1.Current();
+      // root["bshinyeiPM10conc"] = Conc10Filter2.Current();
+      // root["cshinyeiPM10conc"] = Conc10Filter3.Current();
+      // root["dshinyeiPM10conc"] = Conc10Filter4.Current();
+      // root["ashinyeiPM25conc"] = Conc25Filter1.Current();
+      // root["bshinyeiPM25conc"] = Conc25Filter2.Current();
+      // root["cshinyeiPM25conc"] = Conc25Filter3.Current();
+      // root["dshinyeiPM25conc"] = Conc25Filter4.Current();
+      // root["ashinyeiPM10count"] = Count10Filter1.Current();
+      // root["bshinyeiPM10count"] = Count10Filter2.Current();
+      // root["cshinyeiPM10count"] = Count10Filter3.Current();
+      // root["dshinyeiPM10count"] = Count10Filter4.Current();
+      // root["ashinyeiPM25count"] = Count25Filter1.Current();
+      // root["bshinyeiPM25count"] = Count25Filter2.Current();
+      // root["cshinyeiPM25count"] = Count25Filter3.Current();
+      // root["dshinyeiPM25count"] = Count25Filter4.Current();
 
-      root["shinyeiPM10conc"] = PM10conc;
-      root["shinyeiPM10ratio"] = ratioP1;
-      root["shinyeiPM10mass"] = mass10;
-      root["shinyeiPM10duration"] = durationP1;
-      root["shinyeiPM10count"] = PM10count;
-      root["shinyeiPM25conc"] = PM25conc;
-      root["shinyeiPM25ratio"] = ratioP2;
-      root["shinyeiPM25mass"] = mass25;
-      root["shinyeiPM25duration"] = durationP2;
-      root["shinyeiPM25count"] = PM25count;
+      // String json;
+      // root.printTo(json);
+      // Serial.printf("json: %s\n",json.c_str());
 
-      root["ashinyeiPM10conc"] = Conc10Filter1.Current();
-      root["bshinyeiPM10conc"] = Conc10Filter2.Current();
-      root["cshinyeiPM10conc"] = Conc10Filter3.Current();
-      root["dshinyeiPM10conc"] = Conc10Filter4.Current();
-      root["ashinyeiPM25conc"] = Conc25Filter1.Current();
-      root["bshinyeiPM25conc"] = Conc25Filter2.Current();
-      root["cshinyeiPM25conc"] = Conc25Filter3.Current();
-      root["dshinyeiPM25conc"] = Conc25Filter4.Current();
-      root["ashinyeiPM10count"] = Count10Filter1.Current();
-      root["bshinyeiPM10count"] = Count10Filter2.Current();
-      root["cshinyeiPM10count"] = Count10Filter3.Current();
-      root["dshinyeiPM10count"] = Count10Filter4.Current();
-      root["ashinyeiPM25count"] = Count25Filter1.Current();
-      root["bshinyeiPM25count"] = Count25Filter2.Current();
-      root["cshinyeiPM25count"] = Count25Filter3.Current();
-      root["dshinyeiPM25count"] = Count25Filter4.Current();
+      // bool ok = mqttPublishTelemetry(json);  
 
-      String json;
-      root.printTo(json);
+      String json = String("{") +
+      "\"shinyeiPM10conc\":\""     + String(PM10conc) + "\"," + 
+      "\"shinyeiPM10ratio\":\""    + String(ratioP1) + "\"," + 
+      "\"shinyeiPM10mass\":\""     + String(mass10) + "\"," + 
+      "\"shinyeiPM10duration\":\"" + String(durationP1) + "\"," + 
+      "\"shinyeiPM10count\":\""    + String(PM10count) + "\"," + 
+      "\"shinyeiPM25conc\":\""     + String(PM25conc) + "\"," + 
+      "\"shinyeiPM25ratio\":\""    + String(ratioP2) + "\"," + 
+      "\"shinyeiPM25mass\":\""     + String(mass25) + "\"," + 
+      "\"shinyeiPM25duration\":\"" + String(durationP2) + "\"," + 
+      "\"shinyeiPM25count\":\""    + String(PM25count) + "\"," + 
+      "\"ashinyeiPM10conc\":\""    + String(Conc10Filter1.Current()) + "\"," + 
+      "\"bshinyeiPM10conc\":\""    + String(Conc10Filter2.Current()) + "\"," + 
+      "\"cshinyeiPM10conc\":\""    + String(Conc10Filter3.Current()) + "\"," + 
+      "\"dshinyeiPM10conc\":\""    + String(Conc10Filter4.Current()) + "\"," + 
+      "\"ashinyeiPM25conc\":\""    + String(Conc25Filter1.Current()) + "\"," + 
+      "\"bshinyeiPM25conc\":\""    + String(Conc25Filter2.Current()) + "\"," + 
+      "\"cshinyeiPM25conc\":\""    + String(Conc25Filter3.Current()) + "\"," + 
+      "\"dshinyeiPM25conc\":\""    + String(Conc25Filter4.Current()) + "\"," + 
+      "\"ashinyeiPM10count\":\""   + String(Count10Filter1.Current()) + "\"," + 
+      "\"bshinyeiPM10count\":\""   + String(Count10Filter2.Current()) + "\"," + 
+      "\"cshinyeiPM10count\":\""   + String(Count10Filter3.Current()) + "\"," + 
+      "\"dshinyeiPM10count\":\""   + String(Count10Filter4.Current()) + "\"," + 
+      "\"ashinyeiPM25count\":\""   + String(Count25Filter1.Current()) + "\"," + 
+      "\"bshinyeiPM25count\":\""   + String(Count25Filter2.Current()) + "\"," + 
+      "\"cshinyeiPM25count\":\""   + String(Count25Filter3.Current()) + "\"," + 
+      "\"dshinyeiPM25count\":\""   + String(Count25Filter4.Current()) + "\" } ";
 
-      bool ok = mqttPublishTelemetry(json);  
+
+bool ok = mqttPublishTelemetry(json);
+      publishStatusMessage("reporting 2c");
+
+      publishStatusMessage(ok ? "reporting ok" : "reporting not ok");
+
 
       if(!ok) {
         Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
@@ -919,7 +959,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       }
 
 #     ifndef DISABLE_MQTT
-        Serial.println(json);
+        Serial.printf("JSON: %s\n",json.c_str());
 #     endif
 
 
@@ -993,6 +1033,9 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
   }
+
+  publishStatusMessage("reporting done");
+
 }
 
 
@@ -1057,7 +1100,7 @@ void processConfigCommand(const String &command) {
     writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
     pubSubConnectFailures = 0;
 
-    Serial.printf("Set device token: %s\n", deviceToken);
+    Serial.printf("Set device token: %s... need to reset device!\n", deviceToken);
   }  
   else if(command.startsWith("set mqtt url")) {
     copy(mqttUrl, &command.c_str()[13], sizeof(mqttUrl) - 1);
@@ -1118,7 +1161,7 @@ void processConfigCommand(const String &command) {
     Serial.printf("MQTT url: %s\n", mqttUrl);
     Serial.printf("MQTT port: %d\n", mqttPort);
     Serial.printf("Device token: %s\n", deviceToken);
-    Serial.printf("Temperature sensor %s\n", BME_ok ? "OK" : "Not found");
+    Serial.printf("Temperature sensor: %s\n", BME_ok ? "OK" : "Not found");
     Serial.println("====================================");
     Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
     Serial.printf("MQTT status: %s\n", getSubPubStatusName(mqttState()));
@@ -1140,6 +1183,8 @@ void processConfigCommand(const String &command) {
 void printScanResult(U32 duration);     // Forward declare
 
 void scanVisibleNetworks() {
+  publishStatusMessage("scanning");
+
   Serial.println("Pausing data collection while we scan available networks...");
   WiFi.scanNetworks(false, true);    // Include hidden access points
 
@@ -1579,8 +1624,6 @@ void connectingToWifi()
 }
 
 
-
-
 void writeStringToEeprom(int addr, int length, const char *value)
 {
   for (int i = 0; i < length; i++)
@@ -1623,6 +1666,7 @@ U16 EepromReadU16(int addr)
 
 
 void publishOtaStatusMessage(const String &msg) {
+  StaticJsonBuffer<128> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["otaUpdate"] = msg;
 
@@ -1632,6 +1676,18 @@ void publishOtaStatusMessage(const String &msg) {
   mqttPublishAttribute(json);  
 }
 
+
+void publishStatusMessage(const String &msg) {
+  StaticJsonBuffer<128> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["status"] = msg;
+
+  String json;
+  root.printTo(json);
+
+  Serial.printf("[status] %s\n", msg.c_str());
+  mqttPublishAttribute(json);  
+}
 
 
 void setupOta() {
