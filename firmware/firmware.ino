@@ -842,8 +842,6 @@ void reportMeasurements() {
     // Function creates particle count and mass concentration
     // from PPD-42 low pulse occupancy (LPO).
 
-      publishStatusMessage("reporting 1");
-      
 
   Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > SAMPLE_PERIOD_DURATION || 
                                                                                    durationP2 > SAMPLE_PERIOD_DURATION) ? "ERROR" : "");
@@ -884,7 +882,6 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       F64 PM25conc = PM25count * K * mass25;    // μg/m^3
 
 
-publishStatusMessage("reporting 1.5");
       Conc10Filter1.Filter(PM10conc);
       Conc10Filter2.Filter(PM10conc);
       Conc10Filter3.Filter(PM10conc);
@@ -972,9 +969,6 @@ publishStatusMessage("reporting 1.5");
 
 
 bool ok = mqttPublishTelemetry(json);
-      publishStatusMessage("reporting 2c");
-
-      publishStatusMessage(ok ? "reporting ok" : "reporting not ok");
 
 
       if(!ok) {
@@ -1057,9 +1051,6 @@ bool ok = mqttPublishTelemetry(json);
       Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
   }
-
-  publishStatusMessage("reporting done");
-
 }
 
 
