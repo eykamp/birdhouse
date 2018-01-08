@@ -135,7 +135,7 @@ class set_led_color:
         web.header('Content-Type', 'application/json')
         data = { "nonce": color }
 
-        print(json.dumps(data))
+        print("JSON dump:", json.dumps(data))
 
         return json.dumps(data)
 
