@@ -188,6 +188,11 @@ void messageReceivedFromMothership(char* topic, byte* payload, unsigned int leng
   StaticJsonBuffer<2048> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(payload);
 
+  const char *test = root["mqttServer"];
+  if(strcmp(test, "") != 0 ) {
+    publishStatusMessage(String("Got ") +String(test));
+  }
+
   const char *color = root["LED"];
 
   if(strcmp(color, "GREEN") == 0)
