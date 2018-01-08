@@ -6,7 +6,7 @@
 #include <ESP8266WebServer.h>   // Include the WebServer library
 #include <PubSubClient.h>       // For MQTT
 #include <Dns.h>
-#include <EEPROM.h>             // For persisiting values in EEPROM
+#include <EEPROM.h>             // For persisting values in EEPROM
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
