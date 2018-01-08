@@ -31,7 +31,7 @@ class handle_hotspots:
             data = web.data()
             decoded = data.decode(data_encoding)
             incoming_data = json.loads(decoded)
-            print(incoming_data)
+            # print(incoming_data)
 
             known_lat = incoming_data["latitude"]
             known_lng = incoming_data["longitude"]
@@ -114,11 +114,12 @@ class set_led_color:
     def POST(self):
         # Decode request data
 
-        print("Received data: ", web.data().decode(data_encoding))
         incoming_data = json.loads(str(web.data().decode(data_encoding)))
 
         temperature = incoming_data["temperature"]
         device_id = incoming_data["device_id"]
+
+        print("Received data for " + device_id + ": ", web.data().decode(data_encoding))
 
         if float(temperature) < 50:
             color = 'GREEN'
