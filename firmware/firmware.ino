@@ -451,6 +451,9 @@ void setup()
   mqttPort       = EepromReadU16(PUB_SUB_PORT_ADDRESS);
   sampleDuration = EepromReadU16(SAMPLE_DURATION_ADDRESS);
 
+
+
+strcpy(mqttUrl,"www.sensorbot.org");  // TODO: Delete me
   
   Serial.printf("Local SSID: %s\n", localSsid);
   Serial.printf("Local Password: %s\n", localPassword);
