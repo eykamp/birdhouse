@@ -175,7 +175,7 @@ void connectToWiFi(const char*, const char*, bool); // Forward declare
 void activateLed(U32 ledMask);
 
 
-void message_received_from_mothership(char* topic, byte* payload, unsigned int length) {
+void messageReceivedFromMothership(char* topic, byte* payload, unsigned int length) {
   Serial.printf("Message arrived [%s]\n", topic);
 
   // See https://github.com/bblanchon/ArduinoJson for usage
@@ -470,7 +470,7 @@ void setup()
 
 
   setupPubSubClient();
-  mqttSetCallback(message_received_from_mothership);
+  mqttSetCallback(messageReceivedFromMothership);
 
   setupSensors();
  
