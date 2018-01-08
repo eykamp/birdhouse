@@ -358,6 +358,13 @@ void mqttSetCallback(MQTT_CALLBACK_SIGNATURE) {
 }
 
 
+bool mqttPublishAttribute(const JsonObject &jsonObj) {
+  String json;
+  jsonObj.printTo(json);
+
+  return mqttPublish("v1/devices/me/attributes", json.c_str());
+}
+
 bool mqttPublishAttribute(const String &payload) {
   return mqttPublish("v1/devices/me/attributes", payload.c_str());
 }
