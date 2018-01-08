@@ -418,7 +418,7 @@ void setup()
   Serial.println("/____/\\___/_/ /_/____/\\____/_/  /_.___/\\____/\\__/  ");
   Serial.println("");
   Serial.println("");
-  Serial.printf("Firmware Version %s\n", SOFTWARE_VERSION);
+  Serial.printf("Firmware Version %s\n", FIRMWARE_VERSION);
   Serial.println("");
 
 # ifdef DISABLE_MQTT
@@ -522,7 +522,7 @@ void publishTempSensorNameAndSoftwareVersion() {
   StaticJsonBuffer<128> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["temperatureSensor"] = getTemperatureSensorName();
-  root["firmwareVersion"] = SOFTWARE_VERSION;
+  root["firmwareVersion"] = FIRMWARE_VERSION;
 
   String json;
   root.printTo(json);
