@@ -1021,7 +1021,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
 
-  if(plantowerPresent) {
+  if(plantowerPresent && plantowerSampleCount > 0) {
 
     F64 pm1 = F64(plantowerPm1Sum) / (F64)plantowerSampleCount;
     F64 pm25 = F64(plantowerPm25Sum) / (F64)plantowerSampleCount;
@@ -1029,9 +1029,10 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
   
 
     String json = String("{") +
-      "\"plantowerPM1conc\":"    + String(pm1) + "," + 
-      "\"plantowerPM25conc\":"   + String(pm25) + "," + 
-      "\"plantowerPM10conc\":"   + String(pm10) + "}"; 
+      "\"plantowerPM1conc\":"     + String(pm1)  + "," + 
+      "\"plantowerPM25conc\":"    + String(pm25) + "," + 
+      "\"plantowerPM10conc\":"    + String(pm10) + "," +
+      "\"plantowerSampleCount\":" + String(plantowerSampleCount) + "}";
 
 
     if(!mqttPublishTelemetry(json)) {
@@ -1042,6 +1043,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
     Serial.println("Plantower PM1 data: " + String(pm1));
     Serial.println("Plantower PM2.5 data: " + String(pm25));
     Serial.println("Plantower PM10 data: " + String(pm10));
+    Serial.printf("Plantower samples: %d\n", plantowerSampleCount);
   }
 
 
