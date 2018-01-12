@@ -986,9 +986,6 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
 
-#     ifndef DISABLE_MQTT
-        Serial.printf("JSON: %s\n",json.c_str());
-#     endif
 
 
   if(BME_ok) {
