@@ -1021,7 +1021,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
 
-  if(plantowerPresent) {
+  if(plantowerPresent && plantowerSampleCount > 0) {
 
     F64 pm1 = F64(plantowerPm1Sum) / (F64)plantowerSampleCount;
     F64 pm25 = F64(plantowerPm25Sum) / (F64)plantowerSampleCount;
