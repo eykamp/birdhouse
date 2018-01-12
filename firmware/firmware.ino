@@ -394,7 +394,8 @@ bool mqttPublish(const char* topic, const char* payload) {
     Serial.printf("MQTT MSG: %s | %s\n", topic, payload);
     return true;
 # else
-    return pubSubClient.publish_P(topic, payload, false);
+    return pubSubClient.publish(topic, payload, false);  //xyzzy
+    // return pubSubClient.publish_P(topic, payload, false);
 # endif
 }
 
