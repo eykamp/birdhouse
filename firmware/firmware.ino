@@ -627,6 +627,7 @@ void loop() {
   }
 
   if(needToReconnectToWifi) {
+    Serial.println("Need to connect to wifi");
     connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
     needToReconnectToWifi = false;
   }
@@ -757,14 +758,12 @@ void loopSensors() {
     if(valP1 == LOW && triggerP1 == LOW) {
       triggerP1 = HIGH;
       triggerOnP1 = now_micros;
-      Serial.printf("P1: ON\n");
     }
     
     // Going high... stop timer
     else if (valP1 == HIGH && triggerP1 == HIGH) {
       U32 pulseLengthP1 = now_micros - triggerOnP1;
       durationP1 += pulseLengthP1;
-      Serial.printf("P1: OFF, %d\n", pulseLengthP1);
       triggerP1 = LOW;
     }
     
@@ -772,7 +771,6 @@ void loopSensors() {
     if(valP2 == LOW && triggerP2 == LOW) {
       triggerP2 = HIGH;
       triggerOnP2 = now_micros;
-      Serial.printf("P2: ON\n");
     }
     
     // Going high... stop timer
@@ -780,7 +778,6 @@ void loopSensors() {
       U32 pulseLengthP2 = now_micros - triggerOnP2;
       durationP2 += pulseLengthP2;
       triggerP2 = LOW;
-      Serial.printf("P2: OFF, %d\n", pulseLengthP2);
     }
 
     // Non-blocking function
@@ -1015,11 +1012,16 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       "\"cshinyeiPM25count\":"   + String(Count25Filter3.Current()) + "," + 
       "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
 
+      Serial.println(json);
+
+      U32 timenow = millis();
 
       if(!mqttPublishTelemetry(json)) {
         Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
+
+      Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
 
   if(plantowerPresent && plantowerSampleCount > 0) {
 
@@ -1035,10 +1037,16 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       "\"plantowerSampleCount\":" + String(plantowerSampleCount) + "}";
 
 
+    Serial.println(json);
+
+    timenow = millis();
     if(!mqttPublishTelemetry(json)) {
       Serial.printf("Could not publish Plantower PM data: %s\n", json.c_str());
       Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
     }
+
+    Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
+
 
     Serial.println("Plantower PM1 data: " + String(pm1));
     Serial.println("Plantower PM2.5 data: " + String(pm25));
@@ -1082,6 +1090,9 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
     // TODO: Convert to arduinoJson
     json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + "}";
 
+    Serial.println(json);
+    timenow = millis();
+
     if(!mqttPublishTelemetry(json)) {
       Serial.printf("Could not publish environmental data: %s\n", json.c_str());
     }
@@ -1114,6 +1125,8 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
     if(!mqttPublishTelemetry(json)) {
       Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
+    Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
+
   }
 }
 
@@ -1668,6 +1681,7 @@ void initiateConnectionToWifi()
   if (status == WL_CONNECT_FAILED) {    // Something went wrong
     Serial.println("Failed to set ssid & pw.  Connect attempt aborted.");
   } else {                              // Status is probably WL_DISCONNECTED
+Serial.println("Setting isConnecting to true!");
     isConnectingToWifi = true;
     connectingToWifiDotTimer = millis();
     wifiConnectStartTime = millis();    
@@ -1683,9 +1697,7 @@ void connectingToWifi()
 
     isConnectingToWifi = false;
   
-    Serial.println("");
-    Serial.print((millis() - wifiConnectStartTime) / SECONDS);
-    Serial.println(" seconds");
+    Serial.printf("\nConnect time: %d seconds\n", (millis() - wifiConnectStartTime) / SECONDS);
     Serial.print("Connected to WiFi; Address on the LAN: "); 
     Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
     return;
