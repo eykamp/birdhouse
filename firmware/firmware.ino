@@ -500,7 +500,7 @@ strcpy(mqttUrl,"www.sensorbot.org");  // TODO: Delete me
 
   // We'll handle these ourselves
   WiFi.setAutoConnect(false);
-  WiFi.setAutoReconnect(false);
+  WiFi.setAutoReconnect(true);
 
 
   Serial.setDebugOutput(true);
