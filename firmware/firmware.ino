@@ -10,6 +10,8 @@
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
+#include <SoftwareSerial.h>
+#include <PMS.h>                // Plantower
 
 // OTA Updates
 #include <ArduinoOTA.h>
@@ -18,7 +20,7 @@
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
 
-#define FIRMWARE_VERSION "0.29"
+#define FIRMWARE_VERSION "0.34"
 
 // Indulge me!
 #define U8  uint8_t
@@ -45,12 +47,56 @@
 // Define this to disable MQTT
 // #define DISABLE_MQTT
 
+// Verified
+// #define D0    16
+// #define D1      5   // I2C Bus SCL (clock)
+// #define D2      4   // I2C Bus SDA (data)
+// #define D3      0
+// #define D4      2   // Also blinks on-board blue LED, but with inverted logic
+// #define D5    14   // SPI Bus SCK (clock)
+// #define D6    12   // SPI Bus MISO 
+// #define D7    13   // SPI Bus MOSI
+// #define D8    15   // SPI Bus SS (CS)
+// #define D9      3   // RX0 (Serial console)
+// #define D10    1   // TX0 (Serial console)
+
+// Pin layout
+// Temp sensor
+#define BME_SCL D1    // Green wire, SPI (Serial Clock)  5
+#define BME_SDA D2    // Blue wire,  SDA (Serial Data)   4
+
+// Shinyei sensor
+#define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D5 // "P1"
+#define SHINYEI_SENSOR_DIGITAL_PIN_PM25 D6 // "P2"
+#define SHINYEI_LEVEL_PIN A0 //12 // D6
+#define SHARP_LED_POWER   D8 //15  // D8
+
+// Output LEDs
+#define LED_BUILTIN D4
+#define LED_RED D4
+#define LED_YELLOW D3
+#define LED_GREEN D0
+
+// D7 & D8 are disconnected
 //////////////////////
 // WiFi Definitions //
 //////////////////////
 
 #define WEB_PORT 80
 ESP8266WebServer server(WEB_PORT);
+
+
+#define SOFTWARE_SERIAL_RX_PIN D7
+#define SOFTWARE_SERIAL_TX_PIN D8
+#define SOFTWARE_SERIAL_BUFFER_SIZE 256
+
+#define PLANTOWER_SERIAL_BAUD_RATE 9600
+
+SoftwareSerial swSer(SOFTWARE_SERIAL_RX_PIN, SOFTWARE_SERIAL_TX_PIN, false, SOFTWARE_SERIAL_BUFFER_SIZE);
+
+// Plantower config
+PMS pms(swSer);
+PMS::DATA data;
 
 
 // Where do we check for firmware updates?
@@ -93,37 +139,6 @@ ExponentialFilter<F64> Count25Filter4(20, Count25InitialVal);
 
 
 
-// Verified
-// #define D0    16
-// #define D1      5   // I2C Bus SCL (clock)
-// #define D2      4   // I2C Bus SDA (data)
-// #define D3      0
-// #define D4      2   // Also blinks on-board blue LED, but with inverted logic
-// #define D5    14   // SPI Bus SCK (clock)
-// #define D6    12   // SPI Bus MISO 
-// #define D7    13   // SPI Bus MOSI
-// #define D8    15   // SPI Bus SS (CS)
-// #define D9      3   // RX0 (Serial console)
-// #define D10    1   // TX0 (Serial console)
-
-// Pin layout
-// Temp sensor
-#define BME_SCL D1    // Green wire, SPI (Serial Clock)  5
-#define BME_SDA D2    // Blue wire,  SDA (Serial Data)   4
-
-// Shinyei sensor
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D5 //14 // D5
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM25 D6 //12 // D6
-#define SHINYEI_LEVEL_PIN A0 //12 // D6
-#define SHARP_LED_POWER   D8 //15  // D8
-
-// Output LEDs
-#define LED_BUILTIN D4
-#define LED_RED D4
-#define LED_YELLOW D3
-#define LED_GREEN D0
-
-// D7 & D8 are disconnected
 
 enum Leds {
   NONE = 0,
@@ -423,6 +438,7 @@ bool changedWifiCredentials = false;    // Track if we've changed wifi connectio
 void setup()
 {
   Serial.begin(115200);
+  swSer.begin(PLANTOWER_SERIAL_BAUD_RATE);
 
   Serial.println("");
   Serial.println("");
@@ -507,6 +523,8 @@ strcpy(mqttUrl,"www.sensorbot.org");  // TODO: Delete me
 
   setupOta();
 
+  activateLed(RED);
+
   Serial.println("Done setting up.");
 }
 
@@ -571,6 +589,12 @@ U32 lastMillis = 0;
 
 
 U32 lastScanTime = 0;
+
+U32 plantowerPm1Sum = 0;
+U32 plantowerPm25Sum = 0;
+U32 plantowerPm10Sum = 0;
+U16 plantowerSampleCount = 0;
+bool plantowerPresent = true;
 
 
 void loop() {
@@ -712,7 +736,20 @@ void loopSensors() {
     if(valP2 == LOW) {
       durationP2 += now_micros - triggerOnP2 - overage;
     }
+
+    reportMeasurements();
+
+    if(now_millis - lastScanTime > 30 * MINUTES) {
+      scanVisibleNetworks();
+    }
+
+    if(now_millis - lastScanTime > 25 * SECONDS) {
+      checkForFirmwareUpdates();
+    }
+
+    resetDataCollection();
   }
+
   else {
 
     // Track the duration each pin is LOW  
@@ -745,6 +782,14 @@ void loopSensors() {
       triggerP2 = LOW;
       Serial.printf("P2: OFF, %d\n", pulseLengthP2);
     }
+
+    // Non-blocking function
+    if (plantowerPresent && pms.read(data)) {
+      plantowerPm1Sum  += data.PM_AE_UG_1_0;
+      plantowerPm25Sum += data.PM_AE_UG_2_5;
+      plantowerPm10Sum += data.PM_AE_UG_10_0;
+      plantowerSampleCount++;
+    }
   }
 
 
@@ -769,23 +814,6 @@ void loopSensors() {
   // Serial.print(" - Dust Density: ");
   // Serial.println(dustDensity);
   // delay(1000);
-
-
-
-  if (doneSampling) {
-    reportMeasurements();
-
-
-    if(now_millis - lastScanTime > 30 * MINUTES) {
-      scanVisibleNetworks();
-    }
-
-    if(now_millis - lastScanTime > 25 * SECONDS) {
-      checkForFirmwareUpdates();
-    }
-
-    resetDataCollection();
-  }
 
 }
 
@@ -829,6 +857,13 @@ void resetDataCollection() {
     
   triggerP1 = !valP1;
   triggerP2 = !valP2;
+
+  // Reset Plantower data
+  plantowerPm1Sum = 0;
+  plantowerPm25Sum = 0;
+  plantowerPm10Sum = 0;
+  plantowerSampleCount = 0;
+
 
  Serial.printf("P1 / P2 starting %s / %s\n", valP1 ? "HIGH" : "LOW",valP2 ? "HIGH" : "LOW");
 }
@@ -986,6 +1021,28 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
 
+  if(plantowerPresent) {
+
+    F64 pm1 = F64(plantowerPm1Sum) / (F64)plantowerSampleCount;
+    F64 pm25 = F64(plantowerPm25Sum) / (F64)plantowerSampleCount;
+    F64 pm10 = F64(plantowerPm10Sum) / (F64)plantowerSampleCount;
+  
+
+    String json = String("{") +
+      "\"plantowerPM1conc\":"    + String(pm1) + "," + 
+      "\"plantowerPM25conc\":"   + String(pm25) + "," + 
+      "\"plantowerPM10conc\":"   + String(pm10) + "}"; 
+
+
+    if(!mqttPublishTelemetry(json)) {
+      Serial.printf("Could not publish Plantower PM data: %s\n", json.c_str());
+      Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
+    }
+
+    Serial.println("Plantower PM1 data: " + String(pm1));
+    Serial.println("Plantower PM2.5 data: " + String(pm25));
+    Serial.println("Plantower PM10 data: " + String(pm10));
+  }
 
 
   if(BME_ok) {
@@ -1321,6 +1378,9 @@ void checkForNewInputFromSerialPort() {
 // Get a list of wifi hotspots the device can see
 void printScanResult(U32 duration) {
   int networksFound = WiFi.scanComplete();
+
+  publishStatusMessage("scan results: " + String(networksFound) + " hotspots found in " + String(duration) + "ms");
+
   if(networksFound < 0) {
     Serial.println("NEGATIVE RESULT!!");    // Should never happen
     return;
