@@ -981,10 +981,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
 
 
-bool ok = mqttPublishTelemetry(json);
-
-
-      if(!ok) {
+      if(!mqttPublishTelemetry(json)) {
         Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
         Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
@@ -1029,8 +1026,7 @@ bool ok = mqttPublishTelemetry(json);
     // TODO: Convert to arduinoJson
     json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + "}";
 
-    ok = mqttPublishTelemetry(json);
-    if(!ok) {
+    if(!mqttPublishTelemetry(json)) {
       Serial.printf("Could not publish environmental data: %s\n", json.c_str());
     }
 
@@ -1059,8 +1055,7 @@ bool ok = mqttPublishTelemetry(json);
 
     // TODO: Convert to arduinoJson
     json = "{\"atemperature\":" + String(TempFilter1.Current()) + ",\"btemperature\":" + String(TempFilter2.Current()) + ",\"ctemperature\":" + String(TempFilter3.Current()) + "}";
-    ok = mqttPublishTelemetry(json);
-    if(!ok) {
+    if(!mqttPublishTelemetry(json)) {
       Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
   }
@@ -1364,9 +1359,9 @@ void printScanResult(U32 duration) {
   }
   json += "]\"}";
 
-  bool ok = mqttPublishAttribute(json);
+  if(!mqttPublishAttribute(json)) {
+      publishStatusMessage("Could not upload scan results");
 
-  if(!ok) {
     Serial.printf("Could not publish message: %s\n", json.c_str());
   }
 }
