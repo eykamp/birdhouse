@@ -452,6 +452,7 @@ void setup()
   Serial.printf("Firmware Version %s\n", FIRMWARE_VERSION);
   Serial.println("");
 
+
 # ifdef DISABLE_MQTT
     Serial.println("\n\n*** MQTT FUNCTIONALITY DISABLED IN THIS BUILD! ***\n");
 # endif
@@ -605,7 +606,6 @@ void loop() {
     millisOveflows++;
   
   lastMillis = now_millis;
-
   loopPubSub();
 
 
@@ -947,7 +947,6 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       Count25Filter3.Filter(PM25count);
       Count25Filter4.Filter(PM25count);
       
-
       // StaticJsonBuffer<1024> jsonBuffer;
       // JsonObject &root = jsonBuffer.createObject();
 
