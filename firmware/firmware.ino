@@ -406,6 +406,9 @@ void onConnectedToPubSubServer() {
   publishStatusMessage("Connected");
 
   pubSubConnectFailures = 0;
+
+  Serial.println("Starting data collection");
+  resetDataCollection();      // Now we can start our data collection efforts
 }
 
 
@@ -580,10 +583,20 @@ void loop() {
   lastMillis = now_millis;
 
   loopPubSub();
-  loopSensors();
+
+
+#ifdef DISABLE_MQTT
+  bool doLoop = true;
+#else
+  bool doLoop = mqttState() == MQTT_CONNECTED;
+#endif
+
+  if(doLoop)
+    loopSensors();
 
   server.handleClient();
   checkForNewInputFromSerialPort();
+
 
   if(isConnectingToWifi) {
     connectingToWifi();
