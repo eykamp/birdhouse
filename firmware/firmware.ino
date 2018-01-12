@@ -185,24 +185,24 @@ void messageReceivedFromMothership(char* topic, byte* payload, unsigned int leng
   Serial.printf("Message arrived [%s]\n", topic);
 
   // See https://github.com/bblanchon/ArduinoJson for usage
-  StaticJsonBuffer<2048> jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(payload);
+  // StaticJsonBuffer<2048> jsonBuffer;
+  // JsonObject &root = jsonBuffer.parseObject(payload);
 
-  const char *test = root["mqttServer"];
-  if(strcmp(test, "") != 0 ) {
-    publishStatusMessage(String("Got ") +String(test));
-  }
+  // // const char *test = root["mqttServer"];
+  // // if(strcmp(test, "") != 0 ) {
+  // //   publishStatusMessage(String("Got ") +String(test));
+  // // }
 
-  const char *color = root["LED"];
+  // const char *color = root["LED"];
 
-  if(strcmp(color, "GREEN") == 0)
-    activateLed(GREEN);
-  else if(strcmp(color, "YELLOW") == 0)
-    activateLed(YELLOW);
-  else if(strcmp(color, "RED") == 0)
-    activateLed(RED);
-  else
-    activateLed(NONE);
+  // if(strcmp(color, "GREEN") == 0)
+  //   activateLed(GREEN);
+  // else if(strcmp(color, "YELLOW") == 0)
+  //   activateLed(YELLOW);
+  // else if(strcmp(color, "RED") == 0)
+  //   activateLed(RED);
+  // else
+  //   activateLed(NONE);
 }
 
 
@@ -494,7 +494,7 @@ strcpy(mqttUrl,"www.sensorbot.org");  // TODO: Delete me
 
 
   setupPubSubClient();
-  mqttSetCallback(messageReceivedFromMothership);
+  // mqttSetCallback(messageReceivedFromMothership);
 
   setupSensors();
  
