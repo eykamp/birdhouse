@@ -148,7 +148,6 @@ enum Leds {
 };
 
 
-// #define SAMPLE_PERIOD_DURATION  30 * SECONDS * MILLIS_TO_MICROS//30 * SECONDS
 #define SAMPLE_PERIOD_DURATION (U32(sampleDuration * SECONDS * MILLIS_TO_MICROS))
 
 ///// 
