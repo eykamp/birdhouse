@@ -148,6 +148,10 @@ enum Leds {
 };
 
 
+bool plantowerSensorDetected = false;
+bool plantowerSensorDetectReported = false;
+bool plantowerSensorNondetectReported = false;
+
 #define SAMPLE_PERIOD_DURATION (U32(sampleDuration * SECONDS * MILLIS_TO_MICROS))
 
 ///// 
@@ -277,6 +281,8 @@ void reconnectToPubSubServer() {
     return;
 
   bool verboseMode = pubSubConnectFailures == 0;
+
+  reportPlantowerSensor();
 
   if(verboseMode)
     Serial.println("Attempting MQTT connection...");
@@ -780,12 +786,12 @@ void loopSensors() {
       triggerP2 = LOW;
     }
 
-    // Non-blocking function
     if (plantowerPresent && pms.read(data)) {
       plantowerPm1Sum  += data.PM_AE_UG_1_0;
       plantowerPm25Sum += data.PM_AE_UG_2_5;
       plantowerPm10Sum += data.PM_AE_UG_10_0;
       plantowerSampleCount++;
+      plantowerSensorDetected = true;
     }
   }
 
@@ -878,6 +884,25 @@ F64 lpoToParticleCount(F64 ratio) {
 F64 sphericalVolume(F64 radius) {
   static const F64 pi = 3.14159;
   return (4.0 / 3.0) * pi * pow(radius, 3);
+}
+
+
+void reportPlantowerDetectNondetect(bool sensorFound) {
+  mqttPublishAttribute(String("{\"plantowerSensorDetected\":") + sensorFound ? "True" : "False" + "}");
+}
+
+
+void reportPlantowerSensor() {
+  // Report each status only once
+  if(!plantowerSensorDetected && !plantowerSensorNondetectReported) {
+    reportPlantowerDetectNondetect(false);
+    plantowerSensorNondetectReported = true;
+  }
+
+  if(plantowerSensorDetected && !plantowerSensorDetectReported) {
+    reportPlantowerDetectNondetect(true);
+    plantowerSensorDetectReported = true;
+  }
 }
 
 
@@ -1051,6 +1076,8 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
     Serial.println("Plantower PM2.5 data: " + String(pm25));
     Serial.println("Plantower PM10 data: " + String(pm10));
     Serial.printf("Plantower samples: %d\n", plantowerSampleCount);
+
+    reportPlantowerSensor();
   }
 
 
