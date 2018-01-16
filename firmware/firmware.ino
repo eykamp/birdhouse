@@ -20,7 +20,7 @@
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
 
-#define FIRMWARE_VERSION "0.34"
+#define FIRMWARE_VERSION "0.38"
 
 // Indulge me!
 #define U8  uint8_t
@@ -1008,6 +1008,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       // bool ok = mqttPublishTelemetry(json);  
 
       String json = String("{") +
+      "\"uptime\":"              + String(millis()) + "," + 
       "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
       "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
       "\"shinyeiPM10mass\":"     + String(mass10) + "," + 
