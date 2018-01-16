@@ -887,7 +887,7 @@ F64 sphericalVolume(F64 radius) {
 
 
 void reportPlantowerDetectNondetect(bool sensorFound) {
-  mqttPublishAttribute(String("{\"plantowerSensorDetected\":") + sensorFound ? "True" : "False" + "}");
+  mqttPublishAttribute(String("{\"plantowerSensorDetected\":") + (sensorFound ? "True" : "False") + "}");
 }
 
 
