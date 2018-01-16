@@ -601,7 +601,6 @@ U32 plantowerPm1Sum = 0;
 U32 plantowerPm25Sum = 0;
 U32 plantowerPm10Sum = 0;
 U16 plantowerSampleCount = 0;
-bool plantowerPresent = true;
 
 
 void loop() {
@@ -786,7 +785,7 @@ void loopSensors() {
       triggerP2 = LOW;
     }
 
-    if (plantowerPresent && pms.read(data)) {
+    if(pms.read(data)) {
       plantowerPm1Sum  += data.PM_AE_UG_1_0;
       plantowerPm25Sum += data.PM_AE_UG_2_5;
       plantowerPm10Sum += data.PM_AE_UG_10_0;
@@ -1047,7 +1046,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
 
       Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
 
-  if(plantowerPresent && plantowerSampleCount > 0) {
+  if(plantowerSampleCount > 0) {
 
     F64 pm1 = F64(plantowerPm1Sum) / (F64)plantowerSampleCount;
     F64 pm25 = F64(plantowerPm25Sum) / (F64)plantowerSampleCount;
