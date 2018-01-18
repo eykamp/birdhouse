@@ -285,8 +285,6 @@ void reconnectToPubSubServer() {
 
   bool verboseMode = pubSubConnectFailures == 0;
 
-  reportPlantowerSensor();
-
   if(verboseMode)
     Serial.println("Attempting MQTT connection...");
 
@@ -429,6 +427,7 @@ void onConnectedToPubSubServer() {
   publishTempSensorNameAndSoftwareVersion();
   publishStatusMessage("Connected");
 
+  reportPlantowerSensor();
   reportResetReason();
 
   pubSubConnectFailures = 0;
