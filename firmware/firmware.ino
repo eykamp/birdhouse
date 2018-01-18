@@ -230,6 +230,9 @@ U32 lastPubSubConnectAttempt = 0;
 bool mqttServerConfigured = false;
 bool mqttServerLookupError = false;
 
+bool reportedResetReason = false;
+
+
 void setupPubSubClient() {
   if(mqttServerConfigured || mqttServerLookupError )
     return;
@@ -425,6 +428,8 @@ void onConnectedToPubSubServer() {
   publishSampleDuration();
   publishTempSensorNameAndSoftwareVersion();
   publishStatusMessage("Connected");
+
+  reportResetReason();
 
   pubSubConnectFailures = 0;
 
@@ -902,6 +907,15 @@ void reportPlantowerSensor() {
     reportPlantowerDetectNondetect(true);
     plantowerSensorDetectReported = true;
   }
+}
+
+
+void reportResetReason() {
+  if(reportedResetReason)
+    return;
+
+  mqttPublishAttribute(String("{\"lastResetReason\":\"") + ESP.getResetReason() + "\"}");
+  reportedResetReason = true;
 }
 
 
