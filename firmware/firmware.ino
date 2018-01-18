@@ -1062,7 +1062,6 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
 
   if(plantowerSampleCount > 0) {
-
     F64 pm1 = F64(plantowerPm1Sum) / (F64)plantowerSampleCount;
     F64 pm25 = F64(plantowerPm25Sum) / (F64)plantowerSampleCount;
     F64 pm10 = F64(plantowerPm10Sum) / (F64)plantowerSampleCount;
