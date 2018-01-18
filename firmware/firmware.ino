@@ -100,8 +100,8 @@ PMS::DATA data;
 
 
 // Where do we check for firmware updates?
-#define UPDATE_SERVER "www.sensorbot.org"
-#define UPDATE_PORT 8989
+#define FIRMWARE_UPDATE_SERVER "www.sensorbot.org"
+#define FIRMWARE_UPDATE_PORT 8989
 
 
 
@@ -829,7 +829,7 @@ void checkForFirmwareUpdates() {
 
 
 
-  t_httpUpdate_return ret = ESPhttpUpdate.update(UPDATE_SERVER, UPDATE_PORT, "/update/", FIRMWARE_VERSION);
+  t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, "/update/", FIRMWARE_VERSION);
 
   switch(ret) {
     case HTTP_UPDATE_FAILED:
