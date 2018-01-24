@@ -66,10 +66,8 @@
 #define BME_SDA D2    // Blue wire,  SDA (Serial Data)   4
 
 // Shinyei sensor
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D5 // "P1"
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM25 D6 // "P2"
-#define SHINYEI_LEVEL_PIN A0 //12 // D6
-#define SHARP_LED_POWER   D8 //15  // D8
+#define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D5 // "P2"
+#define SHINYEI_SENSOR_DIGITAL_PIN_PM25 D6 // "P1"
 
 // Output LEDs
 #define LED_BUILTIN D4
