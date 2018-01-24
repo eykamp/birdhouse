@@ -154,9 +154,10 @@ bool plantowerSensorNondetectReported = false;
 ///// 
 // For persisting values in EEPROM
 const int SSID_LENGTH       = 32;
-const int PASSWORD_LENGTH   = 63;
-const int DEVICE_KEY_LENGTH = 20;
-const int URL_LENGTH        = 64;
+const int PASSWORD_LENGTH        = 63;
+const int DEVICE_KEY_LENGTH      = 20;
+const int URL_LENGTH             = 64;
+const int SENTINEL_MARKER_LENGTH = 64;
 
 // Our vars to hold the EEPROM values
 char localSsid[SSID_LENGTH + 1];
@@ -178,7 +179,8 @@ const int DEVICE_KEY_ADDRESS      = WIFI_PASSWORD_ADDRESS   + sizeof(wifiPasswor
 const int MQTT_URL_ADDRESS        = DEVICE_KEY_ADDRESS      + sizeof(deviceToken);
 const int PUB_SUB_PORT_ADDRESS    = MQTT_URL_ADDRESS        + sizeof(mqttUrl);
 const int SAMPLE_DURATION_ADDRESS = PUB_SUB_PORT_ADDRESS    + sizeof(mqttPort);
-const int NEXT_ADDRESS            = SAMPLE_DURATION_ADDRESS + sizeof(sampleDuration);
+const int SENTINEL_ADDRESS        = SAMPLE_DURATION_ADDRESS + sizeof(sampleDuration);
+const int NEXT_ADDRESS            = SENTINEL_ADDRESS        + sizeof(SENTINEL_MARKER); 
 
 const int EEPROM_SIZE = NEXT_ADDRESS;
 
@@ -480,6 +482,7 @@ void setup()
   EEPROM.begin(EEPROM_SIZE);
 
   // void readStringFromEeprom(int addr, int length, char container[]);  // Forward declare
+  verifySentinelMarker();
 
   readStringFromEeprom(LOCAL_SSID_ADDRESS,     sizeof(localSsid)     - 1, localSsid);
   readStringFromEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
@@ -493,7 +496,7 @@ void setup()
 
 
 strcpy(mqttUrl,"www.sensorbot.org");  // TODO: Delete me
-  
+
   Serial.printf("Local SSID: %s\n", localSsid);
   Serial.printf("Local Password: %s\n", localPassword);
   Serial.printf("WiFi SSID: %s\n", wifiSsid);
@@ -584,9 +587,34 @@ void activateLed(U32 ledMask) {
 
 bool needToReconnectToWifi = false;
 bool needToConnect = false;
-String visitUrl = "www.yahoo.com";
 
 
+// Called the very first time a Birdhouse is booted -- set defaults
+void intitialConfig() {
+  updateLocalPassword("88888888");
+  updateLocalSsid("NewBirdhouse666");  
+  updateWifiPassword("NOT_SET");
+  updateWifiSsid("NOT_SET");  
+  updateMqttUrl("www.sensorbot.org");
+  updateMqttPort("1883");
+  updateSampleDuration("30");
+  updateDeviceToken("NOT_SET");
+
+  writeStringToEeprom(SENTINEL_ADDRESS, sizeof(SENTINEL_MARKER) - 1, SENTINEL_MARKER);
+
+  // ESP.restart();
+}
+
+// Checks if this Birdhouse has ever been booted before
+void verifySentinelMarker() {
+
+  char storedSentinelMarker[SENTINEL_MARKER_LENGTH + 1];
+  readStringFromEeprom(SENTINEL_ADDRESS, sizeof(storedSentinelMarker) - 1, storedSentinelMarker);
+
+  // Sentinel is missing!  This is our very first boot.
+  if(strcmp(SENTINEL_MARKER, storedSentinelMarker) != 0)
+    intitialConfig();
+}
 
 
 bool isConnectingToWifi = false;    // True while a connection is in process
