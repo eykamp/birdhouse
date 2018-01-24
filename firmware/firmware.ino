@@ -77,7 +77,6 @@
 #define LED_YELLOW D3
 #define LED_GREEN D0
 
-// D7 & D8 are disconnected
 //////////////////////
 // WiFi Definitions //
 //////////////////////
