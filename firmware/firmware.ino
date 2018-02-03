@@ -20,8 +20,8 @@
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
 
-#define FIRMWARE_VERSION "0.38"
 
+#define FIRMWARE_VERSION "0.84" // Changing this variable name will require changing the build file to extract it properly
 // Indulge me!
 #define U8  uint8_t
 #define S8  int8_t
