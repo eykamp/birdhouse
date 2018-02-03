@@ -85,10 +85,11 @@
 
 
 
+#define PLANTOWER_SERIAL_BAUD_RATE 9600
 
 // Plantower config
-PMS pms(swSer);
-PMS::DATA data;
+PMS pms(Serial);
+PMS::DATA PmsData;
 
 
 // Where do we check for firmware updates?
@@ -519,6 +520,13 @@ void setup()
 
   activateLed(RED);
 
+  server.begin();
+
+  if(!initialConfigMode) {
+    Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
+    Serial.swap();    // D8 is now TX, D7 RX
+  }
+
 }
 
 
@@ -784,10 +792,11 @@ void loopSensors() {
       triggerP2 = LOW;
     }
 
-    if(pms.read(data)) {
-      plantowerPm1Sum  += data.PM_AE_UG_1_0;
-      plantowerPm25Sum += data.PM_AE_UG_2_5;
-      plantowerPm10Sum += data.PM_AE_UG_10_0;
+
+    if(pms.read(PmsData)) {
+      plantowerPm1Sum  += PmsData.PM_AE_UG_1_0;
+      plantowerPm25Sum += PmsData.PM_AE_UG_2_5;
+      plantowerPm10Sum += PmsData.PM_AE_UG_10_0;
       plantowerSampleCount++;
       plantowerSensorDetected = true;
     }
@@ -1057,9 +1066,9 @@ void reportMeasurements() {
       //xx Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
 
   if(plantowerSampleCount > 0) {
-    F64 pm1 = F64(plantowerPm1Sum) / (F64)plantowerSampleCount;
-    F64 pm25 = F64(plantowerPm25Sum) / (F64)plantowerSampleCount;
-    F64 pm10 = F64(plantowerPm10Sum) / (F64)plantowerSampleCount;
+    F64 pm1 = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
+    F64 pm25 = (F64(plantowerPm25Sum) / (F64)plantowerSampleCount);
+    F64 pm10 = (F64(plantowerPm10Sum) / (F64)plantowerSampleCount);
   
 
     String json = String("{") +
