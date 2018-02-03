@@ -153,7 +153,7 @@ bool plantowerSensorNondetectReported = false;
 
 ///// 
 // For persisting values in EEPROM
-const int SSID_LENGTH       = 32;
+const int SSID_LENGTH            = 32;
 const int PASSWORD_LENGTH        = 63;
 const int DEVICE_KEY_LENGTH      = 20;
 const int URL_LENGTH             = 64;
@@ -199,10 +199,10 @@ void activateLed(U32 ledMask);
 
 
 void messageReceivedFromMothership(char* topic, byte* payload, unsigned int length) {
-  Serial.printf("Message arrived [%s]\n", topic);
+  //xx Serial.printf("Message arrived [%s]\n", topic);
 
   // See https://github.com/bblanchon/ArduinoJson for usage
-  // StaticJsonBuffer<2048> jsonBuffer;
+  // StaticJsonBuffer<MQTT_MAX_PACKET_SIZE> jsonBuffer;
   // JsonObject &root = jsonBuffer.parseObject(payload);
 
   // // const char *test = root["mqttServer"];
@@ -241,12 +241,12 @@ void setupPubSubClient() {
 
   IPAddress serverIp;
 
-  Serial.printf("\nLooking up IP for %s\n", mqttUrl);
+  //xx Serial.printf("\nLooking up IP for %s\n", mqttUrl);
   if(WiFi.hostByName(mqttUrl, serverIp)) {
     mqttSetServer(serverIp, mqttPort);
     mqttServerConfigured = true;
   } else {
-    Serial.printf("Could not get IP address for MQTT server %s\n", mqttUrl);
+    //xx Serial.printf("Could not get IP address for MQTT server %s\n", mqttUrl);
     mqttServerLookupError = true;
   }
 }
@@ -285,26 +285,26 @@ void reconnectToPubSubServer() {
   bool verboseMode = pubSubConnectFailures == 0;
 
   if(verboseMode)
-    Serial.println("Attempting MQTT connection...");
+    //xx Serial.println("Attempting MQTT connection...");
 
   // Attempt to connect
   if (mqttConnect("Birdhouse", deviceToken, "")) {   // ClientID, username, password
     onConnectedToPubSubServer();
   } else {    // Connection failed
     if(verboseMode) {
-      Serial.printf("MQTT connection failed: %s\n", getSubPubStatusName(mqttState()));
+      //xx Serial.printf("MQTT connection failed: %s\n", getSubPubStatusName(mqttState()));
 
       // We know we're connected to the wifi, so let's see if we can ping the MQTT host
       bool reachable = Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1);   // Try up to 3 pings
 
       if(reachable) {
         if(mqttState() == MQTT_CONNECT_UNAUTHORIZED) {
-          Serial.printf("MQTT host: \"%s\" is online.\nLooks like the device token (%s) is wrong?\n", mqttUrl, deviceToken);
+          //xx Serial.printf("MQTT host: \"%s\" is online.\nLooks like the device token (%s) is wrong?\n", mqttUrl, deviceToken);
         } else {
-          Serial.printf("MQTT host: \"%s\" is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
+          //xx Serial.printf("MQTT host: \"%s\" is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
         }
       } else {
-        Serial.printf("MQTT host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
+        //xx Serial.printf("MQTT host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
       }
     }
     pubSubConnectFailures++;
@@ -315,7 +315,7 @@ void reconnectToPubSubServer() {
 
 void mqttSetServer(IPAddress &ip, uint16_t port) {
 # ifdef DISABLE_MQTT
-    Serial.printf("MQTT SET SERVER: %s | %d\n", ip.toString().c_str(), port);
+    //xx Serial.printf("MQTT SET SERVER: %s | %d\n", ip.toString().c_str(), port);
     return;
 # else
     pubSubClient.setServer(ip, port);
@@ -325,7 +325,7 @@ void mqttSetServer(IPAddress &ip, uint16_t port) {
 
 bool mqttConnect(const char *id, const char *user, const char *pass) {
 # ifdef DISABLE_MQTT
-    Serial.printf("MQTT CON: %s | %s | %s\n", id, user, pass);
+    //xx Serial.printf("MQTT CON: %s | %s | %s\n", id, user, pass);
     return true;
 # else
     return pubSubClient.connect(id, user, pass);
@@ -344,7 +344,7 @@ bool mqttConnected() {
 
 void mqttDisconnect() {
 # ifdef DISABLE_MQTT
-    Serial.printf("MQTT DIS\n");
+    //xx Serial.printf("MQTT DIS\n");
 # else
     pubSubClient.disconnect();
 # endif
@@ -371,7 +371,7 @@ int mqttState() {
 
 void mqttSetCallback(MQTT_CALLBACK_SIGNATURE) {
 # ifdef DISABLE_MQTT
-    Serial.printf("MQTT SETTING CALLBACK\n");
+    //xx Serial.printf("MQTT SETTING CALLBACK\n");
 # else
     pubSubClient.setCallback(callback);
 # endif
@@ -397,18 +397,17 @@ bool mqttPublishTelemetry(const String &payload) {
 
 bool mqttPublish(const char* topic, const char* payload) {
 # ifdef DISABLE_MQTT
-    Serial.printf("MQTT MSG: %s | %s\n", topic, payload);
+    //xx Serial.printf("MQTT MSG: %s | %s\n", topic, payload);
     return true;
 # else
-    return pubSubClient.publish(topic, payload, false);  //xyzzy
-    // return pubSubClient.publish_P(topic, payload, false);
+    return pubSubClient.publish(topic, payload, false);
 # endif
 }
 
 
 bool mqttSubscribe(const char* topic) {
 # ifdef DISABLE_MQTT
-    Serial.printf("MQTT SUB: %s\n", topic);
+    //xx Serial.printf("MQTT SUB: %s\n", topic);
     return true;
 # else
     return pubSubClient.subscribe(topic);
@@ -417,7 +416,7 @@ bool mqttSubscribe(const char* topic) {
 
 
 void onConnectedToPubSubServer() {
-  Serial.println("Connected to MQTT server");                          // Even if we're not in verbose mode... Victories are to be celebrated!
+  //xx Serial.println("Connected to MQTT server");                          // Even if we're not in verbose mode... Victories are to be celebrated!
   mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Announce ourselves to the server
@@ -431,7 +430,7 @@ void onConnectedToPubSubServer() {
 
   pubSubConnectFailures = 0;
 
-  Serial.println("Starting data collection");
+  //xx Serial.println("Starting data collection");
   resetDataCollection();      // Now we can start our data collection efforts
 }
 
@@ -463,7 +462,7 @@ void setup()
 
 
 # ifdef DISABLE_MQTT
-    Serial.println("\n\n*** MQTT FUNCTIONALITY DISABLED IN THIS BUILD! ***\n");
+    //xx Serial.println("\n\n*** MQTT FUNCTIONALITY DISABLED IN THIS BUILD! ***\n");
 # endif
 
   pinMode(LED_RED, OUTPUT);
@@ -481,7 +480,6 @@ void setup()
 
   EEPROM.begin(EEPROM_SIZE);
 
-  // void readStringFromEeprom(int addr, int length, char container[]);  // Forward declare
   verifySentinelMarker();
 
   readStringFromEeprom(LOCAL_SSID_ADDRESS,     sizeof(localSsid)     - 1, localSsid);
@@ -495,17 +493,8 @@ void setup()
 
 
 
-strcpy(mqttUrl,"www.sensorbot.org");  // TODO: Delete me
 
-  Serial.printf("Local SSID: %s\n", localSsid);
-  Serial.printf("Local Password: %s\n", localPassword);
-  Serial.printf("WiFi SSID: %s\n", wifiSsid);
-  Serial.printf("WiFi Password: %s\n", wifiPassword);
-  Serial.printf("MQTT Url: %s\n", mqttUrl);
-  Serial.printf("MQTT Port: %d\n", mqttPort);
-  Serial.printf("Sampling duration: %d seconds\n", sampleDuration);
 
-  Serial.printf("DeviceToken: %s\n", deviceToken);
 
   WiFi.mode(WIFI_AP_STA);  
 
@@ -536,7 +525,6 @@ strcpy(mqttUrl,"www.sensorbot.org");  // TODO: Delete me
 
   activateLed(RED);
 
-  Serial.println("Done setting up.");
 }
 
 
@@ -579,7 +567,6 @@ void publishTempSensorNameAndSoftwareVersion() {
 
 
 void activateLed(U32 ledMask) {
-  Serial.printf("[led] LED Mask: %d %d %d %d\n", ledMask, (ledMask & RED) ? HIGH : LOW, (ledMask & YELLOW) ? HIGH : LOW, (ledMask & GREEN) ? HIGH : LOW);
   digitalWrite(LED_RED, (ledMask & RED) ? HIGH : LOW);
   digitalWrite(LED_YELLOW, (ledMask & YELLOW) ? HIGH : LOW);
   digitalWrite(LED_GREEN, (ledMask & GREEN) ? HIGH : LOW);
@@ -587,7 +574,6 @@ void activateLed(U32 ledMask) {
 
 bool needToReconnectToWifi = false;
 bool needToConnect = false;
-
 
 // Called the very first time a Birdhouse is booted -- set defaults
 void intitialConfig() {
@@ -661,7 +647,7 @@ void loop() {
   }
 
   if(needToReconnectToWifi) {
-    Serial.println("Need to connect to wifi");
+    //xx Serial.println("Need to connect to wifi");
     connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
     needToReconnectToWifi = false;
   }
@@ -670,7 +656,6 @@ void loop() {
 
 
 bool BME_ok = false;
-bool toggle = true;
 
 
 // BME280I2C::Settings settings(
@@ -704,22 +689,17 @@ void setupSensors() {
     TempFilter2.SetCurrent(t);
     TempFilter3.SetCurrent(t);
 
-    Serial.printf("Temperature sensor: %s\n", getTemperatureSensorName());
+    //xx Serial.printf("Temperature sensor: %s\n", getTemperatureSensorName());
 
     char str_temp[6];
     dtostrf(t, 4, 2, str_temp);
 
-    Serial.printf("Initializing temperature filter %s\n", str_temp);
+    //xx Serial.printf("Initializing temperature filter %s\n", str_temp);
   }
 
 
   pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM10, INPUT);
   pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM25, INPUT);
-  // pinMode(SHINYEI_LEVEL_PIN, OUTPUT);
-
-  // analogWrite(SHINYEI_LEVEL_PIN, 1.0);  //????
-
-  // pinMode(SHARP_LED_POWER, OUTPUT);
 
   resetDataCollection();
 }
@@ -747,16 +727,12 @@ U32 durationP1, durationP2;
 U32 triggerOnP1, triggerOnP2;
 
 
-
 // Read sensors each loop tick
 void loopSensors() {
 
   // Collect Shinyei data every loop
   bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
   bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
-
-  // if(valP1 == LOW || valP2 == LOW)  // Collecting
-  //   Serial.print(".");
 
 
   bool doneSampling = (now_micros - samplingPeriodStartTime) > SAMPLE_PERIOD_DURATION;
@@ -853,7 +829,7 @@ void checkForFirmwareUpdates() {
   if(WiFi.status() != WL_CONNECTED)
     return;
 
-  Serial.println("[update] Checking for firmware updates");
+  //xx Serial.println("[update] Checking for firmware updates");
 
 
 
@@ -862,13 +838,13 @@ void checkForFirmwareUpdates() {
 
   switch(ret) {
     case HTTP_UPDATE_FAILED:
-        Serial.printf("[update] Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+        //xx Serial.printf("[update] Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
         break;
     case HTTP_UPDATE_NO_UPDATES:
-        Serial.println("[update] No firmware updates available.");
+        //xx Serial.println("[update] No firmware updates available.");
         break;
     case HTTP_UPDATE_OK:
-        Serial.println("[update] Updated ok."); // may not called we reboot the ESP
+        //xx Serial.println("[update] Updated ok."); // may not called we reboot the ESP
         break;
   }
 }
@@ -896,7 +872,7 @@ void resetDataCollection() {
   plantowerSampleCount = 0;
 
 
- Serial.printf("P1 / P2 starting %s / %s\n", valP1 ? "HIGH" : "LOW",valP2 ? "HIGH" : "LOW");
+ //xx Serial.printf("P1 / P2 starting %s / %s\n", valP1 ? "HIGH" : "LOW",valP2 ? "HIGH" : "LOW");
 }
 
 
@@ -950,14 +926,14 @@ void reportMeasurements() {
     // from PPD-42 low pulse occupancy (LPO).
 
 
-  Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > SAMPLE_PERIOD_DURATION || 
-                                                                                   durationP2 > SAMPLE_PERIOD_DURATION) ? "ERROR" : "");
+  //xx Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > SAMPLE_PERIOD_DURATION || 
+                                                                                   // durationP2 > SAMPLE_PERIOD_DURATION) ? "ERROR" : "");
       
       //               microseconds            microseconds           
       F64 ratioP1 = durationP1 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
       F64 ratioP2 = durationP2 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;
 
-Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(ratioP2).c_str());
+//xx Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(ratioP2).c_str());
 
       F64 countP1 = lpoToParticleCount(ratioP1);  // Particles / .01 ft^3
       F64 countP2 = lpoToParticleCount(ratioP2);  // Particles / .01 ft^3
@@ -1056,7 +1032,7 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       "\"shinyeiPM25ratio\":"    + String(ratioP2) + "," + 
       "\"shinyeiPM25mass\":"     + String(mass25) + "," + 
       "\"shinyeiPM25duration\":" + String(durationP2) + "," + 
-      "\"shinyeiPM25count\":"    + String(PM25count) + "," + 
+      "\"shinyeiPM25count\":"    + String(PM25count) + "," +
       "\"ashinyeiPM10conc\":"    + String(Conc10Filter1.Current()) + "," + 
       "\"bshinyeiPM10conc\":"    + String(Conc10Filter2.Current()) + "," + 
       "\"cshinyeiPM10conc\":"    + String(Conc10Filter3.Current()) + "," + 
@@ -1075,16 +1051,16 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
 
 
-      Serial.println(json);
+      //xx Serial.println(json);
 
       U32 timenow = millis();
 
       if(!mqttPublishTelemetry(json)) {
-        Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
-        Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
+        //xx Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
+        //xx Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
       }
 
-      Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
+      //xx Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
 
   if(plantowerSampleCount > 0) {
     F64 pm1 = F64(plantowerPm1Sum) / (F64)plantowerSampleCount;
@@ -1099,21 +1075,21 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
       "\"plantowerSampleCount\":" + String(plantowerSampleCount) + "}";
 
 
-    Serial.println(json);
+    //xx Serial.println(json);
 
     timenow = millis();
     if(!mqttPublishTelemetry(json)) {
-      Serial.printf("Could not publish Plantower PM data: %s\n", json.c_str());
-      Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
+      //xx Serial.printf("Could not publish Plantower PM data: %s\n", json.c_str());
+      //xx Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
     }
 
-    Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
+    //xx Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
 
 
-    Serial.println("Plantower PM1 data: " + String(pm1));
-    Serial.println("Plantower PM2.5 data: " + String(pm25));
-    Serial.println("Plantower PM10 data: " + String(pm10));
-    Serial.printf("Plantower samples: %d\n", plantowerSampleCount);
+    //xx Serial.println("Plantower PM1 data: " + String(pm1));
+    //xx Serial.println("Plantower PM2.5 data: " + String(pm25));
+    //xx Serial.println("Plantower PM10 data: " + String(pm10));
+    //xx Serial.printf("Plantower samples: %d\n", plantowerSampleCount);
 
     reportPlantowerSensor();
   }
@@ -1140,25 +1116,25 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
 
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
 
-    Serial.print("Temp: ");
-    Serial.print(temp);
-    Serial.print("°"+ String(TEMPERATURE_UNIT == BME280::TempUnit_Celsius ? 'C' :'F'));
-    Serial.print("\t\tHumidity: ");
-    Serial.print(hum);
-    Serial.print("% RH");
-    Serial.print("\t\tPressure: ");
-    Serial.print(pres);
-    Serial.println(" Pa");
+    //xx Serial.print("Temp: ");
+    //xx Serial.print(temp);
+    //xx Serial.print("°"+ String(TEMPERATURE_UNIT == BME280::TempUnit_Celsius ? 'C' :'F'));
+    //xx Serial.print("\t\tHumidity: ");
+    //xx Serial.print(hum);
+    //xx Serial.print("% RH");
+    //xx Serial.print("\t\tPressure: ");
+    //xx Serial.print(pres);
+    //xx Serial.println(" Pa");
 
 
     // TODO: Convert to arduinoJson
     json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + "}";
 
-    Serial.println(json);
+    //xx Serial.println(json);
     timenow = millis();
 
     if(!mqttPublishTelemetry(json)) {
-      Serial.printf("Could not publish environmental data: %s\n", json.c_str());
+      //xx Serial.printf("Could not publish environmental data: %s\n", json.c_str());
     }
 
 
@@ -1187,9 +1163,9 @@ Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(rati
     // TODO: Convert to arduinoJson
     json = "{\"atemperature\":" + String(TempFilter1.Current()) + ",\"btemperature\":" + String(TempFilter2.Current()) + ",\"ctemperature\":" + String(TempFilter3.Current()) + "}";
     if(!mqttPublishTelemetry(json)) {
-      Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
+      //xx Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
-    Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
+    //xx Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
 
   }
 }
@@ -1209,20 +1185,20 @@ void copy(char *dest, const char *source, U32 destSize) {
 
 void processConfigCommand(const String &command) {
   if(command == "uptime") {
-    Serial.print("Uptime: ");
+    //xx Serial.print("Uptime: ");
     if(millisOveflows > 0) {
-      Serial.printf("%d*2^32 + ", millisOveflows);
+      //xx Serial.printf("%d*2^32 + ", millisOveflows);
     }
-    Serial.printf("%d seconds\n", millis() / SECONDS);
+    //xx Serial.printf("%d seconds\n", millis() / SECONDS);
   }
   else if(command.startsWith("set wifi pw")) {
     updateWifiPassword(&command.c_str()[12]);
 
-    Serial.printf("Saved wifi pw: %s\n", wifiPassword, 123);
+    //xx Serial.printf("Saved wifi pw: %s\n", wifiPassword, 123);
   }
   else if(command.startsWith("set local pw")) {
     if(strlen(&command.c_str()[13]) < 8 || strlen(&command.c_str()[13]) > sizeof(localPassword) - 1) {
-      Serial.printf("Password must be between at least 8 and %d characters long; not saving.\n", sizeof(localPassword) - 1);
+      //xx Serial.printf("Password must be between at least 8 and %d characters long; not saving.\n", sizeof(localPassword) - 1);
       return;
     }
 
@@ -1232,7 +1208,7 @@ void processConfigCommand(const String &command) {
 
     publishLocalCredentials();
 
-    Serial.printf("Saved local pw: %s\n", localPassword);
+    //xx Serial.printf("Saved local pw: %s\n", localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
     updateWifiSsid(&command.c_str()[14]);
@@ -1248,8 +1224,6 @@ void processConfigCommand(const String &command) {
     writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
     
     publishLocalCredentials();
-
-    Serial.printf("Saved local ssid: %s\n", localSsid);
   }
   else if(command.startsWith("set device token")) {
     copy(deviceToken, &command.c_str()[17], sizeof(deviceToken) - 1);
@@ -1299,29 +1273,30 @@ void processConfigCommand(const String &command) {
   }
   else if(command.startsWith("cancel")) {
     if(isConnectingToWifi) {
-      Serial.println("\nCanceled connection attempt");
+      //xx Serial.println("\nCanceled connection attempt");
       isConnectingToWifi = false;
     }
-    else
-      Serial.println("No connection attempt in progress");
+    else {
+      //xx Serial.println("No connection attempt in progress");
+    }
 
   }
   else if(command.startsWith("stat") || command.startsWith("show")) {
-    Serial.println("\n====================================");
-    Serial.println("Wifi Diagnostics:");
-    WiFi.printDiag(Serial); 
-    Serial.println("====================================");
-    Serial.printf("Free sketch space: %d\n", ESP.getFreeSketchSpace());
-    Serial.printf("Local ssid: %s\n", localSsid);
-    Serial.printf("Local password: %s\n", localPassword);
-    Serial.printf("MQTT url: %s\n", mqttUrl);
-    Serial.printf("MQTT port: %d\n", mqttPort);
-    Serial.printf("Device token: %s\n", deviceToken);
-    Serial.printf("Temperature sensor: %s\n", BME_ok ? "OK" : "Not found");
-    Serial.println("====================================");
-    Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
-    Serial.printf("MQTT status: %s\n", getSubPubStatusName(mqttState()));
-    Serial.printf("Sampling duration: %d seconds   [set sample duration <n>]\n", sampleDuration);
+    //xx Serial.println("\n====================================");
+    //xx Serial.println("Wifi Diagnostics:");
+    //xx WiFi.printDiag(Serial); 
+    //xx Serial.println("====================================");
+    //xx Serial.printf("Free sketch space: %d\n", ESP.getFreeSketchSpace());
+    //xx Serial.printf("Local ssid: %s\n", localSsid);
+    //xx Serial.printf("Local password: %s\n", localPassword);
+    //xx Serial.printf("MQTT url: %s\n", mqttUrl);
+    //xx Serial.printf("MQTT port: %d\n", mqttPort);
+    //xx Serial.printf("Device token: %s\n", deviceToken);
+    //xx Serial.printf("Temperature sensor: %s\n", BME_ok ? "OK" : "Not found");
+    //xx Serial.println("====================================");
+    //xx Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
+    //xx Serial.printf("MQTT status: %s\n", getSubPubStatusName(mqttState()));
+    //xx Serial.printf("Sampling duration: %d seconds   [set sample duration <n>]\n", sampleDuration);
   }
   else if(command.startsWith("scan")) {
     scanVisibleNetworks();  
@@ -1331,7 +1306,7 @@ void processConfigCommand(const String &command) {
     ping((command.length() > commandPrefixLen) ? &command.c_str()[commandPrefixLen] : defaultPingTargetHostName);
   }
   else {
-    Serial.printf("Unknown command: %s\n", command.c_str());
+    //xx Serial.printf("Unknown command: %s\n", command.c_str());
   }
 }
 
@@ -1341,7 +1316,7 @@ void printScanResult(U32 duration);     // Forward declare
 void scanVisibleNetworks() {
   publishStatusMessage("scanning");
 
-  Serial.println("Pausing data collection while we scan available networks...");
+  //xx Serial.println("Pausing data collection while we scan available networks...");
   WiFi.scanNetworks(false, true);    // Include hidden access points
 
 
@@ -1351,7 +1326,7 @@ void scanVisibleNetworks() {
   const int maxTime = 30;
   while(!WiFi.scanComplete()) { 
     if(millis() - scanStartTime > maxTime * SECONDS) {
-      Serial.printf("Scan timed out (max %d seconds)\n", maxTime);
+      //xx Serial.printf("Scan timed out (max %d seconds)\n", maxTime);
       lastScanTime = millis();
       return;
     }
@@ -1370,7 +1345,7 @@ void updateWifiSsid(const char *ssid) {
   changedWifiCredentials = true;
   initiateConnectionToWifi();
 
-  Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
+  //xx Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
 }
 
 void updateWifiPassword(const char *password) {
@@ -1379,24 +1354,24 @@ void updateWifiPassword(const char *password) {
   changedWifiCredentials = true;
   pubSubConnectFailures = 0;
   initiateConnectionToWifi();
+  //xx Serial.printf("Saved wifi password: %s\n", wifiPassword);
 
-  Serial.printf("Saved wifi password: %s\n", wifiPassword);
 }
 
 void setWifiSsidFromScanResults(int index) {
   if(WiFi.scanComplete() == -1) {
-    Serial.println("Scan running... please wait for it to complete and try again.");
+    //xx Serial.println("Scan running... please wait for it to complete and try again.");
     return;
   }
 
   if(WiFi.scanComplete() == -2) {
-    Serial.println("You must run \"scan\" first!");
+    //xx Serial.println("You must run \"scan\" first!");
     return;
   }
 
   // Networks are 0-indexed, but user will be selecting a network based on 1-indexed display
   if(index < 1 || index > WiFi.scanComplete()) {
-    Serial.printf("Invalid index: %s\n", index);
+    //xx Serial.printf("Invalid index: %s\n", index);
     return;
   }
   
@@ -1461,18 +1436,18 @@ void printScanResult(U32 duration) {
   publishStatusMessage("scan results: " + String(networksFound) + " hotspots found in " + String(duration) + "ms");
 
   if(networksFound < 0) {
-    Serial.println("NEGATIVE RESULT!!");    // Should never happen
+    //xx Serial.println("NEGATIVE RESULT!!");    // Should never happen
     return;
   }
   if (networksFound == 0) {
-    Serial.printf("Scan completed (%d seconds): No networks found\n", duration / SECONDS);
+    //xx Serial.printf("Scan completed (%d seconds): No networks found\n", duration / SECONDS);
     return;
   }
 
-  Serial.printf("%d network(s) found (%d seconds)\n", networksFound, duration / SECONDS);
+  //xx Serial.printf("%d network(s) found (%d seconds)\n", networksFound, duration / SECONDS);
 
   for (int i = 0; i < networksFound; i++) {
-    Serial.printf("%d: %s <<%s>>, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
+    //xx Serial.printf("%d: %s <<%s>>, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
   }
 
   // This is the format the Google Location services uses.  We'll create a list of these packets here so they can be passed through by the microservice
@@ -1498,7 +1473,7 @@ void printScanResult(U32 duration) {
   if(!mqttPublishAttribute(json)) {
       publishStatusMessage("Could not upload scan results");
 
-    Serial.printf("Could not publish message: %s\n", json.c_str());
+    //xx Serial.printf("Could not publish message: %s\n", json.c_str());
   }
 }
 
@@ -1506,213 +1481,92 @@ void printScanResult(U32 duration) {
 void ping(const char *target) {
   connectToWiFi(wifiSsid, wifiPassword, false);
 
-  Serial.print("Pinging ");   Serial.println(target);
+  //xx Serial.print("Pinging ");   Serial.println(target);
   U8 pingCount = 5;
   while(pingCount > 0)
   {
     if(Ping.ping(target, 1)) {
-      Serial.printf("Response time: %d ms\n", Ping.averageTime());
+      //xx Serial.printf("Response time: %d ms\n", Ping.averageTime());
       pingCount--;
-      if(pingCount == 0)
-        Serial.println("Ping complete");
+      if(pingCount == 0) {
+        //xx Serial.println("Ping complete");
+      }
     } else {
-      Serial.printf("Failure pinging  %s\n", target);
+      //xx Serial.printf("Failure pinging  %s\n", target);
       pingCount = 0;    // Cancel ping if it's not working
     }
   }
 }
 
 
-void contactServer(const String &url) {
+// void contactServer(const String &url) {
 
-  IPAddress google;
+//   IPAddress google;
   
-  if(!WiFi.hostByName(url.c_str(), google)) {
-    Serial.println("Could not resolve hostname -- retrying in 5 seconds");
-    delay(5000);
-    return;
-  }
+//   if(!WiFi.hostByName(url.c_str(), google)) {
+//     //xx Serial.println("Could not resolve hostname -- retrying in 5 seconds");
+//     delay(5000);
+//     return;
+//   }
 
-  //  wfclient2.setTimeout(20 * 1000);
+//   //  wfclient2.setTimeout(20 * 1000);
   
-  WiFiClient wfclient2;
-  if(wfclient2.connect(google, 80)) {
-    Serial.print("connected to ");
-    Serial.println(url);
-    wfclient2.println("GET / HTTP/1.0");
-    wfclient2.println("");
-    needToConnect = false;
-  }
-  else {
-    Serial.println("connection failed");
-  }
+//   WiFiClient wfclient2;
+//   if(wfclient2.connect(google, 80)) {
+//     //xx Serial.print("connected to ");
+//     //xx Serial.println(url);
+//     wfclient2.println("GET / HTTP/1.0");
+//     wfclient2.println("");
+//     needToConnect = false;
+//   }
+//   else {
+//     //xx Serial.println("connection failed");
+//   }
   
-//print results from google
+// //print results from google
 
-  unsigned long timeout = millis();
-  while (wfclient2.available() == 0) {
-    if (millis() - timeout > 5000) {
-      Serial.println(">>> Client Timeout !");
-      wfclient2.stop();
-      return;
-    }
-  }
+//   unsigned long timeout = millis();
+//   while (wfclient2.available() == 0) {
+//     if (millis() - timeout > 5000) {
+//       //xx Serial.println(">>> Client Timeout !");
+//       wfclient2.stop();
+//       return;
+//     }
+//   }
 
-  while(wfclient2.available()){
-    String line = wfclient2.readStringUntil('\\n');
-    Serial.println(line);
-  }
-  for(int i = 0; i < 5; i++) {
-    Serial.println("x");
-  }
-}
-
-
-// function prototypes for HTTP handlers
-void handleRoot();              
-void handleLogin();
-void handleNotFound();
-
-
-void setupWebHandlers() {
-  server.on("/", HTTP_GET, handleRoot);        // Call the 'handleRoot' function when a client requests URI "/"
-  server.on("/login", HTTP_POST, handleLogin); // Call the 'handleLogin' function when a POST request is made to URI "/login"
-  server.on("/status", HTTP_GET, handleStatusRequest);
-  server.onNotFound(handleNotFound);           // When a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
-
-  server.begin(); 
-}
-
-void handleStatusRequest() {
- server.send(200, "text/html","<table>"
-                  "<tr><td>MQTT Url</td><td>" + String(mqttUrl) + "</td></tr>"
-                  "<tr><td>MQTT Port</td><td>" + String(mqttPort) + "</td></tr>"
-                  "<tr><td>WiFi status</td><td>" + String(getWifiStatusName(WiFi.status())) + "</td></tr>"
-                  "<tr><td>MQTT status</td><td>" + String(getSubPubStatusName(mqttState())) + "</td></tr>"
-                  "<tr><td>WiFi SSID</td><td>" + String(wifiSsid) + "</td></tr>"
-                  "<tr><td>WiFi PW</td><td>" + String(wifiPassword) + "</td></tr>"
-                  "<tr><td>Device Token</td><td>" + String(deviceToken) + "</td></tr>"
-                  "<tr><td>Temperature Sensor</td><td>" + (BME_ok ? "OK" : "Not found") + " || " + String(BME_SCL) + " | " + String(BME_SDA) + "</tr>"
-                  "</table>"
-  );
-}
-
-void handleRoot() {
-//  server.send(200, "text/plain", "Hello world!");
-
-//  server.send(200, "text/html", "<form action=\\"/login\\" method=\\"POST\\"><input type=\\"text\\" name=\\"LED\\" placeholder=\\"Username\\"><input type='submit' value='Submit'></form>");
-  server.send(200, "text/html", "<form action='/login' method='POST'>"
-  "<input type='radio' name='LED' value = 'red'>"
-  "<input type='radio' name='LED' value = 'yellow'>"
-  "<input type='radio' name='LED' value = 'green'>"
-  "<br>url to connect:"
-  "<input type='text' name='url' value = '' size='30'>"
-  "<br>wifi ssid to connect:"
-  "<input type='text' name='wifiSsid' value = 'optional' size='30'>"
-  "<br>wifi password to connect:"
-  "<input type='text' name='wifiPassword' value = 'optional' size='30'>"
-  "<input type='submit' value='Submit'></form>"); 
-//  client.print(getHeader());
-//  client.print("howdy");
-//  client.print(getFooter());
-//  delay(1);
-//  Serial.println("Client disonnected");
-//
-//  // The client will actually be disconnected
-//  // when the function returns and 'client' object is detroyed
-}
-
-
-
-
-
-void handleLogin() {
-  if( ! server.hasArg("LED") || server.arg("LED") == NULL) {
-    server.send(400, "text/plain", "400: Invalid Request");         // The request is invalid, so send HTTP status 400
-    return;
-  }
-
-  if(server.hasArg("wifiSsid") && server.arg("wifiSsid") != "") {
-
-    updateWifiSsid(server.arg("wifiSsid").c_str());
-    needToReconnectToWifi = true; 
-
-  }
-
-  if(server.hasArg("wifiPassword") && server.arg("wifiPassword") != "") {
-
-    updateWifiPassword(server.arg("wifiPassword").c_str());
-  }
-  
-
-  visitUrl = server.arg("url");
-  needToConnect = true;
-  // activateLed(server.arg("LED"));
-
-  server.sendHeader("Location","/");        // Add a header to respond with a new location for the browser to go to the home page again
-  server.send(303);                         // Send it back to the browser with an HTTP status 303 (See Other) to redirect
-  
-}
-
-void handleNotFound(){
-  server.send(200, "text/plain", "Not found!! Try /");
-  Serial.println("handled!");
-//  client.print(getHeader());
-//  client.print("see ya");
-//  client.print(getFooter());
-//  delay(1);
-//  Serial.println("Client disonnected");
-}
-
-  // Read the first line of the request
-//  String req = client.readStringUntil('\\r');
-//  Serial.println(req);
-//  client.flush();
-
-
-
-//const char* getHeader() {
-//  return
-//    "HTTP/1.1 200 OK\\r\\n"
-//    "Content-Type: text/html\\r\\n\\r\\n"
-//    "<!DOCTYPE HTML>\\r\\n<html>\\r\\n";
-//}
-//
-//const char* getFooter() {
-//  return 
-//    "</html>\\n";       
-//}
-
-
+//   while(wfclient2.available()) {
+//     String line = wfclient2.readStringUntil('\\n');
+//     //xx Serial.println(line);
+//   }
+//   for(int i = 0; i < 5; i++) {
+//     //xx Serial.println("x");
+//   }
+// }
 
 
 // Called from setup
 void setupLocalAccessPoint(const char *ssid, const char *password)
 {
+  // Resolve addresses
   IPAddress ip, gateway;
   WiFi.hostByName(localAccessPointAddress, ip);
   WiFi.hostByName(localGatewayAddress, gateway);
 
   IPAddress subnetMask(255,255,255,0);
  
-  bool ok;
-
-  ok = WiFi.softAPConfig(ip, gateway, subnetMask);
-  Serial.printf("AP Config: %s\n", ok ? "OK" : "Error");
-  ok = WiFi.softAP(ssid, password); //, wifiChannel, false);  // name, pw, channel, hidden
-  Serial.printf("AP %s Init: %s\n", ssid, ok ? "OK" : "Error");
+  bool ok = WiFi.softAPConfig(ip, gateway, subnetMask) && WiFi.softAP(ssid, password); //, wifiChannel, false);  // name, pw, channel, hidden
 
 
   // Serial.printf("AP SSID: %s\n", Wifi.soft)
-  Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
+  //xx Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
 
   const char *dnsName = "birdhouse";      // Connect with birdhouse.local
 
   if (MDNS.begin(dnsName)) {              // Start the mDNS responder for birdhouse.local
-    Serial.printf("mDNS responder started: %s.local\n", dnsName);
+    //xx Serial.printf("mDNS responder started: %s.local\n", dnsName);
   }
   else {
-    Serial.println("Error setting up MDNS responder!");
+    //xx Serial.println("Error setting up MDNS responder!");
   }
 }
 
@@ -1726,7 +1580,6 @@ void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConn
     if(!disconnectIfConnected)          // Don't disconnect, so nothing to do
       return;
 
-    Serial.println("Disconnecting..."); // Otherwise... disconnect!
     WiFi.disconnect();
   }
 
@@ -1736,16 +1589,13 @@ void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConn
 
 void initiateConnectionToWifi()
 {
-  Serial.printf("Starting connection to %s...\n", wifiSsid);
-
   // set passphrase
   int status = WiFi.begin(wifiSsid, wifiPassword);
-  Serial.printf("Begin status = %d, %s\n", status, getWifiStatusName((wl_status_t)status));
 
   if (status == WL_CONNECT_FAILED) {    // Something went wrong
-    Serial.println("Failed to set ssid & pw.  Connect attempt aborted.");
+    //xx Serial.println("Failed to set ssid & pw.  Connect attempt aborted.");
   } else {                              // Status is probably WL_DISCONNECTED
-Serial.println("Setting isConnecting to true!");
+//xx Serial.println("Setting isConnecting to true!");
     isConnectingToWifi = true;
     connectingToWifiDotTimer = millis();
     wifiConnectStartTime = millis();    
@@ -1760,23 +1610,19 @@ void connectingToWifi()
   if(WiFi.status() == WL_CONNECTED) {   // We just connected!  :-)
 
     isConnectingToWifi = false;
-  
-    Serial.printf("\nConnect time: %d seconds\n", (millis() - wifiConnectStartTime) / SECONDS);
-    Serial.print("Connected to WiFi; Address on the LAN: "); 
-    Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
     return;
   }
 
   // Still not connected  :-(
 
   if(millis() - connectingToWifiDotTimer > 500) {
-    Serial.print(".");
+    //xx Serial.print(".");
     connectingToWifiDotTimer = millis();
   }
 
   if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
-    Serial.println("");
-    Serial.println("Unable to connect to WiFi!");
+    //xx Serial.println("");
+    //xx Serial.println("Unable to connect to WiFi!");
     isConnectingToWifi = false;
   }
 }
@@ -1843,7 +1689,7 @@ void publishStatusMessage(const String &msg) {
   String json;
   root.printTo(json);
 
-  Serial.printf("[status] %s\n", msg.c_str());
+  //xx Serial.printf("[status] %s\n", msg.c_str());
   mqttPublishAttribute(json);  
 }
 
@@ -1853,13 +1699,13 @@ void setupOta() {
   // Are these ever called?
   ArduinoOTA.onStart([]() {
     activateLed(RED | YELLOW);
-    Serial.println("OTA updates started");
+    //xx Serial.println("OTA updates started");
     publishOtaStatusMessage("Starting update");
   });
 
 
   ArduinoOTA.onEnd([]() {
-    Serial.println("OTA updates finished");
+    //xx Serial.println("OTA updates finished");
     publishOtaStatusMessage("Update successful");
     for(int i = 0; i < 10; i++) { activateLed(GREEN); delay(50); activateLed(NONE); delay(50); }
     activateLed(RED | YELLOW | GREEN);
@@ -1869,14 +1715,14 @@ void setupOta() {
   static bool lastProgressUpdate = false;
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    //xx Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
     activateLed(YELLOW | lastProgressUpdate ? GREEN : RED);
     lastProgressUpdate = !lastProgressUpdate;
   });
 
 
   ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
+    //xx Serial.printf("Error[%u]: ", error);
 
     String msg;
     if (error == OTA_AUTH_ERROR)         msg = "Auth Failed";
@@ -1885,7 +1731,7 @@ void setupOta() {
     else if (error == OTA_RECEIVE_ERROR) msg = "Receive Failed";
     else if (error == OTA_END_ERROR)     msg = "End Failed";
 
-    Serial.println(msg);
+    //xx Serial.println(msg);
     publishOtaStatusMessage("Update failed: " + msg);
 
     ESP.restart();
