@@ -59,7 +59,7 @@ client.connect(host_name, port)
 
 client.loop_start()
 i = 0
-while i < 10:
+while i < 1:
 
     temp = random.randint(10,80)
     data = {
