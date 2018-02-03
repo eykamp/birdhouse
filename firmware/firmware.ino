@@ -524,7 +524,7 @@ void setup()
   Rest.variable("uptime", &lastMillis);
   Rest.variable("lastReportTime", &lastReportTime);
   Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
-  Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
+  // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
 
   Rest.variable("sampleCount", &plantowerSampleCount);
   Rest.variable("deviceToken", &deviceToken);
