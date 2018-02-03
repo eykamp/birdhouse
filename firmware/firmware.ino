@@ -17,8 +17,13 @@
 #include <ArduinoOTA.h>
 #include <ESP8266httpUpdate.h>
 
+#include "c:/dev/aREST/aREST.h"              // Our REST server for provisioning
+// #include "aREST2.h"
+
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
+
+
 
 
 #define FIRMWARE_VERSION "0.84" // Changing this variable name will require changing the build file to extract it properly
@@ -83,7 +88,11 @@
 // ESP8266WebServer server(WEB_PORT);
 
 
+#define REST_LISTEN_PORT 80
+#define NUMBER_VARIABLES 15
 
+aREST Rest = aREST();
+WiFiServer server(REST_LISTEN_PORT);
 
 #define PLANTOWER_SERIAL_BAUD_RATE 9600
 
@@ -485,10 +494,51 @@ void setup()
   readStringFromEeprom(MQTT_URL_ADDRESS,       sizeof(mqttUrl)       - 1, mqttUrl);
   mqttPort       = EepromReadU16(PUB_SUB_PORT_ADDRESS);
   sampleDuration = EepromReadU16(SAMPLE_DURATION_ADDRESS);
+  Serial.printf("Local SSID: %s\n", localSsid);
+  Serial.printf("Local PW: %s\n", localPassword);
+  Serial.printf("WiFi SSID: %s\n", wifiSsid);
+  Serial.printf("WiFi PW: %s\n", wifiPassword);
+  Serial.printf("Device Key: %s\n", deviceToken);
+  Serial.printf("MQTT URL: %s\n", mqttUrl);
+  Serial.printf("MQTT Port: %d\n", mqttPort);
+  Serial.printf("Sample duration: %d\n", sampleDuration);
+
+
+  Rest.variable("uptime", &lastMillis);
+  Rest.variable("lastReportTime", &lastReportTime);
+  Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
+  Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
+
+  Rest.variable("sampleCount", &plantowerSampleCount);
+  Rest.variable("deviceToken", &deviceToken);
+  Rest.variable("localSsid", &localSsid);
+  Rest.variable("localPass", &localPassword);
+  Rest.variable("wifiSsid", &wifiSsid);
+  Rest.variable("wifiPass", &wifiPassword);
+  Rest.variable("mqttUrl", &mqttUrl);
+  Rest.variable("mqttPort", &mqttPort);
+
+  // Delete these
+  // Rest.variable("concval", &Conc10InitialVal);  //F64
+  // Rest.variable("lastMillis", &lastMillis);  //U32
 
 
 
+  // These all take a single parameter specified on the cmd line
+  Rest.function("localssid",    localSsidHandler);
+  Rest.function("localpass",    localPasswordHandler);
+  Rest.function("wifissid",     wifiSsidHandler);
+  Rest.function("wifipass",     wifiPasswordHandler);
+  Rest.function("devicetoken",  deviceTokenHandler);
+  Rest.function("mqtturl",      mqttUrlHandler);
+  Rest.function("mqttport",     mqttPortHandler);
 
+  Rest.function("reboot",       rebootHandler);
+
+
+
+  Rest.set_id("brdhse");  // Should be 6 chars
+  Rest.set_name(localSsid);
 
 
   WiFi.mode(WIFI_AP_STA);  
@@ -647,8 +697,58 @@ void loop() {
     connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
     needToReconnectToWifi = false;
   }
+
 }
 
+
+int rebootHandler(String params) {
+  ESP.restart();
+  return 1;
+}
+
+int localSsidHandler(String params) {
+  updateLocalSsid(params.c_str());
+  return 1;
+}
+
+
+int localPasswordHandler(String params) {
+  if(strlen(params.c_str()) < 8 || strlen(params.c_str()) > sizeof(localPassword) - 1)
+    return 0;
+
+  updateLocalPassword(params.c_str());
+
+  return 1;
+}
+
+
+int wifiSsidHandler(String params) {
+  updateWifiSsid(params.c_str());
+  return 1;
+}
+
+
+int wifiPasswordHandler(String params) {
+  updateWifiPassword(params.c_str());
+  return 1;
+}
+
+
+int deviceTokenHandler(String params) {
+  updateDeviceToken(params.c_str());
+  return 1;
+}
+
+
+int mqttUrlHandler(String params) {
+  updateMqttUrl(params.c_str());
+  return 1;
+}
+
+
+int mqttPortHandler(String params) {
+  return updateMqttPort(params.c_str());
+}
 
 
 bool BME_ok = false;
