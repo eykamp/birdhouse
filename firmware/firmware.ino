@@ -164,7 +164,7 @@ char deviceToken[DEVICE_KEY_LENGTH + 1];
 char mqttUrl[URL_LENGTH + 1];
 
 U16 mqttPort;
-U16 wifiChannel = 11;   // TODO: EEPROM, 0 = default, 1-13 are valid values
+U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
 U16 sampleDuration;     // In seconds
 
 const int LOCAL_SSID_ADDRESS      = 0;
