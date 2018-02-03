@@ -52,7 +52,7 @@ class handle_hotspots:
 
         results = gmaps.geolocate(wifi_access_points=incoming_data["hotspots"])
 
-        print("Geocoding results:", results)
+        print("Geocoding results for " + device_token + ":", results)
 
         if "error" in results:
             print("Received error from Google API!")
@@ -135,7 +135,7 @@ class set_led_color:
         web.header('Content-Type', 'application/json')
         data = { "nonce": color }
 
-        print(json.dumps(data))
+        print("JSON dump:", json.dumps(data))
 
         return json.dumps(data)
 
