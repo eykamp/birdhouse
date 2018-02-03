@@ -498,12 +498,6 @@ void setup()
   WiFi.setAutoReconnect(true);
 
 
-  Serial.setDebugOutput(true);
-
-  // WiFi.wifi_station_set_reconnect_policy(false);
-  // WiFi.wifi_station_set_auto_connect(false);
-
-
   setupPubSubClient();
   // mqttSetCallback(messageReceivedFromMothership);
 
@@ -801,30 +795,6 @@ void loopSensors() {
       plantowerSensorDetected = true;
     }
   }
-
-
-  // https://www.elecrow.com/wiki/index.php?title=Dust_Sensor-_GP2Y1010AU0F
-  // Sparp PM sensor
-  // digitalWrite(SHARP_LED_POWER, LOW); // power on the LED
-  // delayMicroseconds(samplingTime);
-  // voMeasured = analogRead(measurePin); // read the dust value
-  // delayMicroseconds(deltaTime);
-  // digitalWrite(SHARP_LED_POWER, HIGH); // turn the LED off
-  // delayMicroseconds(sleepTime);
-  // // 0 - 3.3V mapped to 0 - 1023 integer values
-  // // recover voltage
-  // calcVoltage = voMeasured * (3.3 / 1024);
-  // // linear eqaution taken from http://www.howmuchsnow.com/arduino/airquality/
-  // // Chris Nafis (c) 2012
-  // dustDensity = 0.17 * calcVoltage - 0.1;
-  // Serial.print("Raw Signal Value (0-1023): ");
-  // Serial.print(voMeasured);
-  // Serial.print(" - Voltage: ");
-  // Serial.print(calcVoltage);
-  // Serial.print(" - Dust Density: ");
-  // Serial.println(dustDensity);
-  // delay(1000);
-
 }
 
 
@@ -1346,7 +1316,7 @@ void updateWifiSsid(const char *ssid) {
   copy(wifiSsid, ssid, sizeof(wifiSsid) - 1);
   writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
   changedWifiCredentials = true;
-  initiateConnectionToWifi();
+  // initiateConnectionToWifi();
 
   //xx Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
 }
@@ -1356,7 +1326,7 @@ void updateWifiPassword(const char *password) {
   writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
   changedWifiCredentials = true;
   pubSubConnectFailures = 0;
-  initiateConnectionToWifi();
+  // initiateConnectionToWifi();
   //xx Serial.printf("Saved wifi password: %s\n", wifiPassword);
 
 }
