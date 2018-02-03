@@ -30,7 +30,7 @@ cust_lon = None     # Will be populated by geocoder if empty
 
 
 def main():
-    cleanup = True
+    cleanup = True      # If true, deletes everything that is created
 
     tbapi = TbApi(motherShipUrl, username, password)
 
@@ -77,11 +77,12 @@ def main():
     dash = tbapi.create_dashboard_for_customer(cust_name + ' Dash', dash_def)
     tbapi.assign_dash_to_user(tbapi.get_id(dash), tbapi.get_id(customer))
     
+    print("Device token (set device token " + device_token + ")")
 
     if cleanup:
         # input("Press Enter to continue...")   # Don't run from Sublime with this line enabled!!!
 
-        print("Cleaning up!")
+        print("Cleaning up! (device token rendered invalid)")
         tbapi.delete_dashboard(tbapi.get_id(dash))
         tbapi.delete_device(device_id)
         tbapi.delete_customer_by_id(tbapi.get_id(customer))
