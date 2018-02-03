@@ -10,7 +10,7 @@
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
-#include <SoftwareSerial.h>
+
 #include <PMS.h>                // Plantower
 
 // OTA Updates
@@ -83,13 +83,8 @@
 ESP8266WebServer server(WEB_PORT);
 
 
-#define SOFTWARE_SERIAL_RX_PIN D7
-#define SOFTWARE_SERIAL_TX_PIN D8
-#define SOFTWARE_SERIAL_BUFFER_SIZE 256
 
-#define PLANTOWER_SERIAL_BAUD_RATE 9600
 
-SoftwareSerial swSer(SOFTWARE_SERIAL_RX_PIN, SOFTWARE_SERIAL_TX_PIN, false, SOFTWARE_SERIAL_BUFFER_SIZE);
 
 // Plantower config
 PMS pms(swSer);
@@ -446,7 +441,6 @@ bool changedWifiCredentials = false;    // Track if we've changed wifi connectio
 void setup()
 {
   Serial.begin(115200);
-  swSer.begin(PLANTOWER_SERIAL_BAUD_RATE);
 
   Serial.println("");
   Serial.println("");
