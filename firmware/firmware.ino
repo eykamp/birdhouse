@@ -1386,19 +1386,19 @@ const char *getSubPubStatusName(int status) {
 // routine is run between each time loop() runs, so using delay inside loop can
 // delay response. Multiple bytes of data may be available.
 void checkForNewInputFromSerialPort() {
-  while (Serial.available()) {
-    // get the new byte:
-    char incomingChar = (char)Serial.read();
-    // Add it to the command.
-    // if the incoming character is a newline, or we're just getting too long (which should never happen) 
-    // start processing the command
-    if (incomingChar == '\n' || command.length() == MAX_COMMAND_LENGTH) {
-      processConfigCommand(command);
-      command = "";
-    }
-    else
-      command += incomingChar;
-  }
+  // while (Serial.available()) {
+  //   // get the new byte:
+  //   char incomingChar = (char)Serial.read();
+  //   // Add it to the command.
+  //   // if the incoming character is a newline, or we're just getting too long (which should never happen) 
+  //   // start processing the command
+  //   if (incomingChar == '\n' || command.length() == MAX_COMMAND_LENGTH) {
+  //     processConfigCommand(command);
+  //     command = "";
+  //   }
+  //   else
+  //     command += incomingChar;
+  // }
 }
 
 
