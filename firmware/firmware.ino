@@ -172,6 +172,9 @@ char wifiPassword[PASSWORD_LENGTH + 1];
 char deviceToken[DEVICE_KEY_LENGTH + 1];
 char mqttUrl[URL_LENGTH + 1];
 
+
+const char SENTINEL_MARKER[SENTINEL_MARKER_LENGTH + 1] = "SensorBot by Chris Eykamp -- v106";   // Changing this will cause devices to revert to default configuration
+
 U16 mqttPort;
 U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
 U16 sampleDuration;     // In seconds
@@ -227,6 +230,8 @@ void messageReceivedFromMothership(char* topic, byte* payload, unsigned int leng
   //   activateLed(NONE);
 }
 
+U32 lastMillis = 0;
+U32 lastScanTime = 0;
 
 WiFiClient wfclient;
 PubSubClient pubSubClient(wfclient);
@@ -440,6 +445,18 @@ void onConnectedToPubSubServer() {
 }
 
 
+
+U32 plantowerPm1Sum = 0;
+U32 plantowerPm25Sum = 0;
+U32 plantowerPm10Sum = 0;
+int plantowerSampleCount = 0;
+
+U32 lastReportTime = 0;
+
+bool initialConfigMode = false;
+
+
+
 const char *defaultPingTargetHostName = "www.google.com";
 
 
@@ -587,10 +604,11 @@ void publishSampleDuration() {
 
 
 void publishLocalCredentials() {
-  StaticJsonBuffer<128> jsonBuffer;
+  StaticJsonBuffer<256> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
-  root["localPassword"] = localPassword;
   root["localSsid"] = localSsid;
+  root["localPassword"] = localPassword;
+  root["localIpAddress"] = localAccessPointAddress;
 
   String json;
   root.printTo(json);
@@ -634,7 +652,7 @@ void intitialConfig() {
 
   writeStringToEeprom(SENTINEL_ADDRESS, sizeof(SENTINEL_MARKER) - 1, SENTINEL_MARKER);
 
-  // ESP.restart();
+  initialConfigMode = true;
 }
 
 // Checks if this Birdhouse has ever been booted before
@@ -653,15 +671,7 @@ bool isConnectingToWifi = false;    // True while a connection is in process
 
 U32 connectingToWifiDotTimer;
 U32 wifiConnectStartTime;
-U32 lastMillis = 0;
 
-
-U32 lastScanTime = 0;
-
-U32 plantowerPm1Sum = 0;
-U32 plantowerPm25Sum = 0;
-U32 plantowerPm10Sum = 0;
-U16 plantowerSampleCount = 0;
 
 
 void loop() {
@@ -672,6 +682,17 @@ void loop() {
     millisOveflows++;
   
   lastMillis = now_millis;
+
+  U32 i = 0;
+  WiFiClient client = server.available();
+  if (client) {
+    while(client.connected() && !client.available() && i < 1000) {
+      delay(1);
+      i++;
+    }
+    Rest.handle(client);
+  }
+  
   loopPubSub();
 
 
@@ -822,6 +843,8 @@ bool triggerP1, triggerP2;
 U32 durationP1, durationP2;
 U32 triggerOnP1, triggerOnP2;
 
+U32 shinyeiLogicErrors = 0;
+U32 shinyeiLogicReads = 0;
 
 // Read sensors each loop tick
 void loopSensors() {
@@ -830,6 +853,9 @@ void loopSensors() {
   bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
   bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
 
+  shinyeiLogicReads++;
+  if(valP2 && !valP1)
+    shinyeiLogicErrors++;
 
   bool doneSampling = (now_micros - samplingPeriodStartTime) > SAMPLE_PERIOD_DURATION;
 
@@ -925,16 +951,20 @@ void checkForFirmwareUpdates() {
 
 void resetDataCollection() {
   // Start the cycle anew
-  samplingPeriodStartTime = micros();
 
   bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
   bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
 
   durationP1 = 0;
   durationP2 = 0;
+  shinyeiLogicErrors = 0;
+  shinyeiLogicReads = 0;
+
+  samplingPeriodStartTime = micros();
   triggerOnP1 = samplingPeriodStartTime;
   triggerOnP2 = samplingPeriodStartTime;
     
+  // We want to trigger when the Shinyei pins change state from what we just read
   triggerP1 = !valP1;
   triggerP2 = !valP2;
 
@@ -995,6 +1025,7 @@ void reportResetReason() {
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
+    lastReportTime = millis();
     // Function creates particle count and mass concentration
     // from PPD-42 low pulse occupancy (LPO).
 
@@ -1096,6 +1127,11 @@ void reportMeasurements() {
 
       String json = String("{") +
       "\"uptime\":"              + String(millis()) + "," + 
+      "\"cycleCount\":"          + String(ESP.getCycleCount()) + "," +  // Can delete after crash issues worked out
+      "\"freeHeap\":"            + String(ESP.getFreeHeap()) + "," + 
+      "\"shinyeiLogicErrors\":"  + String(shinyeiLogicErrors) + "," + 
+      "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads - shinyeiLogicErrors) + "," + 
+
       "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
       "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
       "\"shinyeiPM10mass\":"     + String(mass10) + "," + 
@@ -1141,7 +1177,7 @@ void reportMeasurements() {
     F64 pm10 = (F64(plantowerPm10Sum) / (F64)plantowerSampleCount);
   
 
-    String json = String("{") +
+     json = String("{") +
       "\"plantowerPM1conc\":"     + String(pm1)  + "," + 
       "\"plantowerPM25conc\":"    + String(pm25) + "," + 
       "\"plantowerPM10conc\":"    + String(pm10) + "," +
@@ -1275,12 +1311,7 @@ void processConfigCommand(const String &command) {
       return;
     }
 
-    copy(localPassword, &command.c_str()[13], sizeof(localPassword) - 1);
-    writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
-    pubSubConnectFailures = 0;
-
-    publishLocalCredentials();
-
+    updateLocalPassword(&command.c_str()[13]);
     //xx Serial.printf("Saved local pw: %s\n", localPassword);
   }
   else if(command.startsWith("set wifi ssid")) {
@@ -1293,53 +1324,20 @@ void processConfigCommand(const String &command) {
     setWifiSsidFromScanResults(index);
   }
   else if(command.startsWith("set local ssid")) {
-    copy(localSsid, &command.c_str()[15], sizeof(localSsid) - 1);
-    writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
-    
-    publishLocalCredentials();
+    updateLocalSsid(&command.c_str()[15]);
   }
-  else if(command.startsWith("set device token")) {
-    copy(deviceToken, &command.c_str()[17], sizeof(deviceToken) - 1);
-    writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
-    pubSubConnectFailures = 0;
 
-    Serial.printf("Set device token: %s... need to reset device!\n", deviceToken);
+  else if(command.startsWith("set device token")) {
+    updateDeviceToken(&command.c_str()[17]);
   }  
   // else if(command.startsWith("set mqtt url")) {
-  //   copy(mqttUrl, &command.c_str()[13], sizeof(mqttUrl) - 1);
-  //   writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
-  //   pubSubConnectFailures = 0;
-  //   mqttDisconnect();
-  //   mqttServerConfigured = false;
-  //   mqttServerLookupError = false;
-
-  //   Serial.printf("Saved mqtt URL: %s\n", mqttUrl);
-  //   setupPubSubClient();
-
-  //   // Let's immediately connect our PubSub client
-  //   reconnectToPubSubServer();
+  //   updateMqttUrl(&command.c_str()[13]);
   // }
   else if(command.startsWith("set mqtt port")) {
-    mqttPort = atoi(&command.c_str()[14]);
-    EepromWriteU16(PUB_SUB_PORT_ADDRESS, mqttPort);
-    pubSubConnectFailures = 0;
-    mqttDisconnect();
-    mqttServerConfigured = false;
-    mqttServerLookupError = false;
-
-    Serial.printf("Saved mqtt port: %d\n", mqttPort);
-    setupPubSubClient();
-
-    // Let's immediately connect our PubSub client
-    reconnectToPubSubServer();
-
+    updateMqttPort(&command.c_str()[14]);
   }
   else if (command.startsWith("set sample duration")) {
-    sampleDuration = atoi(&command.c_str()[20]);
-    EepromWriteU16(SAMPLE_DURATION_ADDRESS, sampleDuration);
-
-    Serial.printf("Saved sample duration: %d seconds\n", sampleDuration);
-    publishSampleDuration();
+    updateSampleDuration(&command.c_str()[20]);
   }
   else if(command.startsWith("con")) {
     connectToWiFi(wifiSsid, wifiPassword, true);
@@ -1412,6 +1410,22 @@ void scanVisibleNetworks() {
 }
 
 
+void updateLocalSsid(const char *ssid) {
+  copy(localSsid, ssid, sizeof(localSsid) - 1);
+  writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
+  publishLocalCredentials();
+}
+
+
+void updateLocalPassword(const char *password) {
+  copy(localPassword, password, sizeof(localPassword) - 1);
+  writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
+  pubSubConnectFailures = 0;
+
+  publishLocalCredentials();
+}
+
+
 void updateWifiSsid(const char *ssid) {
   copy(wifiSsid, ssid, sizeof(wifiSsid) - 1);
   writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
@@ -1421,15 +1435,67 @@ void updateWifiSsid(const char *ssid) {
   //xx Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
 }
 
+
 void updateWifiPassword(const char *password) {
   copy(wifiPassword, password, sizeof(wifiPassword) - 1);
   writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
   changedWifiCredentials = true;
   pubSubConnectFailures = 0;
   // initiateConnectionToWifi();
-  //xx Serial.printf("Saved wifi password: %s\n", wifiPassword);
 
+  //xx Serial.printf("Saved wifi password: %s\n", wifiPassword);
 }
+
+
+void updateMqttUrl(const char *url) {
+  copy(mqttUrl, url, sizeof(mqttUrl) - 1);
+  writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
+  pubSubConnectFailures = 0;
+  mqttDisconnect();
+  mqttServerConfigured = false;
+  mqttServerLookupError = false;
+
+  setupPubSubClient();
+
+  // Let's immediately connect our PubSub client
+  reconnectToPubSubServer();
+}
+
+
+void updateDeviceToken(const char *token) {
+  copy(deviceToken, token, sizeof(deviceToken) - 1);
+  writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
+  pubSubConnectFailures = 0;
+}
+
+
+int updateMqttPort(const char *port) {
+  mqttPort = atoi(port);
+  if(port == 0)
+    return 0;
+
+  EepromWriteU16(PUB_SUB_PORT_ADDRESS, mqttPort);
+  pubSubConnectFailures = 0;
+  mqttDisconnect();
+  mqttServerConfigured = false;
+  mqttServerLookupError = false;
+
+  setupPubSubClient();
+
+  // Let's immediately connect our PubSub client
+  reconnectToPubSubServer();
+
+  return 1;
+}
+
+
+void updateSampleDuration(const char *duration) {
+  sampleDuration = atoi(duration);
+  EepromWriteU16(SAMPLE_DURATION_ADDRESS, sampleDuration);
+
+  publishSampleDuration();
+}
+
 
 void setWifiSsidFromScanResults(int index) {
   if(WiFi.scanComplete() == -1) {
@@ -1813,3 +1879,17 @@ void setupOta() {
 
   ArduinoOTA.begin();
 }
+
+
+
+
+// enum rst_reason {
+//  REASON_DEFAULT_RST = 0, /* normal startup by power on */
+//  REASON_WDT_RST = 1, /* hardware watch dog reset */
+//  REASON_EXCEPTION_RST = 2, /* exception reset, GPIO status won't change */
+//  REASON_SOFT_WDT_RST   = 3,  /* software watch dog reset, GPIO status won't change 
+//  REASON_SOFT_RESTART = 4, /* software restart ,system_restart , GPIO status won't change */
+//  REASON_DEEP_SLEEP_AWAKE = 5, /* wake up from deep-sleep */
+//  REASON_EXT_SYS_RST      = 6 /* external system reset */
+// };
+
