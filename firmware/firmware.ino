@@ -79,8 +79,8 @@
 // WiFi Definitions //
 //////////////////////
 
-#define WEB_PORT 80
-ESP8266WebServer server(WEB_PORT);
+// #define WEB_PORT 80
+// ESP8266WebServer server(WEB_PORT);
 
 
 
@@ -508,7 +508,7 @@ void setup()
 
   setupSensors();
  
-  setupWebHandlers();
+  // setupWebHandlers();
   
   command.reserve(MAX_COMMAND_LENGTH);
 
@@ -632,8 +632,8 @@ void loop() {
   if(doLoop)
     loopSensors();
 
-  server.handleClient();
-  checkForNewInputFromSerialPort();
+  // server.handleClient();
+  // checkForNewInputFromSerialPort();
 
 
   if(isConnectingToWifi) {
