@@ -36,7 +36,7 @@ setlocal enableDelayedExpansion
 ::
 :: The order of the definitions is not important.
 ::
-set "options=-winscpprofile:"" -clean:"
+set "options=-winscpprofile:"" -clean: -noup:"
 ::-option2:"" -option3:"three word default" -flag1: -flag2:"
 
 :: Set the default option values
@@ -95,7 +95,7 @@ rem echo The value of -winscpprofile is: !-winscpprofile!
 
 :: Validate our command line parameters... only one at the moment!
 if not defined -winscpprofile (
-    echo Syntax: %~nx0 -winscpprofile=^<WinSCP profile^> [-clean]
+    echo Syntax: %~nx0 -winscpprofile=^<WinSCP profile^> [-clean] [-noup]
     exit /b 1
 ) 
 
@@ -149,9 +149,20 @@ echo Building %BUILD_TARGET%
 "%ARDUINO_BUILD_EXE_LOCATION%" --verify --pref build.path=%BUILD_FOLDER% %SOURCE_FILE%
 IF ERRORLEVEL 1 goto BuildError
 
+if defined -noup (
+    del %BUILD_FOLDER%\%SOURCE_FILE%.bin
+    echo Successfully built %SOURCE_FILE%!
+    exit /b 0
+)
+
 REM Rename file, will fail on overwrite
 ren %BUILD_FOLDER%\%SOURCE_FILE%.bin %BUILD_TARGET_FILE%
-IF ERRORLEVEL 1 goto CollisionError
+IF ERRORLEVEL 1 (
+    echo Error renaming %BUILD_FOLDER%\%SOURCE_FILE%.bin to %BUILD_TARGET_FILE%
+    exit /b 1
+)
+
+
 
 
 SET /p ARE_YOU_SURE=Proceed with upload? [Y/N]
