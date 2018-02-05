@@ -125,7 +125,7 @@ SET BUILD_TARGET=%BUILD_FOLDER%\%BUILD_TARGET_FILE%
 rem Verify things are ready
 IF NOT EXIST "%WINSCP_PROGRAM_LOCATION%" (
     echo Could not find WinScp -- is it installed?  If so, check the location and modify this file, changing WINSCP_PROGRAM_LOCATION accordingly.
-    exit /b 1
+    goto Error
 )
 
 IF EXIST %BUILD_TARGET% (
@@ -134,32 +134,32 @@ IF EXIST %BUILD_TARGET% (
         del %BUILD_TARGET% 
         IF EXIST %BUILD_TARGET% (
             echo Could not delete %BUILD_TARGET%... aborting.
-            exit /b 1
+            goto Error
         )
     )
 )
 IF EXIST %BUILD_TARGET% (
     echo Target %BUILD_TARGET% already exists! ^(use -clean option to overwrite^)
-    exit /b 1
+    goto Error
 )
 
 
 rem Build
 echo Building %BUILD_TARGET%
 "%ARDUINO_BUILD_EXE_LOCATION%" --verify --pref build.path=%BUILD_FOLDER% %SOURCE_FILE%
-IF ERRORLEVEL 1 goto BuildError
+IF ERRORLEVEL 1 goto Error
 
 if defined -noup (
     del %BUILD_FOLDER%\%SOURCE_FILE%.bin
     echo Successfully built %SOURCE_FILE%!
-    exit /b 0
+    goto Success
 )
 
 REM Rename file, will fail on overwrite
 ren %BUILD_FOLDER%\%SOURCE_FILE%.bin %BUILD_TARGET_FILE%
 IF ERRORLEVEL 1 (
     echo Error renaming %BUILD_FOLDER%\%SOURCE_FILE%.bin to %BUILD_TARGET_FILE%
-    exit /b 1
+    goto Error
 )
 
 
@@ -171,11 +171,15 @@ IF /I %ARE_YOU_SURE% NEQ Y GOTO End
 echo Uploading %BUILD_TARGET%
 "%WINSCP_PROGRAM_LOCATION%" "%-winscpprofile%" /command "cd %REMOTE_DIR%" "put %BUILD_TARGET%" "exit"
 
+:Success
 echo Success!
-GOTO End
+color 2F
+pause
+color
+exit /b
 
-:BuildError
-echo Build Error!
-GOTO End
-
-:End
+:Error
+color CF
+pause
+color
+exit /b 1
