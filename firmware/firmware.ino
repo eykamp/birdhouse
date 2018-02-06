@@ -840,7 +840,6 @@ bool triggerP1, triggerP2;
 U32 durationP1, durationP2;
 U32 triggerOnP1, triggerOnP2;
 
-U32 shinyeiLogicErrors = 0;
 U32 shinyeiLogicReads = 0;
 
 // Read sensors each loop tick
@@ -851,10 +850,8 @@ void loopSensors() {
   bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
 
   shinyeiLogicReads++;
-  if(valP2 && !valP1)
-    shinyeiLogicErrors++;
 
-  bool doneSampling = (now_micros - samplingPeriodStartTime) > SAMPLE_PERIOD_DURATION;
+  doneSampling = (U32(now_micros - samplingPeriodStartTime_micros) > sampleDuration_micros);
 
   if(doneSampling) {
     // If we overshot our sampling period slightly, compute a correction
@@ -954,7 +951,6 @@ void resetDataCollection() {
 
   durationP1 = 0;
   durationP2 = 0;
-  shinyeiLogicErrors = 0;
   shinyeiLogicReads = 0;
 
   samplingPeriodStartTime = micros();
@@ -1124,10 +1120,8 @@ void reportMeasurements() {
 
       String json = String("{") +
       "\"uptime\":"              + String(millis()) + "," + 
-      "\"cycleCount\":"          + String(ESP.getCycleCount()) + "," +  // Can delete after crash issues worked out
       "\"freeHeap\":"            + String(ESP.getFreeHeap()) + "," + 
-      "\"shinyeiLogicErrors\":"  + String(shinyeiLogicErrors) + "," + 
-      "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads - shinyeiLogicErrors) + "," + 
+      "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads) + "," + 
 
       "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
       "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
