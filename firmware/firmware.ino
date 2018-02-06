@@ -520,7 +520,7 @@ void setup()
   Serial.printf("Sample duration: %d\n", sampleDuration);
 
 
-  Rest.variable("uptime", &lastMillis);
+  Rest.variable("uptime", &millis);
   Rest.variable("lastReportTime", &lastReportTime);
   Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
   // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
