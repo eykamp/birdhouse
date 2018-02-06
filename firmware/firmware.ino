@@ -434,7 +434,7 @@ void onConnectedToPubSubServer() {
   publishTempSensorNameAndSoftwareVersion();
   publishStatusMessage("Connected");
 
-  reportPlantowerSensor();
+  reportPlantowerSensorStatus();
   reportResetReason();
 
   pubSubConnectFailures = 0;
@@ -996,7 +996,7 @@ void reportPlantowerDetectNondetect(bool sensorFound) {
 }
 
 
-void reportPlantowerSensor() {
+void reportPlantowerSensorStatus() {
   // Report each status only once
   if(!plantowerSensorDetected && !plantowerSensorNondetectReported) {
     reportPlantowerDetectNondetect(false);
