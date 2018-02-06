@@ -2,7 +2,6 @@
 
 rem Requires WinSCP and Arduino IDE to be installed
 
-rem Syntax: build -winscpprofile=<profile> [-clean]
 
 
 :::::
@@ -36,7 +35,7 @@ setlocal enableDelayedExpansion
 ::
 :: The order of the definitions is not important.
 ::
-set "options=-winscpprofile:"" -clean: -noup:"
+set "options=-winscpprofile:"" -clean: -noup: -help:"
 ::-option2:"" -option3:"three word default" -flag1: -flag2:"
 
 :: Set the default option values
@@ -95,9 +94,14 @@ rem echo The value of -winscpprofile is: !-winscpprofile!
 
 :: Validate our command line parameters... only one at the moment!
 if not defined -winscpprofile (
-    echo Syntax: %~nx0 -winscpprofile=^<WinSCP profile^> [-clean] [-noup]
+    call :help
     exit /b 1
 ) 
+
+if defined -help (
+    call :help
+    exit /b 0
+)
 
 rem Important: Use the .com version here, not the .exe
 SET WINSCP_PROGRAM_LOCATION=c:\Program Files (x86)\WinSCP\WinSCP.com
@@ -183,3 +187,7 @@ color CF
 pause
 color
 exit /b 1
+
+:Help
+echo Syntax: %~nx0 -winscpprofile=^<WinSCP profile^> [-clean] [-noup] [-help]
+exit /b
