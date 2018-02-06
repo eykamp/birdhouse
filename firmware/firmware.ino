@@ -110,9 +110,7 @@ PMS::DATA PmsData;
 
 // Create a new exponential filter with a weight of 5 and an initial value of 0. 
 // Bigger numbers hew truer to the unfiltered data
-ExponentialFilter<F32> TempFilter1(30, 0);
-ExponentialFilter<F32> TempFilter2(20, 0);
-ExponentialFilter<F32> TempFilter3(15, 0);
+ExponentialFilter<F32> TemperatureSmoothingFilter(30, 0);
 
 static const F64 Conc10InitialVal = 20;
 static const F64 Conc25InitialVal = .05;
@@ -803,9 +801,7 @@ void setupSensors() {
   if(BME_ok) {
     F32 t = bme.temp();
 
-    TempFilter1.SetCurrent(t);
-    TempFilter2.SetCurrent(t);
-    TempFilter3.SetCurrent(t);
+    TemperatureSmoothingFilter.SetCurrent(t);
 
     //xx Serial.printf("Temperature sensor: %s\n", getTemperatureSensorName());
 
@@ -1265,13 +1261,11 @@ void reportMeasurements() {
 
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
 
-    TempFilter1.Filter(temp);
-    TempFilter2.Filter(temp);
-    TempFilter3.Filter(temp);
+    TemperatureSmoothingFilter.Filter(temp);
    
 
     // TODO: Convert to arduinoJson
-    json = "{\"atemperature\":" + String(TempFilter1.Current()) + ",\"btemperature\":" + String(TempFilter2.Current()) + ",\"ctemperature\":" + String(TempFilter3.Current()) + "}";
+    json = "{\"temperature_smoothed\":" + String(TemperatureSmoothingFilter.Current()) + "}";
     if(!mqttPublishTelemetry(json)) {
       //xx Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
     }
