@@ -1,6 +1,8 @@
 // TODO: No AQ readings for 1 min after turned on (as per specs)
 // TODO: No AQ measurements when humidity > 95% (as per specs)
 
+
+#define NUMBER_VARIABLES 20
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>   // Include the WebServer library
@@ -89,7 +91,6 @@
 
 
 #define REST_LISTEN_PORT 80
-#define NUMBER_VARIABLES 15
 
 aREST Rest = aREST();
 WiFiServer server(REST_LISTEN_PORT);
