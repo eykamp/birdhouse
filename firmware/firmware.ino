@@ -1183,20 +1183,8 @@ void reportMeasurements() {
     //xx Serial.println(json);
 
     timenow = millis();
-    if(!mqttPublishTelemetry(json)) {
-      //xx Serial.printf("Could not publish Plantower PM data: %s\n", json.c_str());
-      //xx Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
-    }
-
-    //xx Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
-
-
-    //xx Serial.println("Plantower PM1 data: " + String(pm1));
-    //xx Serial.println("Plantower PM2.5 data: " + String(pm25));
-    //xx Serial.println("Plantower PM10 data: " + String(pm10));
-    //xx Serial.printf("Plantower samples: %d\n", plantowerSampleCount);
-
-    reportPlantowerSensor();
+    mqttPublishTelemetry(json);
+    reportPlantowerSensorStatus();
   }
 
 
