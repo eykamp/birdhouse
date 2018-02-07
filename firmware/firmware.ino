@@ -556,7 +556,7 @@ void setup()
   Rest.function("mqtturl",      mqttUrlHandler);
   Rest.function("mqttport",     mqttPortHandler);
 
-  Rest.function("reboot",       rebootHandler);
+  Rest.function("restart",      rebootHandler);
 
 
 
