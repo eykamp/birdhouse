@@ -265,7 +265,6 @@ void setupPubSubClient() {
 
 U32 pubSubConnectFailures = 0;
 U32 now_micros, now_millis;
-String now_micros_str;
 
 
 void loopPubSub() {
@@ -535,7 +534,6 @@ void setup()
   Rest.variable("lastReportTime", &lastReportTime);
   Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
   Rest.variable("now_micros", &now_micros);
-  Rest.variable("now_micros_str", &now_micros_str);
   Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
   Rest.variable("sampleDuration_micros", &sampleDuration_micros);
 
@@ -697,9 +695,6 @@ U32 wifiConnectStartTime;
 
 void loop() {
   now_micros = micros();
-  char buf[1 + 8 * sizeof(unsigned long)];
-  ultoa(micros(), buf, 10);
-  now_micros_str = buf;
   now_millis = millis();
 
   if(now_millis < lastMillis)
