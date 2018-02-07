@@ -3,6 +3,8 @@
 
 
 #define NUMBER_VARIABLES 20
+
+
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>   // Include the WebServer library
@@ -28,7 +30,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.84" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.97" // Changing this variable name will require changing the build file to extract it properly
 // Indulge me!
 #define U8  uint8_t
 #define S8  int8_t
@@ -263,6 +265,8 @@ void setupPubSubClient() {
 
 U32 pubSubConnectFailures = 0;
 U32 now_micros, now_millis;
+String now_micros_str;
+
 
 void loopPubSub() {
   setupPubSubClient();
@@ -454,7 +458,7 @@ U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
 
 bool initialConfigMode = false;
-
+bool doneSampling = false;
 
 
 const char *defaultPingTargetHostName = "www.google.com";
@@ -513,8 +517,10 @@ void setup()
   readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  sizeof(wifiPassword)  - 1, wifiPassword);
   readStringFromEeprom(DEVICE_KEY_ADDRESS,     sizeof(deviceToken)   - 1, deviceToken);
   readStringFromEeprom(MQTT_URL_ADDRESS,       sizeof(mqttUrl)       - 1, mqttUrl);
-  mqttPort       = EepromReadU16(PUB_SUB_PORT_ADDRESS);
-  sampleDuration = EepromReadU16(SAMPLE_DURATION_ADDRESS);
+
+  mqttPort = EepromReadU16(PUB_SUB_PORT_ADDRESS);
+  setSampleDuration(EepromReadU16(SAMPLE_DURATION_ADDRESS));
+
   Serial.printf("Local SSID: %s\n", localSsid);
   Serial.printf("Local PW: %s\n", localPassword);
   Serial.printf("WiFi SSID: %s\n", wifiSsid);
@@ -522,15 +528,24 @@ void setup()
   Serial.printf("Device Key: %s\n", deviceToken);
   Serial.printf("MQTT URL: %s\n", mqttUrl);
   Serial.printf("MQTT Port: %d\n", mqttPort);
-  Serial.printf("Sample duration: %d\n", sampleDuration);
+  Serial.printf("Sample duration: %d sec\n", sampleDuration);
 
 
   Rest.variable("uptime", &millis);
   Rest.variable("lastReportTime", &lastReportTime);
   Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
+  Rest.variable("now_micros", &now_micros);
+  Rest.variable("now_micros_str", &now_micros_str);
+  Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
+  Rest.variable("sampleDuration_micros", &sampleDuration_micros);
+
+
   Rest.variable("doneSampling", &doneSampling);
   Rest.variable("doneSamplingTime", &doneSamplingTime);
   // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
+
+
+
 
   Rest.variable("sampleCount", &plantowerSampleCount);
   Rest.variable("deviceToken", &deviceToken);
@@ -560,7 +575,7 @@ void setup()
 
 
 
-  Rest.set_id("brdhse");  // Should be 6 chars
+  Rest.set_id("brdhse");  // Should be 9 chars or less
   Rest.set_name(localSsid);
 
 
@@ -682,6 +697,9 @@ U32 wifiConnectStartTime;
 
 void loop() {
   now_micros = micros();
+  char buf[1 + 8 * sizeof(unsigned long)];
+  ultoa(micros(), buf, 10);
+  now_micros_str = buf;
   now_millis = millis();
 
   if(now_millis < lastMillis)
@@ -1472,10 +1490,15 @@ int updateMqttPort(const char *port) {
 
 
 void updateSampleDuration(const char *duration) {
-  sampleDuration = atoi(duration);
+  setSampleDuration(atoi(duration));
   EepromWriteU16(SAMPLE_DURATION_ADDRESS, sampleDuration);
 
   publishSampleDuration();
+}
+
+void setSampleDuration(U16 duration) {
+  sampleDuration = duration;
+  sampleDuration_micros = U32(duration) * SECONDS * MILLIS_TO_MICROS;
 }
 
 
