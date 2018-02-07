@@ -153,7 +153,8 @@ bool plantowerSensorDetected = false;
 bool plantowerSensorDetectReported = false;
 bool plantowerSensorNondetectReported = false;
 
-#define SAMPLE_PERIOD_DURATION (U32(sampleDuration * SECONDS * MILLIS_TO_MICROS))
+U16 sampleDuration;     // In seconds
+U32 sampleDuration_micros;
 
 ///// 
 // For persisting values in EEPROM
@@ -176,7 +177,6 @@ const char SENTINEL_MARKER[SENTINEL_MARKER_LENGTH + 1] = "SensorBot by Chris Eyk
 
 U16 mqttPort;
 U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
-U16 sampleDuration;     // In seconds
 
 const int LOCAL_SSID_ADDRESS      = 0;
 const int LOCAL_PASSWORD_ADDRESS  = LOCAL_SSID_ADDRESS      + sizeof(localSsid);
@@ -451,12 +451,17 @@ U32 plantowerPm10Sum = 0;
 int plantowerSampleCount = 0;
 
 U32 lastReportTime = 0;
+U32 samplingPeriodStartTime_micros;
 
 bool initialConfigMode = false;
 
 
 
 const char *defaultPingTargetHostName = "www.google.com";
+
+bool doneSamplingTime() {
+  return (now_micros - samplingPeriodStartTime_micros) > sampleDuration_micros;
+}
 
 
 const U32 MAX_COMMAND_LENGTH = 128;
@@ -523,6 +528,8 @@ void setup()
   Rest.variable("uptime", &millis);
   Rest.variable("lastReportTime", &lastReportTime);
   Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
+  Rest.variable("doneSampling", &doneSampling);
+  Rest.variable("doneSamplingTime", &doneSamplingTime);
   // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
 
   Rest.variable("sampleCount", &plantowerSampleCount);
@@ -819,8 +826,6 @@ void setupSensors() {
 }
 
 
-U32 samplingPeriodStartTime;
-
 const char *getTemperatureSensorName() {
   if(!BME_ok)
     return "No temperature sensor detected";
@@ -853,9 +858,9 @@ void loopSensors() {
 
   doneSampling = (U32(now_micros - samplingPeriodStartTime_micros) > sampleDuration_micros);
 
-  if(doneSampling) {
+  if(doneSamplingTime()) {
     // If we overshot our sampling period slightly, compute a correction
-    U32 overage = (now_micros - samplingPeriodStartTime) - SAMPLE_PERIOD_DURATION;
+    U32 overage = (now_micros - samplingPeriodStartTime_micros) - sampleDuration_micros;
 
     if(valP1 == LOW) {
       durationP1 += now_micros - triggerOnP1 - overage;
@@ -953,9 +958,9 @@ void resetDataCollection() {
   durationP2 = 0;
   shinyeiLogicReads = 0;
 
-  samplingPeriodStartTime = micros();
-  triggerOnP1 = samplingPeriodStartTime;
-  triggerOnP2 = samplingPeriodStartTime;
+  samplingPeriodStartTime_micros = micros();
+  triggerOnP1 = samplingPeriodStartTime_micros;
+  triggerOnP2 = samplingPeriodStartTime_micros;
     
   // We want to trigger when the Shinyei pins change state from what we just read
   triggerP1 = !valP1;
@@ -1023,12 +1028,12 @@ void reportMeasurements() {
     // from PPD-42 low pulse occupancy (LPO).
 
 
-  //xx Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > SAMPLE_PERIOD_DURATION || 
-                                                                                   // durationP2 > SAMPLE_PERIOD_DURATION) ? "ERROR" : "");
+  //xx Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > sampleDuration_micros || 
+                                                                                   // durationP2 > sampleDuration_micros) ? "ERROR" : "");
       
       //               microseconds            microseconds           
-      F64 ratioP1 = durationP1 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
-      F64 ratioP2 = durationP2 / ((F64)SAMPLE_PERIOD_DURATION) * 100.0;
+      F64 ratioP1 = durationP1 / ((F64)sampleDuration_micros) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
+      F64 ratioP2 = durationP2 / ((F64)sampleDuration_micros) * 100.0;
 
 //xx Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(ratioP2).c_str());
 
