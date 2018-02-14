@@ -30,7 +30,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.97" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.99" // Changing this variable name will require changing the build file to extract it properly
 // Indulge me!
 #define U8  uint8_t
 #define S8  int8_t
