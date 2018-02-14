@@ -457,7 +457,6 @@ U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
 
 bool initialConfigMode = false;
-bool doneSampling = false;
 
 
 const char *defaultPingTargetHostName = "www.google.com";
@@ -877,8 +876,6 @@ void loopSensors() {
   bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
 
   shinyeiLogicReads++;
-
-  doneSampling = (U32(now_micros - samplingPeriodStartTime_micros) > sampleDuration_micros);
 
   if(doneSamplingTime()) {
     // If we overshot our sampling period slightly, compute a correction
