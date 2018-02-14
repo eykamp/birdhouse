@@ -466,14 +466,22 @@ bool doneSamplingTime() {
   return (now_micros - samplingPeriodStartTime_micros) > sampleDuration_micros;
 }
 
+const char *getMqttStatus() {
+  getSubPubStatusName(mqttState());
+}
+
+const char *getWifiStatus() {
+  getWifiStatusName(WiFi.status());
+}
+
 
 const U32 MAX_COMMAND_LENGTH = 128;
 String command;     // The command the user is composing during command mode
 
 bool changedWifiCredentials = false;    // Track if we've changed wifi connection params during command mode
 
-void setup()
-{
+void setup() {
+
   Serial.begin(115200);
 
   Serial.println("");
@@ -536,9 +544,10 @@ void setup()
   Rest.variable("now_micros", &now_micros);
   Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
   Rest.variable("sampleDuration_micros", &sampleDuration_micros);
+  Rest.variable("mqttStatus", &getMqttStatus);
+  Rest.variable("wifiStatus", &getWifiStatus);
 
 
-  Rest.variable("doneSampling", &doneSampling);
   Rest.variable("doneSamplingTime", &doneSamplingTime);
   // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
 
