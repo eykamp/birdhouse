@@ -1282,10 +1282,6 @@ void reportMeasurements() {
 
 
 
-
-
-
-
 void copy(char *dest, const char *source, U32 destSize) {
   strncpy(dest, source, destSize);
   dest[destSize] = '\0';
