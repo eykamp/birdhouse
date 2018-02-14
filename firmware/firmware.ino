@@ -71,8 +71,8 @@
 
 // Pin layout
 // Temp sensor
-#define BME_SCL D1    // Green wire, SPI (Serial Clock)  5
-#define BME_SDA D2    // Blue wire,  SDA (Serial Data)   4
+#define BME_SCL D1    // Green wire, SPI (Serial Clock)  5   // --> D5
+#define BME_SDA D2    // Blue wire,  SDA (Serial Data)   4  // --> D6
 
 // Shinyei sensor
 #define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D5 // "P2"
@@ -80,9 +80,9 @@
 
 // Output LEDs
 #define LED_BUILTIN D4
-#define LED_RED D4
-#define LED_YELLOW D3
-#define LED_GREEN D0
+#define LED_GREEN D0      // --> D0
+#define LED_YELLOW D3     // --> D1
+#define LED_RED D4        // --> D2
 
 //////////////////////
 // WiFi Definitions //
