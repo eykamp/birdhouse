@@ -86,6 +86,12 @@ class handle_update:
     def GET(self):
         current_version = web.ctx.env.get('HTTP_X_ESP8266_VERSION')
 
+        # Use passed url params to display a debugging payload -- all will be read as strings; specify defaults in web.input() call to avoid exceptions for missing values
+        params = web.input(mqtt_status='Not specified')
+        mqtt_status = params.mqtt_status
+        print("MQTT status:", mqtt_status)
+
+
         v = re.search("(\d+)\.(\d+)", current_version)
         major = int(v.group(1))
         minor = int(v.group(2))
