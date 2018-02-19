@@ -736,7 +736,6 @@ void loop() {
   if(doLoop)
     loopSensors();
 
-  // server.handleClient();
   // checkForNewInputFromSerialPort();
 
 
