@@ -650,11 +650,11 @@ void publishTempSensorNameAndSoftwareVersion() {
 }
 
 
-void getLowState() {
+bool getLowState() {
   return ledsInstalledBackwards ? HIGH : LOW;
 }
 
-void getHighState() {
+bool getHighState() {
   return ledsInstalledBackwards ? LOW : HIGH;
 }
 
