@@ -721,7 +721,7 @@ void loop() {
     }
     Rest.handle(client);
   }
-  
+
   loopPubSub();
 
 
