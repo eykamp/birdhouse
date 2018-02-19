@@ -582,6 +582,8 @@ void setup() {
   Rest.set_id("brdhse");  // Should be 9 chars or less
   Rest.set_name(localSsid);
 
+  Serial.println("Rest configured");
+
 
   WiFi.mode(WIFI_AP_STA);  
 
@@ -593,6 +595,8 @@ void setup() {
   setupPubSubClient();
   // mqttSetCallback(messageReceivedFromMothership);
 
+  Serial.println("Setting up sensors");
+
   setupSensors();
  
   // setupWebHandlers();
@@ -602,6 +606,7 @@ void setup() {
   setupLocalAccessPoint(localSsid, localPassword);
   connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
 
+  Serial.println("Intializing OTA updates");
   setupOta();
 
   activateLed(RED);
@@ -612,6 +617,8 @@ void setup() {
     Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
     Serial.swap();    // D8 is now TX, D7 RX
   }
+  Serial.println("Serial port, signing off!");
+  Serial.flush();   // Get any last bits out of there before switching the serial pins below
 
 }
 
