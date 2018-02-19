@@ -84,6 +84,8 @@
 #define LED_YELLOW D3     // --> D1
 #define LED_RED D4        // --> D2
 
+bool ledsInstalledBackwards = true;   // TODO --> Store in flash
+
 //////////////////////
 // WiFi Definitions //
 //////////////////////
@@ -662,10 +664,18 @@ void publishTempSensorNameAndSoftwareVersion() {
 }
 
 
+void getLowState() {
+  return ledsInstalledBackwards ? HIGH : LOW;
+}
+
+void getHighState() {
+  return ledsInstalledBackwards ? LOW : HIGH;
+}
+
 void activateLed(U32 ledMask) {
-  digitalWrite(LED_RED, (ledMask & RED) ? HIGH : LOW);
-  digitalWrite(LED_YELLOW, (ledMask & YELLOW) ? HIGH : LOW);
-  digitalWrite(LED_GREEN, (ledMask & GREEN) ? HIGH : LOW);
+  digitalWrite(LED_RED, (ledMask & RED) ? getHighState() : getLowState());
+  digitalWrite(LED_YELLOW, (ledMask & YELLOW) ? getHighState() : getLowState());
+  digitalWrite(LED_GREEN, (ledMask & GREEN) ? getHighState() : getLowState());
 }
 
 bool needToReconnectToWifi = false;
