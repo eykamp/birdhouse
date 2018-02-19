@@ -150,6 +150,7 @@ enum Leds {
   RED = 1,
   YELLOW = 2,
   GREEN = 4,
+  BUILTIN = 8
 };
 
 
@@ -661,6 +662,7 @@ void activateLed(U32 ledMask) {
   digitalWrite(LED_RED, (ledMask & RED) ? getHighState() : getLowState());
   digitalWrite(LED_YELLOW, (ledMask & YELLOW) ? getHighState() : getLowState());
   digitalWrite(LED_GREEN, (ledMask & GREEN) ? getHighState() : getLowState());
+  digitalWrite(LED_BUILTIN, (ledMask & BUILTIN) ? LOW : HIGH);
 }
 
 bool needToReconnectToWifi = false;
