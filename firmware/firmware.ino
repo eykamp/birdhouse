@@ -432,6 +432,10 @@ U32 plantowerPm25Sum = 0;
 U32 plantowerPm10Sum = 0;
 int plantowerSampleCount = 0;
 
+U32 blinkTimer = 0;
+U8 blinkState = 0;
+U8 blinkMode = 2;
+
 U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
 
@@ -704,6 +708,8 @@ void loop() {
   
   lastMillis = now_millis;
 
+  blink();
+
   U32 i = 0;
   WiFiClient client = server.available();
   if (client) {
@@ -740,6 +746,46 @@ void loop() {
     needToReconnectToWifi = false;
   }
 
+}
+
+
+void blink() {
+  if(blinkMode == 0)
+    return;
+
+  if(blinkMode == 1)
+  {
+    if(now_millis > blinkTimer)
+    {
+      blinkTimer = now_millis + 500;
+      blinkState = !blinkState;
+
+      activateLed(blinkState ? RED | GREEN : YELLOW);
+    }
+  }
+
+  else if (blinkMode == 2) {    // Chase
+    if(now_millis > blinkTimer)
+    {
+      blinkTimer = now_millis + 100;
+      blinkState++;
+      if(blinkState >= 3)
+        blinkState = 0;
+      // digitalWrite(LED_BUILTIN, blinkState == 0 ? HIGH : LOW);
+
+      if(blinkState == 0)
+        activateLed(GREEN);
+      else if (blinkState == 1)
+        activateLed(YELLOW);
+      else
+        activateLed(RED);
+    }
+  }
+
+  else if(blinkMode == 3) {  // Turn off
+    if(now_millis > blinkTimer) {
+      activateLed(NONE);
+    }
 }
 
 
