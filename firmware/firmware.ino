@@ -483,6 +483,8 @@ void setup() {
     //xx Serial.println("\n\n*** MQTT FUNCTIONALITY DISABLED IN THIS BUILD! ***\n");
 # endif
 
+  pinMode(LED_BUILTIN, OUTPUT);
+
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_YELLOW, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
