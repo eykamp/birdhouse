@@ -951,22 +951,18 @@ void checkForFirmwareUpdates() {
   if(WiFi.status() != WL_CONNECTED)
     return;
 
-  //xx Serial.println("[update] Checking for firmware updates");
 
+//   t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, String("/update/?mqtt_status=")+getMqttStatus(), FIRMWARE_VERSION);
+  String path = String("/update/") + getSubPubStatusName(mqttState()) + String("/");
 
-
-
-  t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, "/update/", FIRMWARE_VERSION);
+  t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, path.c_str(), FIRMWARE_VERSION);
 
   switch(ret) {
     case HTTP_UPDATE_FAILED:
-        //xx Serial.printf("[update] Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
         break;
     case HTTP_UPDATE_NO_UPDATES:
-        //xx Serial.println("[update] No firmware updates available.");
         break;
-    case HTTP_UPDATE_OK:
-        //xx Serial.println("[update] Updated ok."); // may not called we reboot the ESP
+    case HTTP_UPDATE_OK:    // Never get here because if there is an update, the update() function will take over and we'll reboot
         break;
   }
 }
