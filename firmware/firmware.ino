@@ -294,31 +294,10 @@ void reconnectToPubSubServer() {
   if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
     return;
 
-  bool verboseMode = pubSubConnectFailures == 0;
-
-  if(verboseMode)
-    //xx Serial.println("Attempting MQTT connection...");
-
   // Attempt to connect
   if (mqttConnect("Birdhouse", deviceToken, "")) {   // ClientID, username, password
     onConnectedToPubSubServer();
   } else {    // Connection failed
-    if(verboseMode) {
-      //xx Serial.printf("MQTT connection failed: %s\n", getSubPubStatusName(mqttState()));
-
-      // We know we're connected to the wifi, so let's see if we can ping the MQTT host
-      bool reachable = Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1) || Ping.ping(mqttUrl, 1);   // Try up to 3 pings
-
-      if(reachable) {
-        if(mqttState() == MQTT_CONNECT_UNAUTHORIZED) {
-          //xx Serial.printf("MQTT host: \"%s\" is online.\nLooks like the device token (%s) is wrong?\n", mqttUrl, deviceToken);
-        } else {
-          //xx Serial.printf("MQTT host: \"%s\" is online.  Perhaps the port (%d) is wrong?\n", mqttUrl, mqttPort);
-        }
-      } else {
-        //xx Serial.printf("MQTT host: %s is not responding to ping.  Perhaps you've got the wrong address, or the machine is down?\n", mqttUrl);
-      }
-    }
     pubSubConnectFailures++;
   }
 }
