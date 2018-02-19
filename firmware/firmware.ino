@@ -757,10 +757,8 @@ void blink() {
   if(blinkMode == 0)
     return;
 
-  if(blinkMode == 1)
-  {
-    if(now_millis > blinkTimer)
-    {
+  if(blinkMode == 1) {
+    if(now_millis > blinkTimer) {
       blinkTimer = now_millis + 500;
       blinkState = !blinkState;
 
@@ -790,6 +788,7 @@ void blink() {
     if(now_millis > blinkTimer) {
       activateLed(NONE);
     }
+  }
 }
 
 
