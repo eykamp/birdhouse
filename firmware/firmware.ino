@@ -252,13 +252,11 @@ void setupPubSubClient() {
 
   IPAddress serverIp;
 
-  //xx Serial.printf("\nLooking up IP for %s\n", mqttUrl);
   if(WiFi.hostByName(mqttUrl, serverIp)) {
     mqttSetServer(serverIp, mqttPort);
     mqttServerConfigured = true;
   } else {
-    //xx Serial.printf("Could not get IP address for MQTT server %s\n", mqttUrl);
-    mqttServerLookupError = true;
+    mqttServerLookupError = true;   // TODO: Try again in a few minutes
   }
 }
 
