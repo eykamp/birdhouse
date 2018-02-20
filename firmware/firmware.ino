@@ -1788,6 +1788,7 @@ void connectingToWifi()
 {
   if(WiFi.status() == WL_CONNECTED) {   // We just connected!  :-)
 
+    onConnectedToWifi();
     isConnectingToWifi = false;
     return;
   }
@@ -1804,6 +1805,12 @@ void connectingToWifi()
     //xx Serial.println("Unable to connect to WiFi!");
     isConnectingToWifi = false;
   }
+}
+
+
+// We just connected (or reconnected) to wifi
+void onConnectedToWifi() {
+  server.begin();
 }
 
 
