@@ -450,11 +450,11 @@ bool doneSamplingTime() {
 }
 
 const char *getMqttStatus() {
-  getSubPubStatusName(mqttState());
+  return getSubPubStatusName(mqttState());
 }
 
 const char *getWifiStatus() {
-  getWifiStatusName(WiFi.status());
+  return getWifiStatusName(WiFi.status());
 }
 
 
