@@ -657,7 +657,8 @@ void loop() {
     Rest.handle(client);
   }
 
-  Rest.handle(Serial);
+  if(!serialSwapped)
+    Rest.handle(Serial);
 
 
   loopPubSub();
