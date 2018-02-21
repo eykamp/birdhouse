@@ -601,14 +601,6 @@ void setup() {
   activateLed(NONE);
 
   server.begin();
-
-  if(!initialConfigMode) {
-    Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
-    Serial.swap();    // D8 is now TX, D7 RX
-  }
-  Serial.println("Serial port, signing off!");
-  Serial.flush();   // Get any last bits out of there before switching the serial pins below
-
 }
 
 
@@ -1818,6 +1810,18 @@ void connectingToWifi()
 // We just connected (or reconnected) to wifi
 void onConnectedToWifi() {
   server.begin();
+
+  // Switch over to Plantower
+  Serial.println("Turning over the serial port to the Plantower... no more messages here.");
+  Serial.flush();   // Get any last bits out of there before switching the serial pins
+
+
+  if(!serialSwapped) {  
+    Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
+    Serial1.begin(115200);
+    Serial.swap();    // D8 is now TX, D7 RX
+    serialSwapped = true;
+  }
 }
 
 
