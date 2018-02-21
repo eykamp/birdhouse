@@ -53,9 +53,6 @@
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
 
 
-// Define this to disable MQTT
-// #define DISABLE_MQTT
-
 // Verified
 // #define D0    16
 // #define D1      5   // I2C Bus SCL (clock)
@@ -310,67 +307,37 @@ void reconnectToPubSubServer() {
 
 
 void mqttSetServer(IPAddress &ip, uint16_t port) {
-# ifdef DISABLE_MQTT
-    //xx Serial.printf("MQTT SET SERVER: %s | %d\n", ip.toString().c_str(), port);
-    return;
-# else
-    pubSubClient.setServer(ip, port);
-# endif
+  pubSubClient.setServer(ip, port);
 }
 
 
 bool mqttConnect(const char *id, const char *user, const char *pass) {
-# ifdef DISABLE_MQTT
-    //xx Serial.printf("MQTT CON: %s | %s | %s\n", id, user, pass);
-    return true;
-# else
-    return pubSubClient.connect(id, user, pass);
-# endif
+  return pubSubClient.connect(id, user, pass);
 }
 
 
 bool mqttConnected() {
-# ifdef DISABLE_MQTT
-    return true;
-# else
-    return pubSubClient.connected();
-# endif
+  return pubSubClient.connected();
 }
 
 
 void mqttDisconnect() {
-# ifdef DISABLE_MQTT
-    //xx Serial.printf("MQTT DIS\n");
-# else
-    pubSubClient.disconnect();
-# endif
+  pubSubClient.disconnect();
 }
 
 
 bool mqttLoop() {
-# ifdef DISABLE_MQTT
-    return true;
-# else
-    return pubSubClient.loop();
-# endif
+  return pubSubClient.loop();
 }
 
 
 int mqttState() {
-# ifdef DISABLE_MQTT
-    return MQTT_CONNECTED;
-# else
-    return pubSubClient.state();
-# endif
+  return pubSubClient.state();
 }
 
 
 void mqttSetCallback(MQTT_CALLBACK_SIGNATURE) {
-# ifdef DISABLE_MQTT
-    //xx Serial.printf("MQTT SETTING CALLBACK\n");
-# else
-    pubSubClient.setCallback(callback);
-# endif
+  pubSubClient.setCallback(callback);
 }
 
 
@@ -392,22 +359,12 @@ bool mqttPublishTelemetry(const String &payload) {
 
 
 bool mqttPublish(const char* topic, const char* payload) {
-# ifdef DISABLE_MQTT
-    //xx Serial.printf("MQTT MSG: %s | %s\n", topic, payload);
-    return true;
-# else
-    return pubSubClient.publish(topic, payload, false);
-# endif
+  return pubSubClient.publish(topic, payload, false);
 }
 
 
 bool mqttSubscribe(const char* topic) {
-# ifdef DISABLE_MQTT
-    //xx Serial.printf("MQTT SUB: %s\n", topic);
-    return true;
-# else
-    return pubSubClient.subscribe(topic);
-# endif
+  return pubSubClient.subscribe(topic);
 }
 
 
@@ -484,9 +441,6 @@ void setup() {
   Serial.println("");
 
 
-# ifdef DISABLE_MQTT
-    //xx Serial.println("\n\n*** MQTT FUNCTIONALITY DISABLED IN THIS BUILD! ***\n");
-# endif
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -710,14 +664,7 @@ void loop() {
 
   loopPubSub();
 
-
-#ifdef DISABLE_MQTT
-  bool doLoop = true;
-#else
-  bool doLoop = mqttState() == MQTT_CONNECTED;
-#endif
-
-  if(doLoop)
+  if(mqttState() == MQTT_CONNECTED)
     loopSensors();
 
   // checkForNewInputFromSerialPort();
