@@ -574,7 +574,6 @@ void setup() {
   Rest.set_id("brdhse");  // Should be 9 chars or less
   Rest.set_name(localSsid);
 
-  Serial.println("Rest configured");
 
 
   WiFi.mode(WIFI_AP_STA);  
@@ -587,7 +586,6 @@ void setup() {
   setupPubSubClient();
   // mqttSetCallback(messageReceivedFromMothership);
 
-  Serial.println("Setting up sensors");
 
   setupSensors();
  
@@ -598,7 +596,6 @@ void setup() {
   setupLocalAccessPoint(localSsid, localPassword);
   connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
 
-  Serial.println("Intializing OTA updates");
   setupOta();
 
   activateLed(RED);
@@ -748,7 +745,6 @@ void loop() {
   }
 
   if(needToReconnectToWifi) {
-    //xx Serial.println("Need to connect to wifi");
     connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
     needToReconnectToWifi = false;
   }
