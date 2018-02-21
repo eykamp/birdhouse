@@ -685,7 +685,6 @@ void verifySentinelMarker() {
 
 bool isConnectingToWifi = false;    // True while a connection is in process
 
-U32 connectingToWifiDotTimer;
 U32 wifiConnectStartTime;
 
 
@@ -701,15 +700,8 @@ void loop() {
 
   blink();
 
-  U32 i = 0;
   WiFiClient client = server.available();
   if (client) {
-    // blinkMode = 3;
-    // blinkTimer = now_millis + 1000;
-    while(client.connected() && !client.available() && i < 1000) {
-      delay(1);
-      i++;
-    }
     Rest.handle(client);
   }
 
@@ -1083,145 +1075,93 @@ void reportMeasurements() {
     // Function creates particle count and mass concentration
     // from PPD-42 low pulse occupancy (LPO).
 
+    //               microseconds            microseconds           
+    F64 ratioP1 = durationP1 / ((F64)sampleDuration_micros) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
+    F64 ratioP2 = durationP2 / ((F64)sampleDuration_micros) * 100.0;
 
-  //xx Serial.printf("Durations (10/2.5): %dµs / %dµs   %s\n", durationP1, durationP2, (durationP1 > sampleDuration_micros || 
-                                                                                   // durationP2 > sampleDuration_micros) ? "ERROR" : "");
-      
-      //               microseconds            microseconds           
-      F64 ratioP1 = durationP1 / ((F64)sampleDuration_micros) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
-      F64 ratioP2 = durationP2 / ((F64)sampleDuration_micros) * 100.0;
+    F64 countP1 = lpoToParticleCount(ratioP1);  // Particles / .01 ft^3
+    F64 countP2 = lpoToParticleCount(ratioP2);  // Particles / .01 ft^3
 
-//xx Serial.printf("10/2.5 ratios: %s% / %s%\n", String(ratioP1).c_str(), String(ratioP2).c_str());
+    F64 PM10count = countP1;
+    F64 PM25count = countP2 - countP1;
+    
+    // Assumes density, shape, and size of dust
+    // to estimate mass concentration from particle count.
+    // This method was described in a 2009 paper
+    // Preliminary Screening System for Ambient Air Quality in Southeast Philadelphia by Uva, M., Falcone, R., McClellan, A., and Ostapowicz, E.
+    // http://www.cleanair.org/sites/default/files/Drexel%20Air%20Monitoring_-_Final_Report_-_Team_19_0.pdf
+    // http://www.eunetair.it/cost/meetings/Istanbul/01-PRESENTATIONS/06_WG3-WG4-SESSION_WG3/04_ISTANBUL_WG-MC-MEETING_Jovasevic-Stojanovic.pdf
+    //
+    // This method does not use the correction factors, based on the presence of humidity and rain in the paper.
+    //
+    // convert from particles/0.01 ft3 to μg/m3
+    static const F64 K = 3531.5; // .01 ft^3 / m^3    
+    static const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
 
-      F64 countP1 = lpoToParticleCount(ratioP1);  // Particles / .01 ft^3
-      F64 countP2 = lpoToParticleCount(ratioP2);  // Particles / .01 ft^3
-
-      F64 PM10count = countP1;
-      F64 PM25count = countP2 - countP1;
-      
-      // Assumes density, shape, and size of dust
-      // to estimate mass concentration from particle count.
-      // This method was described in a 2009 paper
-      // Preliminary Screening System for Ambient Air Quality in Southeast Philadelphia by Uva, M., Falcone, R., McClellan, A., and Ostapowicz, E.
-      // http://www.cleanair.org/sites/default/files/Drexel%20Air%20Monitoring_-_Final_Report_-_Team_19_0.pdf
-      // http://www.eunetair.it/cost/meetings/Istanbul/01-PRESENTATIONS/06_WG3-WG4-SESSION_WG3/04_ISTANBUL_WG-MC-MEETING_Jovasevic-Stojanovic.pdf
-      //
-      // This method does not use the correction factors, based on the presence of humidity and rain in the paper.
-      //
-      // convert from particles/0.01 ft3 to μg/m3
-      static const F64 K = 3531.5; // .01 ft^3 / m^3    
-      static const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
-
-      // PM10 mass concentration algorithm
-      static const F64 largeParticleRadius = 2.6 * pow(10, -6);     // The radius of a particle in the channel >2.5 μm is 2.60 μm (from paper)
-      static const F64 mass10 = density * sphericalVolume(largeParticleRadius);     // μg/particle
-      F64 PM10conc = PM10count * K * mass10;    // μg/m^3
-      
-      // PM2.5 mass concentration algorithm
-      static const F64 smallParticleRadius = 0.44 * pow(10, -6);    // The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
-      static const F64 mass25 = density * sphericalVolume(smallParticleRadius);   // μg/particle
-      F64 PM25conc = PM25count * K * mass25;    // μg/m^3
+    // PM10 mass concentration algorithm
+    static const F64 largeParticleRadius = 2.6 * pow(10, -6);     // The radius of a particle in the channel >2.5 μm is 2.60 μm (from paper)
+    static const F64 mass10 = density * sphericalVolume(largeParticleRadius);     // μg/particle
+    F64 PM10conc = PM10count * K * mass10;    // μg/m^3
+    
+    // PM2.5 mass concentration algorithm
+    static const F64 smallParticleRadius = 0.44 * pow(10, -6);    // The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
+    static const F64 mass25 = density * sphericalVolume(smallParticleRadius);   // μg/particle
+    F64 PM25conc = PM25count * K * mass25;    // μg/m^3
 
 
-      Conc10Filter1.Filter(PM10conc);
-      Conc10Filter2.Filter(PM10conc);
-      Conc10Filter3.Filter(PM10conc);
-      Conc10Filter4.Filter(PM10conc);
+    Conc10Filter1.Filter(PM10conc);
+    Conc10Filter2.Filter(PM10conc);
+    Conc10Filter3.Filter(PM10conc);
+    Conc10Filter4.Filter(PM10conc);
 
-      Conc25Filter1.Filter(PM25conc);
-      Conc25Filter2.Filter(PM25conc);
-      Conc25Filter3.Filter(PM25conc);
-      Conc25Filter4.Filter(PM25conc);
-      
-      Count10Filter1.Filter(PM10count);
-      Count10Filter2.Filter(PM10count);
-      Count10Filter3.Filter(PM10count);
-      Count10Filter4.Filter(PM10count);
-      
-      Count25Filter1.Filter(PM25count);
-      Count25Filter2.Filter(PM25count);
-      Count25Filter3.Filter(PM25count);
-      Count25Filter4.Filter(PM25count);
-      
-      // StaticJsonBuffer<1024> jsonBuffer;
-      // JsonObject &root = jsonBuffer.createObject();
+    Conc25Filter1.Filter(PM25conc);
+    Conc25Filter2.Filter(PM25conc);
+    Conc25Filter3.Filter(PM25conc);
+    Conc25Filter4.Filter(PM25conc);
+    
+    Count10Filter1.Filter(PM10count);
+    Count10Filter2.Filter(PM10count);
+    Count10Filter3.Filter(PM10count);
+    Count10Filter4.Filter(PM10count);
+    
+    Count25Filter1.Filter(PM25count);
+    Count25Filter2.Filter(PM25count);
+    Count25Filter3.Filter(PM25count);
+    Count25Filter4.Filter(PM25count);
 
-      // root["shinyeiPM10conc"] = PM10conc;
-      // root["shinyeiPM10ratio"] = ratioP1;
-      // root["shinyeiPM10mass"] = mass10;
-      // root["shinyeiPM10duration"] = durationP1;
-      // root["shinyeiPM10count"] = PM10count;
-      // root["shinyeiPM25conc"] = PM25conc;
-      // root["shinyeiPM25ratio"] = ratioP2;
-      // root["shinyeiPM25mass"] = mass25;
-      // root["shinyeiPM25duration"] = durationP2;
-      // root["shinyeiPM25count"] = PM25count;
-      // root["ashinyeiPM10conc"] = Conc10Filter1.Current();
-      // root["bshinyeiPM10conc"] = Conc10Filter2.Current();
-      // root["cshinyeiPM10conc"] = Conc10Filter3.Current();
-      // root["dshinyeiPM10conc"] = Conc10Filter4.Current();
-      // root["ashinyeiPM25conc"] = Conc25Filter1.Current();
-      // root["bshinyeiPM25conc"] = Conc25Filter2.Current();
-      // root["cshinyeiPM25conc"] = Conc25Filter3.Current();
-      // root["dshinyeiPM25conc"] = Conc25Filter4.Current();
-      // root["ashinyeiPM10count"] = Count10Filter1.Current();
-      // root["bshinyeiPM10count"] = Count10Filter2.Current();
-      // root["cshinyeiPM10count"] = Count10Filter3.Current();
-      // root["dshinyeiPM10count"] = Count10Filter4.Current();
-      // root["ashinyeiPM25count"] = Count25Filter1.Current();
-      // root["bshinyeiPM25count"] = Count25Filter2.Current();
-      // root["cshinyeiPM25count"] = Count25Filter3.Current();
-      // root["dshinyeiPM25count"] = Count25Filter4.Current();
+    String json = String("{") +
+    "\"uptime\":"              + String(millis()) + "," + 
+    "\"freeHeap\":"            + String(ESP.getFreeHeap()) + "," + 
+    "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads) + "," + 
 
-      // String json;
-      // root.printTo(json);
-      // Serial.printf("json: %s\n",json.c_str());
+    "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
+    "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
+    "\"shinyeiPM10mass\":"     + String(mass10) + "," + 
+    "\"shinyeiPM10duration\":" + String(durationP1) + "," + 
+    "\"shinyeiPM10count\":"    + String(PM10count) + "," + 
+    "\"shinyeiPM25conc\":"     + String(PM25conc) + "," + 
+    "\"shinyeiPM25ratio\":"    + String(ratioP2) + "," + 
+    "\"shinyeiPM25mass\":"     + String(mass25) + "," + 
+    "\"shinyeiPM25duration\":" + String(durationP2) + "," + 
+    "\"shinyeiPM25count\":"    + String(PM25count) + "," +
+    "\"ashinyeiPM10conc\":"    + String(Conc10Filter1.Current()) + "," + 
+    "\"bshinyeiPM10conc\":"    + String(Conc10Filter2.Current()) + "," + 
+    "\"cshinyeiPM10conc\":"    + String(Conc10Filter3.Current()) + "," + 
+    "\"dshinyeiPM10conc\":"    + String(Conc10Filter4.Current()) + "," + 
+    "\"ashinyeiPM25conc\":"    + String(Conc25Filter1.Current()) + "," + 
+    "\"bshinyeiPM25conc\":"    + String(Conc25Filter2.Current()) + "," + 
+    "\"cshinyeiPM25conc\":"    + String(Conc25Filter3.Current()) + "," + 
+    "\"dshinyeiPM25conc\":"    + String(Conc25Filter4.Current()) + "," + 
+    "\"ashinyeiPM10count\":"   + String(Count10Filter1.Current()) + "," + 
+    "\"bshinyeiPM10count\":"   + String(Count10Filter2.Current()) + "," + 
+    "\"cshinyeiPM10count\":"   + String(Count10Filter3.Current()) + "," + 
+    "\"dshinyeiPM10count\":"   + String(Count10Filter4.Current()) + "," + 
+    "\"ashinyeiPM25count\":"   + String(Count25Filter1.Current()) + "," + 
+    "\"bshinyeiPM25count\":"   + String(Count25Filter2.Current()) + "," + 
+    "\"cshinyeiPM25count\":"   + String(Count25Filter3.Current()) + "," + 
+    "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
 
-      // bool ok = mqttPublishTelemetry(json);  
-
-      String json = String("{") +
-      "\"uptime\":"              + String(millis()) + "," + 
-      "\"freeHeap\":"            + String(ESP.getFreeHeap()) + "," + 
-      "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads) + "," + 
-
-      "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
-      "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
-      "\"shinyeiPM10mass\":"     + String(mass10) + "," + 
-      "\"shinyeiPM10duration\":" + String(durationP1) + "," + 
-      "\"shinyeiPM10count\":"    + String(PM10count) + "," + 
-      "\"shinyeiPM25conc\":"     + String(PM25conc) + "," + 
-      "\"shinyeiPM25ratio\":"    + String(ratioP2) + "," + 
-      "\"shinyeiPM25mass\":"     + String(mass25) + "," + 
-      "\"shinyeiPM25duration\":" + String(durationP2) + "," + 
-      "\"shinyeiPM25count\":"    + String(PM25count) + "," +
-      "\"ashinyeiPM10conc\":"    + String(Conc10Filter1.Current()) + "," + 
-      "\"bshinyeiPM10conc\":"    + String(Conc10Filter2.Current()) + "," + 
-      "\"cshinyeiPM10conc\":"    + String(Conc10Filter3.Current()) + "," + 
-      "\"dshinyeiPM10conc\":"    + String(Conc10Filter4.Current()) + "," + 
-      "\"ashinyeiPM25conc\":"    + String(Conc25Filter1.Current()) + "," + 
-      "\"bshinyeiPM25conc\":"    + String(Conc25Filter2.Current()) + "," + 
-      "\"cshinyeiPM25conc\":"    + String(Conc25Filter3.Current()) + "," + 
-      "\"dshinyeiPM25conc\":"    + String(Conc25Filter4.Current()) + "," + 
-      "\"ashinyeiPM10count\":"   + String(Count10Filter1.Current()) + "," + 
-      "\"bshinyeiPM10count\":"   + String(Count10Filter2.Current()) + "," + 
-      "\"cshinyeiPM10count\":"   + String(Count10Filter3.Current()) + "," + 
-      "\"dshinyeiPM10count\":"   + String(Count10Filter4.Current()) + "," + 
-      "\"ashinyeiPM25count\":"   + String(Count25Filter1.Current()) + "," + 
-      "\"bshinyeiPM25count\":"   + String(Count25Filter2.Current()) + "," + 
-      "\"cshinyeiPM25count\":"   + String(Count25Filter3.Current()) + "," + 
-      "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
-
-
-      //xx Serial.println(json);
-
-      U32 timenow = millis();
-
-      if(!mqttPublishTelemetry(json)) {
-        //xx Serial.printf("Could not publish Shinyei PM data: %s\n", json.c_str());
-        //xx Serial.printf("MQTT Status: %s\n", String(getSubPubStatusName(mqttState())).c_str());
-      }
-
-      //xx Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
+    mqttPublishTelemetry(json);
 
   if(plantowerSampleCount > 0) {
     F64 pm1 = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
@@ -1235,16 +1175,10 @@ void reportMeasurements() {
       "\"plantowerPM10conc\":"    + String(pm10) + "," +
       "\"plantowerSampleCount\":" + String(plantowerSampleCount) + "}";
 
-
-    //xx Serial.println(json);
-
-    timenow = millis();
     mqttPublishTelemetry(json);
     reportPlantowerSensorStatus();
 
   }
-  activateLed(NONE);
-
 
   if(BME_ok) {
 
@@ -1267,26 +1201,9 @@ void reportMeasurements() {
 
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
 
-    //xx Serial.print("Temp: ");
-    //xx Serial.print(temp);
-    //xx Serial.print("°"+ String(TEMPERATURE_UNIT == BME280::TempUnit_Celsius ? 'C' :'F'));
-    //xx Serial.print("\t\tHumidity: ");
-    //xx Serial.print(hum);
-    //xx Serial.print("% RH");
-    //xx Serial.print("\t\tPressure: ");
-    //xx Serial.print(pres);
-    //xx Serial.println(" Pa");
-
-
-    // TODO: Convert to arduinoJson
     json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + "}";
 
-    //xx Serial.println(json);
-    timenow = millis();
-
-    if(!mqttPublishTelemetry(json)) {
-      //xx Serial.printf("Could not publish environmental data: %s\n", json.c_str());
-    }
+    mqttPublishTelemetry(json);
 
 
     BME280I2C::Settings settings2(
@@ -1303,22 +1220,19 @@ void reportMeasurements() {
     // Temperature sensor
     bme.setSettings(settings2);
 
-
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
 
     TemperatureSmoothingFilter.Filter(temp);
    
-
-    // TODO: Convert to arduinoJson
     json = "{\"temperature_smoothed\":" + String(TemperatureSmoothingFilter.Current()) + "}";
-    if(!mqttPublishTelemetry(json)) {
-      //xx Serial.printf("Could not publish cumulative environmental data: %s\n", json.c_str());
-    }
-    //xx Serial.printf("sent (%d seconds)\n", (millis()-timenow)/1000);
+    mqttPublishTelemetry(json);
 
   }
-}
 
+delay(500);
+  activateLed(NONE);
+
+}
 
 
 void copy(char *dest, const char *source, U32 destSize) {
@@ -1330,7 +1244,6 @@ void copy(char *dest, const char *source, U32 destSize) {
 
 void processConfigCommand(const String &command) {
   if(command == "uptime") {
-    //xx Serial.print("Uptime: ");
     if(millisOveflows > 0) {
       //xx Serial.printf("%d*2^32 + ", millisOveflows);
     }
@@ -1423,7 +1336,6 @@ void printScanResult(U32 duration);     // Forward declare
 void scanVisibleNetworks() {
   publishStatusMessage("scanning");
 
-  //xx Serial.println("Pausing data collection while we scan available networks...");
   WiFi.scanNetworks(false, true);    // Include hidden access points
 
 
@@ -1433,7 +1345,6 @@ void scanVisibleNetworks() {
   const int maxTime = 30;
   while(!WiFi.scanComplete()) { 
     if(millis() - scanStartTime > maxTime * SECONDS) {
-      //xx Serial.printf("Scan timed out (max %d seconds)\n", maxTime);
       lastScanTime = millis();
       return;
     }
@@ -1467,8 +1378,6 @@ void updateWifiSsid(const char *ssid) {
   writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
   changedWifiCredentials = true;
   // initiateConnectionToWifi();
-
-  //xx Serial.printf("Saved wifi ssid: %s\n", wifiSsid);
 }
 
 
@@ -1478,8 +1387,6 @@ void updateWifiPassword(const char *password) {
   changedWifiCredentials = true;
   pubSubConnectFailures = 0;
   // initiateConnectionToWifi();
-
-  //xx Serial.printf("Saved wifi password: %s\n", wifiPassword);
 }
 
 
@@ -1540,18 +1447,15 @@ void setSampleDuration(U16 duration) {
 
 void setWifiSsidFromScanResults(int index) {
   if(WiFi.scanComplete() == -1) {
-    //xx Serial.println("Scan running... please wait for it to complete and try again.");
     return;
   }
 
   if(WiFi.scanComplete() == -2) {
-    //xx Serial.println("You must run \"scan\" first!");
     return;
   }
 
   // Networks are 0-indexed, but user will be selecting a network based on 1-indexed display
   if(index < 1 || index > WiFi.scanComplete()) {
-    //xx Serial.printf("Invalid index: %s\n", index);
     return;
   }
   
@@ -1615,16 +1519,9 @@ void printScanResult(U32 duration) {
 
   publishStatusMessage("scan results: " + String(networksFound) + " hotspots found in " + String(duration) + "ms");
 
-  if(networksFound < 0) {
-    //xx Serial.println("NEGATIVE RESULT!!");    // Should never happen
+  if(networksFound <= 0) {
     return;
   }
-  if (networksFound == 0) {
-    //xx Serial.printf("Scan completed (%d seconds): No networks found\n", duration / SECONDS);
-    return;
-  }
-
-  //xx Serial.printf("%d network(s) found (%d seconds)\n", networksFound, duration / SECONDS);
 
   for (int i = 0; i < networksFound; i++) {
     //xx Serial.printf("%d: %s <<%s>>, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
@@ -1672,56 +1569,10 @@ void ping(const char *target) {
         //xx Serial.println("Ping complete");
       }
     } else {
-      //xx Serial.printf("Failure pinging  %s\n", target);
       pingCount = 0;    // Cancel ping if it's not working
     }
   }
 }
-
-
-// void contactServer(const String &url) {
-
-//   IPAddress google;
-  
-//   if(!WiFi.hostByName(url.c_str(), google)) {
-//     //xx Serial.println("Could not resolve hostname -- retrying in 5 seconds");
-//     delay(5000);
-//     return;
-//   }
-
-//   //  wfclient2.setTimeout(20 * 1000);
-  
-//   WiFiClient wfclient2;
-//   if(wfclient2.connect(google, 80)) {
-//     //xx Serial.print("connected to ");
-//     //xx Serial.println(url);
-//     wfclient2.println("GET / HTTP/1.0");
-//     wfclient2.println("");
-//     needToConnect = false;
-//   }
-//   else {
-//     //xx Serial.println("connection failed");
-//   }
-  
-// //print results from google
-
-//   unsigned long timeout = millis();
-//   while (wfclient2.available() == 0) {
-//     if (millis() - timeout > 5000) {
-//       //xx Serial.println(">>> Client Timeout !");
-//       wfclient2.stop();
-//       return;
-//     }
-//   }
-
-//   while(wfclient2.available()) {
-//     String line = wfclient2.readStringUntil('\\n');
-//     //xx Serial.println(line);
-//   }
-//   for(int i = 0; i < 5; i++) {
-//     //xx Serial.println("x");
-//   }
-// }
 
 
 // Called from setup
@@ -1772,12 +1623,8 @@ void initiateConnectionToWifi()
   // set passphrase
   int status = WiFi.begin(wifiSsid, wifiPassword);
 
-  if (status == WL_CONNECT_FAILED) {    // Something went wrong
-    //xx Serial.println("Failed to set ssid & pw.  Connect attempt aborted.");
-  } else {                              // Status is probably WL_DISCONNECTED
-//xx Serial.println("Setting isConnecting to true!");
+  if (status != WL_CONNECT_FAILED) { 
     isConnectingToWifi = true;
-    connectingToWifiDotTimer = millis();
     wifiConnectStartTime = millis();    
   }
 }
@@ -1796,14 +1643,7 @@ void connectingToWifi()
 
   // Still not connected  :-(
 
-  if(millis() - connectingToWifiDotTimer > 500) {
-    //xx Serial.print(".");
-    connectingToWifiDotTimer = millis();
-  }
-
   if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
-    //xx Serial.println("");
-    //xx Serial.println("Unable to connect to WiFi!");
     isConnectingToWifi = false;
   }
 }
