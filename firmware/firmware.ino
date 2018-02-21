@@ -439,7 +439,7 @@ int plantowerSampleCount = 0;
 
 U32 blinkTimer = 0;
 U8 blinkState = 0;
-U8 blinkMode = 2;
+U8 blinkMode = 0;
 
 U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
@@ -598,7 +598,7 @@ void setup() {
 
   setupOta();
 
-  activateLed(RED);
+  activateLed(NONE);
 
   server.begin();
 
@@ -718,6 +718,8 @@ void loop() {
   U32 i = 0;
   WiFiClient client = server.available();
   if (client) {
+    // blinkMode = 3;
+    // blinkTimer = now_millis + 1000;
     while(client.connected() && !client.available() && i < 1000) {
       delay(1);
       i++;
@@ -974,6 +976,9 @@ void loopSensors() {
 
 
     if(pms.read(PmsData)) {
+      blinkMode = 3;
+      blinkTimer = now_millis + 1000;
+      activateLed(GREEN);
       plantowerPm1Sum  += PmsData.PM_AE_UG_1_0;
       plantowerPm25Sum += PmsData.PM_AE_UG_2_5;
       plantowerPm10Sum += PmsData.PM_AE_UG_10_0;
@@ -1080,6 +1085,7 @@ void reportResetReason() {
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
+    activateLed(YELLOW);
     lastReportTime = millis();
     // Function creates particle count and mass concentration
     // from PPD-42 low pulse occupancy (LPO).
@@ -1243,6 +1249,7 @@ void reportMeasurements() {
     mqttPublishTelemetry(json);
     reportPlantowerSensorStatus();
   }
+  activateLed(NONE);
 
 
   if(BME_ok) {
