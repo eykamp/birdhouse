@@ -30,7 +30,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.99" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.111" // Changing this variable name will require changing the build file to extract it properly
 // Indulge me!
 #define U8  uint8_t
 #define S8  int8_t
@@ -574,11 +574,8 @@ void setup() {
   Rest.set_id("brdhse");  // Should be 9 chars or less
   Rest.set_name(localSsid);
 
-
-
   WiFi.mode(WIFI_AP_STA);  
 
-  // We'll handle these ourselves
   WiFi.setAutoConnect(false);
   WiFi.setAutoReconnect(true);
 
@@ -586,11 +583,8 @@ void setup() {
   setupPubSubClient();
   // mqttSetCallback(messageReceivedFromMothership);
 
-
   setupSensors();
  
-  // setupWebHandlers();
-  
   command.reserve(MAX_COMMAND_LENGTH);
 
   setupLocalAccessPoint(localSsid, localPassword);
@@ -719,6 +713,9 @@ void loop() {
     Rest.handle(client);
   }
 
+  Rest.handle(Serial);
+
+
   loopPubSub();
 
 
@@ -738,6 +735,7 @@ void loop() {
     connectingToWifi();
   }
 
+// needToReconnectToWifi is never set to true...
   if(needToReconnectToWifi) {
     connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
     needToReconnectToWifi = false;
@@ -906,6 +904,8 @@ U32 shinyeiLogicReads = 0;
 
 // Read sensors each loop tick
 void loopSensors() {
+
+  Serial1.print(now_millis);
 
   // Collect Shinyei data every loop
   bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
@@ -1078,6 +1078,7 @@ void reportResetReason() {
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
     activateLed(YELLOW);
+
     lastReportTime = millis();
     // Function creates particle count and mass concentration
     // from PPD-42 low pulse occupancy (LPO).
@@ -1240,6 +1241,7 @@ void reportMeasurements() {
     timenow = millis();
     mqttPublishTelemetry(json);
     reportPlantowerSensorStatus();
+
   }
   activateLed(NONE);
 
