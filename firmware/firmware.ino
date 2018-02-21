@@ -2,7 +2,7 @@
 // TODO: No AQ measurements when humidity > 95% (as per specs)
 
 
-#define NUMBER_VARIABLES 20
+#define NUMBER_VARIABLES 30
 
 
 #include <ESP8266WiFi.h>
