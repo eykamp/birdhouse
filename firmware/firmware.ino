@@ -71,18 +71,20 @@
 
 // Pin layout
 // Temp sensor
-#define BME_SCL D1    // Green wire, SPI (Serial Clock)  5   // --> D5
-#define BME_SDA D2    // Blue wire,  SDA (Serial Data)   4  // --> D6
+#define BME_SCL D5//D1    // Green wire, SPI (Serial Clock)  5   // --> D5
+#define BME_SDA D6//D2    // Blue wire,  SDA (Serial Data)   4  // --> D6
 
 // Shinyei sensor
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D5 // "P2"
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM25 D6 // "P1"
+#define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D3//D5 // "P2"
+#define SHINYEI_SENSOR_DIGITAL_PIN_PM25 D3//D6 // "P1"
+
+// Plantower Sensor pins are hardcoded below; they have to be on the serial pins
 
 // Output LEDs
 #define LED_BUILTIN D4
 #define LED_GREEN D0      // --> D0
-#define LED_YELLOW D3     // --> D1
-#define LED_RED D4        // --> D2
+#define LED_YELLOW D1//D3     // --> D1
+#define LED_RED D2//D4        // --> D2
 
 bool ledsInstalledBackwards = true;   // TODO --> Store in flash
 
@@ -266,6 +268,8 @@ void setupPubSubClient() {
 
 U32 pubSubConnectFailures = 0;
 U32 now_micros, now_millis;
+
+bool serialSwapped = false;
 
 
 void loopPubSub() {
