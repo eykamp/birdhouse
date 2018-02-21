@@ -844,7 +844,7 @@ U32 shinyeiLogicReads = 0;
 // Read sensors each loop tick
 void loopSensors() {
 
-  Serial1.print(now_millis);
+  // Serial1.print(now_millis);
 
   // Collect Shinyei data every loop
   bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
@@ -906,7 +906,7 @@ void loopSensors() {
     }
 
 
-    if(pms.read(PmsData)) {
+    if(serialSwapped && pms.read(PmsData)) {
       blinkMode = 3;
       blinkTimer = now_millis + 1000;
       activateLed(GREEN);
@@ -1607,8 +1607,8 @@ void onConnectedToWifi() {
 
   if(!serialSwapped) {  
     Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
-    Serial1.begin(115200);
     Serial.swap();    // D8 is now TX, D7 RX
+    // Serial1.begin(115200);
     serialSwapped = true;
   }
 }
