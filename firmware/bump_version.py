@@ -18,4 +18,7 @@ for line in fileinput.input(file, inplace = 1):
         line = line.replace(major, new_major, 1).replace(minor, new_minor, 1)
 
     print(line, end='')
+
+
+print("Bumped to version " + new_major + "." + new_minor)
     
