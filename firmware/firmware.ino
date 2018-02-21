@@ -369,7 +369,6 @@ bool mqttSubscribe(const char* topic) {
 
 
 void onConnectedToPubSubServer() {
-  //xx Serial.println("Connected to MQTT server");                          // Even if we're not in verbose mode... Victories are to be celebrated!
   mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Announce ourselves to the server
@@ -383,7 +382,6 @@ void onConnectedToPubSubServer() {
 
   pubSubConnectFailures = 0;
 
-  //xx Serial.println("Starting data collection");
   resetDataCollection();      // Now we can start our data collection efforts
 }
 
@@ -792,9 +790,6 @@ BME280I2C bme;
 
 // Orange: VCC, yellow: GND, Green: SCL, d1, Blue: SDA, d2
 void setupSensors() {
-  // Serial.println(getResetReason());
-
-
   // Temperature, humidity, and barometric pressure
   Wire.begin(BME_SDA, BME_SCL);
   BME_ok = bme.begin();
@@ -804,12 +799,8 @@ void setupSensors() {
 
     TemperatureSmoothingFilter.SetCurrent(t);
 
-    //xx Serial.printf("Temperature sensor: %s\n", getTemperatureSensorName());
-
     char str_temp[6];
     dtostrf(t, 4, 2, str_temp);
-
-    //xx Serial.printf("Initializing temperature filter %s\n", str_temp);
   }
 
 
@@ -964,9 +955,6 @@ void resetDataCollection() {
   plantowerPm25Sum = 0;
   plantowerPm10Sum = 0;
   plantowerSampleCount = 0;
-
-
- //xx Serial.printf("P1 / P2 starting %s / %s\n", valP1 ? "HIGH" : "LOW",valP2 ? "HIGH" : "LOW");
 }
 
 
@@ -1496,8 +1484,6 @@ void printScanResult(U32 duration) {
 
   if(!mqttPublishAttribute(json)) {
       publishStatusMessage("Could not upload scan results");
-
-    //xx Serial.printf("Could not publish message: %s\n", json.c_str());
   }
 }
 
@@ -1505,15 +1491,12 @@ void printScanResult(U32 duration) {
 void ping(const char *target) {
   connectToWiFi(wifiSsid, wifiPassword, false);
 
-  //xx Serial.print("Pinging ");   Serial.println(target);
   U8 pingCount = 5;
   while(pingCount > 0)
   {
     if(Ping.ping(target, 1)) {
-      //xx Serial.printf("Response time: %d ms\n", Ping.averageTime());
       pingCount--;
       if(pingCount == 0) {
-        //xx Serial.println("Ping complete");
       }
     } else {
       pingCount = 0;    // Cancel ping if it's not working
@@ -1533,10 +1516,6 @@ void setupLocalAccessPoint(const char *ssid, const char *password)
   IPAddress subnetMask(255,255,255,0);
  
   bool ok = WiFi.softAPConfig(ip, gateway, subnetMask) && WiFi.softAP(ssid, password); //, wifiChannel, false);  // name, pw, channel, hidden
-
-
-  // Serial.printf("AP SSID: %s\n", Wifi.soft)
-  //xx Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
 
   const char *dnsName = "birdhouse";      // Connect with birdhouse.local
 
@@ -1675,7 +1654,6 @@ void publishStatusMessage(const String &msg) {
   String json;
   root.printTo(json);
 
-  //xx Serial.printf("[status] %s\n", msg.c_str());
   mqttPublishAttribute(json);  
 }
 
@@ -1685,13 +1663,11 @@ void setupOta() {
   // Are these ever called?
   ArduinoOTA.onStart([]() {
     activateLed(RED | YELLOW);
-    //xx Serial.println("OTA updates started");
     publishOtaStatusMessage("Starting update");
   });
 
 
   ArduinoOTA.onEnd([]() {
-    //xx Serial.println("OTA updates finished");
     publishOtaStatusMessage("Update successful");
     for(int i = 0; i < 10; i++) { activateLed(GREEN); delay(50); activateLed(NONE); delay(50); }
     activateLed(RED | YELLOW | GREEN);
@@ -1701,15 +1677,12 @@ void setupOta() {
   static bool lastProgressUpdate = false;
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    //xx Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
     activateLed(YELLOW | lastProgressUpdate ? GREEN : RED);
     lastProgressUpdate = !lastProgressUpdate;
   });
 
 
   ArduinoOTA.onError([](ota_error_t error) {
-    //xx Serial.printf("Error[%u]: ", error);
-
     String msg;
     if (error == OTA_AUTH_ERROR)         msg = "Auth Failed";
     else if (error == OTA_BEGIN_ERROR)   msg = "Begin Failed";
@@ -1717,7 +1690,6 @@ void setupOta() {
     else if (error == OTA_RECEIVE_ERROR) msg = "Receive Failed";
     else if (error == OTA_END_ERROR)     msg = "End Failed";
 
-    //xx Serial.println(msg);
     publishOtaStatusMessage("Update failed: " + msg);
 
     ESP.restart();
