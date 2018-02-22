@@ -20,10 +20,15 @@ gmaps = googlemaps.Client(key=google_geolocation_key)
 urls = (
     '/', 'set_led_color',
     '/hotspots/', 'handle_hotspots',
-    '/update/(.*)/', 'handle_update'
+    '/update/(.*)/', 'handle_update',
+    '/purpleair/(.*)', 'handle_prupleair'
 )
 
 app = web.application(urls, globals())
+
+class handle_prupleair:
+    def POST(self):
+
 
 class handle_hotspots:
     def POST(self):
@@ -118,39 +123,6 @@ class handle_update:
         raise web.NotModified()
 
 class set_led_color:    
-    def GET(self):
-        current_version = web.ctx.env.get('HTTP_X_ESP8266_VERSION')
-
-        # # Use passed url params to display a debugging payload -- all will be read as strings; specify defaults in web.input() call to avoid exceptions for missing values
-        # params = web.input(mqtt_status='Not specified')
-        # mqtt_status = params.mqtt_status
-        # web.debug("MQTT status:", mqtt_status)
-
-
-        v = re.search("(\d+)\.(\d+)", current_version)
-        major = int(v.group(1))
-        minor = int(v.group(2))
-
-        next_version = '/tmp/firmware_' + str(major) + '.' + str(minor + 1) + '.bin'
-        web.debug("Looking for version", next_version)
-
-        if os.path.exists(next_version):
-            # domain = re.sub(r':[0-9]+$', '', web.ctx.homedomain)
-            # raise web.SeeOther(domain + '/firmware_images/firmware_1.24.bin')       # Handled by Apache
-
-            file = open(next_version, 'rb')
-            bin_image = file.read()
-            byte_count = str(len(bin_image))
-
-            web.debug("Sending update (" + byte_count + " bytes)")
-
-            web.header('Content-type','application/octet-stream')
-            web.header('Content-transfer-encoding','base64') 
-            web.header('Content-length', byte_count)
-            return bin_image
-
-        raise web.NotModified()
-
     def POST(self):
         # Decode request data
 
