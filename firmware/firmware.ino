@@ -972,6 +972,11 @@ void reportPlantowerDetectNondetect(bool sensorFound) {
 }
 
 
+void reportLocalIp() {
+  mqttPublishAttribute(String("{\"localNetworkIpAddress\":\"") + WiFi.localIP().toString() + "\"}");
+}
+
+
 void reportPlantowerSensorStatus() {
   // Report each status only once
   if(!plantowerSensorDetected && !plantowerSensorNondetectReported) {
@@ -1572,6 +1577,8 @@ void connectingToWifi()
 // We just connected (or reconnected) to wifi
 void onConnectedToWifi() {
   server.begin();
+
+  reportLocalIp();
 
   // Switch over to Plantower
   Serial.println("Turning over the serial port to the Plantower... no more messages here.");
