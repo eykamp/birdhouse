@@ -21,13 +21,17 @@ urls = (
     '/', 'set_led_color',
     '/hotspots/', 'handle_hotspots',
     '/update/(.*)/', 'handle_update',
-    '/purpleair/(.*)', 'handle_prupleair'
+    '/purpleair/(.*)', 'handle_purpleair'
 )
 
 app = web.application(urls, globals())
 
-class handle_prupleair:
-    def POST(self):
+class handle_purpleair:
+    def POST(self, data):
+        print("data: ", web.data())
+        print("passed: ", data)
+        print("ctx: ", web.ctx)
+        print("env: ", web.ctx.env)
 
 
 class handle_hotspots:
