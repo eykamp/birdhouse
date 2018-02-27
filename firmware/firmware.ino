@@ -30,7 +30,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.111" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.116" // Changing this variable name will require changing the build file to extract it properly
 // Indulge me!
 #define U8  uint8_t
 #define S8  int8_t
@@ -387,7 +387,7 @@ int plantowerSampleCount = 0;
 
 U32 blinkTimer = 0;
 U8 blinkState = 0;
-U8 blinkMode = 0;
+U8 blinkMode = 1;
 
 U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
