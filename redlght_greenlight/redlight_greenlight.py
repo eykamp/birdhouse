@@ -6,6 +6,7 @@ import geopy.distance   # sudo pip install geopy
 import re
 import os
 import base64
+import time
 from pprint import pprint
 
 
@@ -137,23 +138,16 @@ class set_led_color:
 
         web.debug("Received data for " + device_id + ": ", web.data().decode(data_encoding))
 
-        if float(temperature) < 50:
+        if float(temperature) < 8:
             color = 'GREEN'
-        elif float(temperature) < 80:
+        elif float(temperature) < 15:
             color = 'YELLOW'
         else:
             color = 'RED'
 
-        outgoing_data = {"LED": color}
+        outgoing_data = { "LED": color, "lastSeen": int(time.time()) }
 
         tbapi.set_shared_attributes(device_id, outgoing_data)
-
-        web.header('Content-Type', 'application/json')
-        data = { "nonce": color }
-
-        web.debug("JSON dump:", json.dumps(data))
-
-        return json.dumps(data)
 
 
 if __name__ == "__main__":
