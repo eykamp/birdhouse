@@ -973,7 +973,7 @@ void reportPlantowerDetectNondetect(bool sensorFound) {
 
 
 void reportLocalIp() {
-  mqttPublishAttribute(String("{\"localNetworkIpAddress\":\"") + WiFi.localIP().toString() + "\"}");
+  mqttPublishAttribute(String("{\"lanIpAddress\":\"") + WiFi.localIP().toString() + "\"}");
 }
 
 
