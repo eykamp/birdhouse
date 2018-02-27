@@ -1126,9 +1126,10 @@ void reportMeasurements() {
     mqttPublishTelemetry(json);
   }
 
-delay(500);
+  delay(500);
+  activateLed(GREEN | RED);
+  delay(200);
   activateLed(NONE);
-
 }
 
 
