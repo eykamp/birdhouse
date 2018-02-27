@@ -766,18 +766,6 @@ int mqttPortHandler(String params) {
 
 bool BME_ok = false;
 
-
-// BME280I2C::Settings settings(
-//    BME280::OSR_X8,    // Temp   --> default was OSR_1X
-//    BME280::OSR_X8,    // Humid  --> default was OSR_1X
-//    BME280::OSR_X1,    // Press
-//    BME280::Mode_Forced,   // Power mode
-//    BME280::StandbyTime_1000ms, 
-//    BME280::Filter_Off,    // Pressure filter
-//    BME280::SpiEnable_False,
-//    0x76 // I2C address. I2C specific.
-// );
-
 // Temperature sensor
 BME280I2C bme;
 
@@ -789,12 +777,24 @@ void setupSensors() {
   BME_ok = bme.begin();
 
   if(BME_ok) {
+
+    BME280I2C::Settings settings(
+           BME280::OSR_X16,    // Temp   --> default was OSR_1X
+           BME280::OSR_X16,    // Humid  --> default was OSR_1X
+           BME280::OSR_X16,    // Press
+           BME280::Mode_Forced,   // Power mode --> Forced is recommended by datasheet
+           BME280::StandbyTime_1000ms, 
+           BME280::Filter_Off,    // Pressure filter
+           BME280::SpiEnable_False,
+           0x76 // I2C address. I2C specific.
+        );
+
+    // Temperature sensor
+    bme.setSettings(settings);
+
     F32 t = bme.temp();
 
     TemperatureSmoothingFilter.SetCurrent(t);
-
-    char str_temp[6];
-    dtostrf(t, 4, 2, str_temp);
   }
 
 
@@ -1118,49 +1118,12 @@ void reportMeasurements() {
 
     F32 pres, temp, hum;
 
-    BME280I2C::Settings settings(
-           BME280::OSR_X16,    // Temp   --> default was OSR_1X
-           BME280::OSR_X16,    // Humid  --> default was OSR_1X
-           BME280::OSR_X1,    // Press
-           BME280::Mode_Forced,   // Power mode
-           BME280::StandbyTime_1000ms, 
-           BME280::Filter_Off,    // Pressure filter
-           BME280::SpiEnable_False,
-           0x76 // I2C address. I2C specific.
-        );
-
-    // Temperature sensor
-    bme.setSettings(settings);
-
-
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
-
-    json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + "}";
-
-    mqttPublishTelemetry(json);
-
-
-    BME280I2C::Settings settings2(
-           BME280::OSR_X1,    // Temp   --> default was OSR_1X
-           BME280::OSR_X1,    // Humid  --> default was OSR_1X
-           BME280::OSR_X1,    // Press
-           BME280::Mode_Forced,   // Power mode
-           BME280::StandbyTime_1000ms, 
-           BME280::Filter_Off,    // Pressure filter
-           BME280::SpiEnable_False,
-           0x76 // I2C address. I2C specific.
-        );
-
-    // Temperature sensor
-    bme.setSettings(settings2);
-
-    bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
-
     TemperatureSmoothingFilter.Filter(temp);
-   
-    json = "{\"temperature_smoothed\":" + String(TemperatureSmoothingFilter.Current()) + "}";
-    mqttPublishTelemetry(json);
 
+    json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + ",\"temperature_smoothed\":" + String(TemperatureSmoothingFilter.Current()) + "}";
+
+    mqttPublishTelemetry(json);
   }
 
 delay(500);
