@@ -779,14 +779,14 @@ void setupSensors() {
   if(BME_ok) {
 
     BME280I2C::Settings settings(
-           BME280::OSR_X16,    // Temp   --> default was OSR_1X
-           BME280::OSR_X16,    // Humid  --> default was OSR_1X
-           BME280::OSR_X16,    // Press
-           BME280::Mode_Forced,   // Power mode --> Forced is recommended by datasheet
+           BME280::OSR_X16,             // Temp   --> default was OSR_1X
+           BME280::OSR_X16,             // Humid  --> default was OSR_1X
+           BME280::OSR_X16,             // Press
+           BME280::Mode_Forced,         // Power mode --> Forced is recommended by datasheet
            BME280::StandbyTime_1000ms, 
-           BME280::Filter_Off,    // Pressure filter
+           BME280::Filter_Off,          // Pressure filter
            BME280::SpiEnable_False,
-           0x76 // I2C address. I2C specific.
+           0x76                         // I2C address. I2C specific.
         );
 
     // Temperature sensor
