@@ -15,6 +15,8 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 
+#include "Types.h"
+#include "Intervals.h"
 #include <PMS.h>                // Plantower
 
 // OTA Updates
@@ -31,23 +33,6 @@
 
 
 #define FIRMWARE_VERSION "0.116" // Changing this variable name will require changing the build file to extract it properly
-// Indulge me!
-#define U8  uint8_t
-#define S8  int8_t
-#define S16 int16_t
-#define U16 uint16_t
-#define S32 int32_t 
-#define U32 uint32            // unsigned long
-#define F32 float
-#define F64 double
-
-
-// Interval definitions
-#define SECONDS 1000
-#define MINUTES 60 * SECONDS
-#define HOURS 60 * MINUTES
-#define DAYS 24 * HOURS
-#define MILLIS_TO_MICROS 1000
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
