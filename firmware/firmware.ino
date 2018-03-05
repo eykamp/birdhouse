@@ -10,13 +10,17 @@
 #include <ESP8266WebServer.h>   // Include the WebServer library
 #include <PubSubClient.h>       // For MQTT
 #include <Dns.h>
-#include <EEPROM.h>             // For persisting values in EEPROM
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
 
 #include "Types.h"
 #include "Intervals.h"
+#include "BirdhouseEeprom.h"
+
+#include <Adafruit_DotStar.h>
+
+
 #include <PMS.h>                // Plantower
 
 // OTA Updates
@@ -52,8 +56,8 @@
 // #define D10    1   // TX0 (Serial console)
 
 // Pin layout
-#define BME_SCL D5  // SPI (Serial Clock)  5   // --> D5
-#define BME_SDA D6  // SDA (Serial Data)   4  // --> D6
+#define BME_SCL D5  // SPI (Serial Clock)
+#define BME_SDA D6  // SDA (Serial Data) 
 
 // Shinyei sensor
 #define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D3  // "P2"
@@ -66,8 +70,16 @@
 #define LED_GREEN D0
 #define LED_YELLOW D1
 #define LED_RED D2
+///// OR /////
+#define LED_DATA_PIN D1
+#define LED_CLOCK_PIN D0
+
 
 bool ledsInstalledBackwards = true;   // TODO --> Store in flash
+bool traditionalLeds = false;         // TODO --> Store in flash
+
+
+Adafruit_DotStar strip = Adafruit_DotStar(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);
 
 //////////////////////
 // WiFi Definitions //
@@ -133,48 +145,30 @@ enum Leds {
   BUILTIN = 8
 };
 
+enum BlinkPattern {
+  OFF,
+  STARTUP,
+  ALL_ON,
+  SOLID_RED,
+  SOLID_YELLOW,
+  SOLID_GREEN,
+  FAST_BLINK_RED,
+  FAST_BLINK_YELLOW,
+  FAST_BLINK_GREEN,
+  SLOW_BLINK_RED,
+  SLOW_BLINK_YELLOW,
+  SLOW_BLINK_GREEN,
+  ERROR_STATE,
+  BLINK_PATTERN_COUNT
+};
+
 
 bool plantowerSensorDetected = false;
 bool plantowerSensorDetectReported = false;
 bool plantowerSensorNondetectReported = false;
 
-U16 sampleDuration;     // In seconds
-U32 sampleDuration_micros;
 
-///// 
-// For persisting values in EEPROM
-const int SSID_LENGTH            = 32;
-const int PASSWORD_LENGTH        = 63;
-const int DEVICE_KEY_LENGTH      = 20;
-const int URL_LENGTH             = 64;
-const int SENTINEL_MARKER_LENGTH = 64;
-
-// Our vars to hold the EEPROM values
-char localSsid[SSID_LENGTH + 1];
-char localPassword[PASSWORD_LENGTH + 1];
-char wifiSsid[SSID_LENGTH + 1];
-char wifiPassword[PASSWORD_LENGTH + 1];
-char deviceToken[DEVICE_KEY_LENGTH + 1];
-char mqttUrl[URL_LENGTH + 1];
-
-
-const char SENTINEL_MARKER[SENTINEL_MARKER_LENGTH + 1] = "SensorBot by Chris Eykamp -- v106";   // Changing this will cause devices to revert to default configuration
-
-U16 mqttPort;
 U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
-
-const int LOCAL_SSID_ADDRESS      = 0;
-const int LOCAL_PASSWORD_ADDRESS  = LOCAL_SSID_ADDRESS      + sizeof(localSsid);
-const int WIFI_SSID_ADDRESS       = LOCAL_PASSWORD_ADDRESS  + sizeof(localPassword);
-const int WIFI_PASSWORD_ADDRESS   = WIFI_SSID_ADDRESS       + sizeof(wifiSsid);
-const int DEVICE_KEY_ADDRESS      = WIFI_PASSWORD_ADDRESS   + sizeof(wifiPassword);
-const int MQTT_URL_ADDRESS        = DEVICE_KEY_ADDRESS      + sizeof(deviceToken);
-const int PUB_SUB_PORT_ADDRESS    = MQTT_URL_ADDRESS        + sizeof(mqttUrl);
-const int SAMPLE_DURATION_ADDRESS = PUB_SUB_PORT_ADDRESS    + sizeof(mqttPort);
-const int SENTINEL_ADDRESS        = SAMPLE_DURATION_ADDRESS + sizeof(sampleDuration);
-const int NEXT_ADDRESS            = SENTINEL_ADDRESS        + sizeof(SENTINEL_MARKER); 
-
-const int EEPROM_SIZE = NEXT_ADDRESS;
 
 U32 millisOveflows = 0;
 
@@ -183,32 +177,45 @@ const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
 const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
 const char *localGatewayAddress = "192.168.1.2";
 
-void connectToWiFi(const char*, const char*, bool); // Forward declare
+void connectToWiFi(bool); // Forward declare
 void activateLed(U32 ledMask);
 
 
+BlinkPattern blinkPattern = STARTUP;
+
 void messageReceivedFromMothership(char* topic, byte* payload, unsigned int length) {
-  //xx Serial.printf("Message arrived [%s]\n", topic);
-
   // See https://github.com/bblanchon/ArduinoJson for usage
-  // StaticJsonBuffer<MQTT_MAX_PACKET_SIZE> jsonBuffer;
-  // JsonObject &root = jsonBuffer.parseObject(payload);
+  StaticJsonBuffer<MQTT_MAX_PACKET_SIZE> jsonBuffer;
+  JsonObject &root = jsonBuffer.parseObject(payload);
 
-  // // const char *test = root["mqttServer"];
-  // // if(strcmp(test, "") != 0 ) {
-  // //   publishStatusMessage(String("Got ") +String(test));
-  // // }
+  const char *mode = root["LED"];
 
-  // const char *color = root["LED"];
-
-  // if(strcmp(color, "GREEN") == 0)
-  //   activateLed(GREEN);
-  // else if(strcmp(color, "YELLOW") == 0)
-  //   activateLed(YELLOW);
-  // else if(strcmp(color, "RED") == 0)
-  //   activateLed(RED);
-  // else
-  //   activateLed(NONE);
+  if(     strcmp(mode, "OFF")               == 0)
+    setBlinkPattern(OFF);
+  else if(strcmp(mode, "STARTUP")           == 0)
+    setBlinkPattern(STARTUP);
+  else if(strcmp(mode, "ALL_ON")            == 0)
+    setBlinkPattern(ALL_ON);
+  else if(strcmp(mode, "SOLID_RED")         == 0)
+    setBlinkPattern(SOLID_RED);
+  else if(strcmp(mode, "SOLID_YELLOW")      == 0)
+    setBlinkPattern(SOLID_YELLOW);
+  else if(strcmp(mode, "SOLID_GREEN")       == 0)
+    setBlinkPattern(SOLID_GREEN);
+  else if(strcmp(mode, "FAST_BLINK_RED")    == 0)
+    setBlinkPattern(FAST_BLINK_RED);
+  else if(strcmp(mode, "FAST_BLINK_YELLOW") == 0)
+    setBlinkPattern(FAST_BLINK_YELLOW);
+  else if(strcmp(mode, "FAST_BLINK_GREEN")  == 0)
+    setBlinkPattern(FAST_BLINK_GREEN);
+  else if(strcmp(mode, "SLOW_BLINK_RED")    == 0)
+    setBlinkPattern(SLOW_BLINK_RED);
+  else if(strcmp(mode, "SLOW_BLINK_YELLOW") == 0)
+    setBlinkPattern(SLOW_BLINK_YELLOW);
+  else if(strcmp(mode, "SLOW_BLINK_GREEN")  == 0)
+    setBlinkPattern(SLOW_BLINK_GREEN);
+  else if(strcmp(mode, "ERROR_STATE")       == 0)
+    setBlinkPattern(ERROR_STATE);
 }
 
 U32 lastMillis = 0;
@@ -232,8 +239,8 @@ void setupPubSubClient() {
 
   IPAddress serverIp;
 
-  if(WiFi.hostByName(mqttUrl, serverIp)) {
-    mqttSetServer(serverIp, mqttPort);
+  if(WiFi.hostByName(Eeprom.getMqttUrl(), serverIp)) {
+    mqttSetServer(serverIp, Eeprom.getMqttPort());
     mqttServerConfigured = true;
   } else {
     mqttServerLookupError = true;   // TODO: Try again in a few minutes
@@ -275,7 +282,7 @@ void reconnectToPubSubServer() {
     return;
 
   // Attempt to connect
-  if (mqttConnect("Birdhouse", deviceToken, "")) {   // ClientID, username, password
+  if (mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
     onConnectedToPubSubServer();
   } else {    // Connection failed
     pubSubConnectFailures++;
@@ -370,9 +377,12 @@ U32 plantowerPm25Sum = 0;
 U32 plantowerPm10Sum = 0;
 int plantowerSampleCount = 0;
 
+#define BLINK_STATES 2
+U8 blinkColor[BLINK_STATES] = { NONE, NONE };
+U8 blinkTime = 24 * HOURS;
 U32 blinkTimer = 0;
 U8 blinkState = 0;
-U8 blinkMode = 1;
+U8 blinkMode = 2;
 
 U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
@@ -381,10 +391,6 @@ bool initialConfigMode = false;
 
 
 const char *defaultPingTargetHostName = "www.google.com";
-
-bool doneSamplingTime() {
-  return (now_micros - samplingPeriodStartTime_micros) > sampleDuration_micros;
-}
 
 const char *getMqttStatus() {
   return getSubPubStatusName(mqttState());
@@ -424,6 +430,8 @@ void setup() {
   pinMode(LED_YELLOW, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
 
+  strip.begin();
+
 
   activateLed(RED);
   delay(500);
@@ -433,60 +441,29 @@ void setup() {
   delay(500);
   activateLed(NONE);
 
-  EEPROM.begin(EEPROM_SIZE);
-
+  Eeprom.begin();
   verifySentinelMarker();
-
-  readStringFromEeprom(LOCAL_SSID_ADDRESS,     sizeof(localSsid)     - 1, localSsid);
-  readStringFromEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
-  readStringFromEeprom(WIFI_SSID_ADDRESS,      sizeof(wifiSsid)      - 1, wifiSsid);
-  readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  sizeof(wifiPassword)  - 1, wifiPassword);
-  readStringFromEeprom(DEVICE_KEY_ADDRESS,     sizeof(deviceToken)   - 1, deviceToken);
-  readStringFromEeprom(MQTT_URL_ADDRESS,       sizeof(mqttUrl)       - 1, mqttUrl);
-
-  mqttPort = EepromReadU16(PUB_SUB_PORT_ADDRESS);
-  setSampleDuration(EepromReadU16(SAMPLE_DURATION_ADDRESS));
-
-  Serial.printf("Local SSID: %s\n", localSsid);
-  Serial.printf("Local PW: %s\n", localPassword);
-  Serial.printf("WiFi SSID: %s\n", wifiSsid);
-  Serial.printf("WiFi PW: %s\n", wifiPassword);
-  Serial.printf("Device Key: %s\n", deviceToken);
-  Serial.printf("MQTT URL: %s\n", mqttUrl);
-  Serial.printf("MQTT Port: %d\n", mqttPort);
-  Serial.printf("Sample duration: %d sec\n", sampleDuration);
-
 
   Rest.variable("uptime", &millis);
   Rest.variable("lastReportTime", &lastReportTime);
   Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
   Rest.variable("now_micros", &now_micros);
   Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
-  Rest.variable("sampleDuration_micros", &sampleDuration_micros);
   Rest.variable("mqttStatus", &getMqttStatus);
   Rest.variable("wifiStatus", &getWifiStatus);
 
-
-  Rest.variable("doneSamplingTime", &doneSamplingTime);
   // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
 
 
-
-
   Rest.variable("sampleCount", &plantowerSampleCount);
-  Rest.variable("deviceToken", &deviceToken);
-  Rest.variable("localSsid", &localSsid);
-  Rest.variable("localPass", &localPassword);
-  Rest.variable("wifiSsid", &wifiSsid);
-  Rest.variable("wifiPass", &wifiPassword);
-  Rest.variable("mqttUrl", &mqttUrl);
-  Rest.variable("mqttPort", &mqttPort);
-
-  // Delete these
-  // Rest.variable("concval", &Conc10InitialVal);  //F64
-  // Rest.variable("lastMillis", &lastMillis);  //U32
-
-
+  Rest.variable("sampleDurations", &getSampleDuration);
+  Rest.variable("deviceToken", &getDeviceToken);
+  Rest.variable("localSsid", &getLocalSsid);
+  Rest.variable("localPass", &getLocalPassword);
+  Rest.variable("wifiSsid", &getWifiSsid);
+  Rest.variable("wifiPass", &getWifiPassword);
+  Rest.variable("mqttUrl", &getMqttUrl);
+  Rest.variable("mqttPort", &getMqttPort);
 
   // These all take a single parameter specified on the cmd line
   Rest.function("localssid",    localSsidHandler);
@@ -502,7 +479,7 @@ void setup() {
 
 
   Rest.set_id("brdhse");  // Should be 9 chars or less
-  Rest.set_name(localSsid);
+  Rest.set_name(Eeprom.getLocalSsid());
 
   WiFi.mode(WIFI_AP_STA);  
 
@@ -517,8 +494,8 @@ void setup() {
  
   command.reserve(MAX_COMMAND_LENGTH);
 
-  setupLocalAccessPoint(localSsid, localPassword);
-  connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
+  setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword());
+  connectToWiFi(changedWifiCredentials);
 
   setupOta();
 
@@ -526,6 +503,16 @@ void setup() {
 
   server.begin();
 }
+
+
+const char *getDeviceToken()   { return Eeprom.getDeviceToken();    }
+const char *getLocalSsid()     { return Eeprom.getLocalSsid();      }
+const char *getLocalPassword() { return Eeprom.getLocalPassword();  }
+const char *getWifiSsid()      { return Eeprom.getWifiSsid();       }
+const char *getWifiPassword()  { return Eeprom.getWifiPassword();   }
+const char *getMqttUrl()       { return Eeprom.getMqttUrl();        }
+U16 getSampleDuration()        { return Eeprom.getSampleDuration(); }
+U16 getMqttPort()              { return Eeprom.getMqttPort();       }
 
 
 void publishSampleDuration() {
@@ -543,8 +530,8 @@ void publishSampleDuration() {
 void publishLocalCredentials() {
   StaticJsonBuffer<256> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
-  root["localSsid"] = localSsid;
-  root["localPassword"] = localPassword;
+  root["localSsid"] = Eeprom.getLocalSsid();
+  root["localPassword"] = Eeprom.getLocalPassword();
   root["localIpAddress"] = localAccessPointAddress;
 
   String json;
@@ -567,21 +554,6 @@ void publishTempSensorNameAndSoftwareVersion() {
 }
 
 
-bool getLowState() {
-  return ledsInstalledBackwards ? HIGH : LOW;
-}
-
-bool getHighState() {
-  return ledsInstalledBackwards ? LOW : HIGH;
-}
-
-void activateLed(U32 ledMask) {
-  digitalWrite(LED_RED,     (ledMask & RED)     ? getHighState() : getLowState());
-  digitalWrite(LED_YELLOW,  (ledMask & YELLOW)  ? getHighState() : getLowState());
-  digitalWrite(LED_GREEN,   (ledMask & GREEN)   ? getHighState() : getLowState());
-  digitalWrite(LED_BUILTIN, (ledMask & BUILTIN) ? LOW : HIGH);
-}
-
 bool needToReconnectToWifi = false;
 bool needToConnect = false;
 
@@ -596,21 +568,16 @@ void intitialConfig() {
   updateSampleDuration("30");
   updateDeviceToken("NOT_SET");
 
-  writeStringToEeprom(SENTINEL_ADDRESS, sizeof(SENTINEL_MARKER) - 1, SENTINEL_MARKER);
-
   initialConfigMode = true;
 }
 
 // Checks if this Birdhouse has ever been booted before
 void verifySentinelMarker() {
-
-  char storedSentinelMarker[SENTINEL_MARKER_LENGTH + 1];
-  readStringFromEeprom(SENTINEL_ADDRESS, sizeof(storedSentinelMarker) - 1, storedSentinelMarker);
-
-  // Sentinel is missing!  This is our very first boot.
-  if(strcmp(SENTINEL_MARKER, storedSentinelMarker) != 0)
-    intitialConfig();
+  // if(Eeprom.verifySentinelMarker())
+  //   intitialConfig();
 }
+
+
 
 
 bool isConnectingToWifi = false;    // True while a connection is in process
@@ -628,6 +595,7 @@ void loop() {
   
   lastMillis = now_millis;
 
+  advanceBlinkPattern();
   blink();
 
   WiFiClient client = server.available();
@@ -644,8 +612,6 @@ void loop() {
   if(mqttState() == MQTT_CONNECTED)
     loopSensors();
 
-  // checkForNewInputFromSerialPort();
-
 
   if(isConnectingToWifi) {
     connectingToWifi();
@@ -653,50 +619,139 @@ void loop() {
 
 // needToReconnectToWifi is never set to true...
   if(needToReconnectToWifi) {
-    connectToWiFi(wifiSsid, wifiPassword, changedWifiCredentials);
+    connectToWiFi(changedWifiCredentials);
     needToReconnectToWifi = false;
   }
 
 }
 
 
-void blink() {
-  if(blinkMode == 0)
-    return;
+// For testing only
+U32 blinkPatternTimer = 0;
+int currPattern = 0;
 
-  if(blinkMode == 1) {
-    if(now_millis > blinkTimer) {
-      blinkTimer = now_millis + 500;
-      blinkState = !blinkState;
+void advanceBlinkPattern() {
 
-      activateLed(blinkState ? RED | GREEN : YELLOW);
-    }
-  }
+  if(now_millis > blinkPatternTimer) {
+    blinkPatternTimer = now_millis + 5 * SECONDS;
+    currPattern++;
 
-  else if (blinkMode == 2) {    // Chase
-    if(now_millis > blinkTimer)
-    {
-      blinkTimer = now_millis + 100;
-      blinkState++;
-      if(blinkState >= 3)
-        blinkState = 0;
-      // digitalWrite(LED_BUILTIN, blinkState == 0 ? HIGH : LOW);
+    if(currPattern >= BLINK_PATTERN_COUNT)
+      currPattern = 0;
 
-      if(blinkState == 0)
-        activateLed(GREEN);
-      else if (blinkState == 1)
-        activateLed(YELLOW);
-      else
-        activateLed(RED);
-    }
-  }
-
-  else if(blinkMode == 3) {  // Turn off
-    if(now_millis > blinkTimer) {
-      activateLed(NONE);
-    }
+    setBlinkPattern(BlinkPattern(currPattern));
   }
 }
+
+
+void setBlinkPattern(BlinkPattern blinkPattern) {
+  switch(blinkPattern) {
+    case OFF:
+      blinkColor[0] = NONE;
+      blinkColor[1] = NONE;
+      break;
+
+    case STARTUP:
+
+      break;
+
+    case SOLID_RED:
+    case SLOW_BLINK_RED:
+    case FAST_BLINK_RED:
+      blinkColor[0] = RED;
+      blinkColor[1] = NONE;
+      break;
+
+    case SOLID_YELLOW:
+    case SLOW_BLINK_YELLOW:
+    case FAST_BLINK_YELLOW:
+      blinkColor[0] = YELLOW;
+      blinkColor[1] = NONE;
+      break;
+
+    case SOLID_GREEN:
+    case SLOW_BLINK_GREEN:
+    case FAST_BLINK_GREEN:
+      blinkColor[0] = GREEN;
+      blinkColor[1] = NONE;
+      break;
+
+    case ERROR_STATE:
+      blinkColor[0] = RED;
+      blinkColor[1] = YELLOW;
+      break;
+  }
+
+
+  switch(blinkPattern) {
+    case STARTUP:
+
+      break;
+
+    case OFF:
+    case SOLID_RED:
+    case SOLID_YELLOW:
+    case SOLID_GREEN:
+      blinkTime = 24 * HOURS;
+      break;
+
+    case SLOW_BLINK_RED:
+    case SLOW_BLINK_YELLOW:
+    case SLOW_BLINK_GREEN:
+      blinkTime = 1 * SECONDS;
+      break;
+
+    case FAST_BLINK_RED:
+    case FAST_BLINK_YELLOW:
+    case FAST_BLINK_GREEN:
+    case ERROR_STATE:
+      blinkTime = 400 * MILLIS;
+      break;
+  }
+}
+
+
+void blink() {
+  if(now_millis - blinkTimer < blinkTime)
+    return;
+
+  blinkTimer = now_millis;
+  blinkState++;
+  if(blinkState >= BLINK_STATES)
+    blinkState = 0;
+
+  activateLed(blinkColor[blinkState]);
+}
+
+
+bool getLowState() {
+  return ledsInstalledBackwards ? HIGH : LOW;
+}
+
+bool getHighState() {
+  return ledsInstalledBackwards ? LOW : HIGH;
+}
+
+
+void activateLed(U32 ledMask) {
+
+  if(traditionalLeds) {
+
+    digitalWrite(LED_RED,     (ledMask & RED)     ? getHighState() : getLowState());
+    digitalWrite(LED_YELLOW,  (ledMask & YELLOW)  ? getHighState() : getLowState());
+    digitalWrite(LED_GREEN,   (ledMask & GREEN)   ? getHighState() : getLowState());
+    digitalWrite(LED_BUILTIN, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
+  } else {
+
+    int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
+    int green = (ledMask & (YELLOW | GREEN )) ? 255 : 0;
+    int blue  = (ledMask & (0         )) ? 255 : 0;
+
+    strip.setPixelColor(0, red, green, blue);
+    strip.show(); 
+  }
+}
+
 
 
 int rebootHandler(String params) {
@@ -711,7 +766,7 @@ int localSsidHandler(String params) {
 
 
 int localPasswordHandler(String params) {
-  if(strlen(params.c_str()) < 8 || strlen(params.c_str()) > sizeof(localPassword) - 1)
+  if(strlen(params.c_str()) < 8 || strlen(params.c_str()) > Eeprom.getLocalPasswordSize() - 1)
     return 0;
 
   updateLocalPassword(params.c_str());
@@ -745,7 +800,8 @@ int mqttUrlHandler(String params) {
 
 
 int mqttPortHandler(String params) {
-  return updateMqttPort(params.c_str());
+  updateMqttPort(params.c_str());
+  return 1;
 }
 
 
@@ -822,9 +878,9 @@ void loopSensors() {
 
   shinyeiLogicReads++;
 
-  if(doneSamplingTime()) {
+  if(now_micros - samplingPeriodStartTime_micros > Eeprom.getSampleDuration() * SECONDS_TO_MICROS) {
     // If we overshot our sampling period slightly, compute a correction
-    U32 overage = (now_micros - samplingPeriodStartTime_micros) - sampleDuration_micros;
+    U32 overage = (now_micros - samplingPeriodStartTime_micros) - Eeprom.getSampleDuration() * SECONDS_TO_MICROS;
 
     if(valP1 == LOW) {
       durationP1 += now_micros - triggerOnP1 - overage;
@@ -995,8 +1051,8 @@ void reportMeasurements() {
     // from PPD-42 low pulse occupancy (LPO).
 
     //               microseconds            microseconds           
-    F64 ratioP1 = durationP1 / ((F64)sampleDuration_micros) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
-    F64 ratioP2 = durationP2 / ((F64)sampleDuration_micros) * 100.0;
+    F64 ratioP1 = durationP1 / ((F64)Eeprom.getSampleDuration() * SECONDS_TO_MICROS) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
+    F64 ratioP2 = durationP2 / ((F64)Eeprom.getSampleDuration() * SECONDS_TO_MICROS) * 100.0;
 
     F64 countP1 = lpoToParticleCount(ratioP1);  // Particles / .01 ft^3
     F64 countP2 = lpoToParticleCount(ratioP2);  // Particles / .01 ft^3
@@ -1118,100 +1174,93 @@ void reportMeasurements() {
 }
 
 
-void copy(char *dest, const char *source, U32 destSize) {
-  strncpy(dest, source, destSize);
-  dest[destSize] = '\0';
-}
+// void processConfigCommand(const String &command) {
+//   if(command == "uptime") {
+//     if(millisOveflows > 0) {
+//       //xx Serial.printf("%d*2^32 + ", millisOveflows);
+//     }
+//     //xx Serial.printf("%d seconds\n", millis() / SECONDS);
+//   }
+//   else if(command.startsWith("set wifi pw")) {
+//     updateWifiPassword(&command.c_str()[12]);
 
+//     //xx Serial.printf("Saved wifi pw: %s\n", wifiPassword, 123);
+//   }
+//   else if(command.startsWith("set local pw")) {
+//     if(strlen(&command.c_str()[13]) < 8 || strlen(&command.c_str()[13]) > sizeof(localPassword) - 1) {
+//       //xx Serial.printf("Password must be between at least 8 and %d characters long; not saving.\n", sizeof(localPassword) - 1);
+//       return;
+//     }
 
+//     updateLocalPassword(&command.c_str()[13]);
+//     //xx Serial.printf("Saved local pw: %s\n", localPassword);
+//   }
+//   else if(command.startsWith("set wifi ssid")) {
+//     updateWifiSsid(&command.c_str()[14]);
+//   }
 
-void processConfigCommand(const String &command) {
-  if(command == "uptime") {
-    if(millisOveflows > 0) {
-      //xx Serial.printf("%d*2^32 + ", millisOveflows);
-    }
-    //xx Serial.printf("%d seconds\n", millis() / SECONDS);
-  }
-  else if(command.startsWith("set wifi pw")) {
-    updateWifiPassword(&command.c_str()[12]);
+//   #define COMMAND "use"
+//   else if(command.startsWith(COMMAND)) {
+//     int index = atoi(&command.c_str()[sizeof(COMMAND)]);
+//     setWifiSsidFromScanResults(index);
+//   }
+//   else if(command.startsWith("set local ssid")) {
+//     updateLocalSsid(&command.c_str()[15]);
+//   }
 
-    //xx Serial.printf("Saved wifi pw: %s\n", wifiPassword, 123);
-  }
-  else if(command.startsWith("set local pw")) {
-    if(strlen(&command.c_str()[13]) < 8 || strlen(&command.c_str()[13]) > sizeof(localPassword) - 1) {
-      //xx Serial.printf("Password must be between at least 8 and %d characters long; not saving.\n", sizeof(localPassword) - 1);
-      return;
-    }
+//   else if(command.startsWith("set device token")) {
+//     updateDeviceToken(&command.c_str()[17]);
+//   }  
+//   // else if(command.startsWith("set mqtt url")) {
+//   //   updateMqttUrl(&command.c_str()[13]);
+//   // }
+//   else if(command.startsWith("set mqtt port")) {
+//     updateMqttPort(&command.c_str()[14]);
+//   }
+//   else if (command.startsWith("set sample duration")) {
+//     updateSampleDuration(&command.c_str()[20]);
+//   }
+//   else if(command.startsWith("con")) {
+//     connectToWiFi(wifiSsid, wifiPassword, true);
+//   }
+//   else if(command.startsWith("cancel")) {
+//     if(isConnectingToWifi) {
+//       //xx Serial.println("\nCanceled connection attempt");
+//       isConnectingToWifi = false;
+//     }
+//     else {
+//       //xx Serial.println("No connection attempt in progress");
+//     }
 
-    updateLocalPassword(&command.c_str()[13]);
-    //xx Serial.printf("Saved local pw: %s\n", localPassword);
-  }
-  else if(command.startsWith("set wifi ssid")) {
-    updateWifiSsid(&command.c_str()[14]);
-  }
-
-  #define COMMAND "use"
-  else if(command.startsWith(COMMAND)) {
-    int index = atoi(&command.c_str()[sizeof(COMMAND)]);
-    setWifiSsidFromScanResults(index);
-  }
-  else if(command.startsWith("set local ssid")) {
-    updateLocalSsid(&command.c_str()[15]);
-  }
-
-  else if(command.startsWith("set device token")) {
-    updateDeviceToken(&command.c_str()[17]);
-  }  
-  // else if(command.startsWith("set mqtt url")) {
-  //   updateMqttUrl(&command.c_str()[13]);
-  // }
-  else if(command.startsWith("set mqtt port")) {
-    updateMqttPort(&command.c_str()[14]);
-  }
-  else if (command.startsWith("set sample duration")) {
-    updateSampleDuration(&command.c_str()[20]);
-  }
-  else if(command.startsWith("con")) {
-    connectToWiFi(wifiSsid, wifiPassword, true);
-  }
-  else if(command.startsWith("cancel")) {
-    if(isConnectingToWifi) {
-      //xx Serial.println("\nCanceled connection attempt");
-      isConnectingToWifi = false;
-    }
-    else {
-      //xx Serial.println("No connection attempt in progress");
-    }
-
-  }
-  else if(command.startsWith("stat") || command.startsWith("show")) {
-    //xx Serial.println("\n====================================");
-    //xx Serial.println("Wifi Diagnostics:");
-    //xx WiFi.printDiag(Serial); 
-    //xx Serial.println("====================================");
-    //xx Serial.printf("Free sketch space: %d\n", ESP.getFreeSketchSpace());
-    //xx Serial.printf("Local ssid: %s\n", localSsid);
-    //xx Serial.printf("Local password: %s\n", localPassword);
-    //xx Serial.printf("MQTT url: %s\n", mqttUrl);
-    //xx Serial.printf("MQTT port: %d\n", mqttPort);
-    //xx Serial.printf("Device token: %s\n", deviceToken);
-    //xx Serial.printf("Temperature sensor: %s\n", BME_ok ? "OK" : "Not found");
-    //xx Serial.println("====================================");
-    //xx Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
-    //xx Serial.printf("MQTT status: %s\n", getSubPubStatusName(mqttState()));
-    //xx Serial.printf("Sampling duration: %d seconds   [set sample duration <n>]\n", sampleDuration);
-  }
-  else if(command.startsWith("scan")) {
-    scanVisibleNetworks();  
-  }
-  else if(command.startsWith("ping")) {
-    const int commandPrefixLen = strlen("PING ");
-    ping((command.length() > commandPrefixLen) ? &command.c_str()[commandPrefixLen] : defaultPingTargetHostName);
-  }
-  else {
-    //xx Serial.printf("Unknown command: %s\n", command.c_str());
-  }
-}
+//   }
+//   else if(command.startsWith("stat") || command.startsWith("show")) {
+//     //xx Serial.println("\n====================================");
+//     //xx Serial.println("Wifi Diagnostics:");
+//     //xx WiFi.printDiag(Serial); 
+//     //xx Serial.println("====================================");
+//     //xx Serial.printf("Free sketch space: %d\n", ESP.getFreeSketchSpace());
+//     //xx Serial.printf("Local ssid: %s\n", localSsid);
+//     //xx Serial.printf("Local password: %s\n", localPassword);
+//     //xx Serial.printf("MQTT url: %s\n", mqttUrl);
+//     //xx Serial.printf("MQTT port: %d\n", mqttPort);
+//     //xx Serial.printf("Device token: %s\n", deviceToken);
+//     //xx Serial.printf("Temperature sensor: %s\n", BME_ok ? "OK" : "Not found");
+//     //xx Serial.println("====================================");
+//     //xx Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
+//     //xx Serial.printf("MQTT status: %s\n", getSubPubStatusName(mqttState()));
+//     //xx Serial.printf("Sampling duration: %d seconds   [set sample duration <n>]\n", sampleDuration);
+//   }
+//   else if(command.startsWith("scan")) {
+//     scanVisibleNetworks();  
+//   }
+//   else if(command.startsWith("ping")) {
+//     const int commandPrefixLen = strlen("PING ");
+//     ping((command.length() > commandPrefixLen) ? &command.c_str()[commandPrefixLen] : defaultPingTargetHostName);
+//   }
+//   else {
+//     //xx Serial.printf("Unknown command: %s\n", command.c_str());
+//   }
+// }
 
 
 void printScanResult(U32 duration);     // Forward declare
@@ -1241,15 +1290,13 @@ void scanVisibleNetworks() {
 
 
 void updateLocalSsid(const char *ssid) {
-  copy(localSsid, ssid, sizeof(localSsid) - 1);
-  writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
+  Eeprom.setLocalSsid(ssid);
   publishLocalCredentials();
 }
 
 
 void updateLocalPassword(const char *password) {
-  copy(localPassword, password, sizeof(localPassword) - 1);
-  writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
+  Eeprom.setLocalPassword(password);
   pubSubConnectFailures = 0;
 
   publishLocalCredentials();
@@ -1257,16 +1304,13 @@ void updateLocalPassword(const char *password) {
 
 
 void updateWifiSsid(const char *ssid) {
-  copy(wifiSsid, ssid, sizeof(wifiSsid) - 1);
-  writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
+  Eeprom.setWifiSsid(ssid);
   changedWifiCredentials = true;
-  // initiateConnectionToWifi();
 }
 
 
 void updateWifiPassword(const char *password) {
-  copy(wifiPassword, password, sizeof(wifiPassword) - 1);
-  writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
+  Eeprom.setWifiPassword(password);
   changedWifiCredentials = true;
   pubSubConnectFailures = 0;
   // initiateConnectionToWifi();
@@ -1274,8 +1318,8 @@ void updateWifiPassword(const char *password) {
 
 
 void updateMqttUrl(const char *url) {
-  copy(mqttUrl, url, sizeof(mqttUrl) - 1);
-  writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
+  Eeprom.setMqttUrl(url);
+
   pubSubConnectFailures = 0;
   mqttDisconnect();
   mqttServerConfigured = false;
@@ -1289,18 +1333,17 @@ void updateMqttUrl(const char *url) {
 
 
 void updateDeviceToken(const char *token) {
-  copy(deviceToken, token, sizeof(deviceToken) - 1);
-  writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
+  Eeprom.setDeviceToken(token);
   pubSubConnectFailures = 0;
 }
 
 
-int updateMqttPort(const char *port) {
-  mqttPort = atoi(port);
-  if(port == 0)
-    return 0;
+void updateMqttPort(const char *port) {
+  Eeprom.setMqttPort(port);
 
-  EepromWriteU16(PUB_SUB_PORT_ADDRESS, mqttPort);
+  if(Eeprom.getMqttPort() == 0)
+    return;
+
   pubSubConnectFailures = 0;
   mqttDisconnect();
   mqttServerConfigured = false;
@@ -1310,21 +1353,12 @@ int updateMqttPort(const char *port) {
 
   // Let's immediately connect our PubSub client
   reconnectToPubSubServer();
-
-  return 1;
 }
 
 
 void updateSampleDuration(const char *duration) {
-  setSampleDuration(atoi(duration));
-  EepromWriteU16(SAMPLE_DURATION_ADDRESS, sampleDuration);
-
+  Eeprom.setSampleDuration(duration);
   publishSampleDuration();
-}
-
-void setSampleDuration(U16 duration) {
-  sampleDuration = duration;
-  sampleDuration_micros = U32(duration) * SECONDS * MILLIS_TO_MICROS;
 }
 
 
@@ -1376,26 +1410,6 @@ const char *getSubPubStatusName(int status) {
 }
 
 
-// SerialEvent occurs whenever a new data comes in the hardware serial RX. This
-// routine is run between each time loop() runs, so using delay inside loop can
-// delay response. Multiple bytes of data may be available.
-void checkForNewInputFromSerialPort() {
-  // while (Serial.available()) {
-  //   // get the new byte:
-  //   char incomingChar = (char)Serial.read();
-  //   // Add it to the command.
-  //   // if the incoming character is a newline, or we're just getting too long (which should never happen) 
-  //   // start processing the command
-  //   if (incomingChar == '\n' || command.length() == MAX_COMMAND_LENGTH) {
-  //     processConfigCommand(command);
-  //     command = "";
-  //   }
-  //   else
-  //     command += incomingChar;
-  // }
-}
-
-
 // Get a list of wifi hotspots the device can see
 void printScanResult(U32 duration) {
   int networksFound = WiFi.scanComplete();
@@ -1437,7 +1451,7 @@ void printScanResult(U32 duration) {
 
 
 void ping(const char *target) {
-  connectToWiFi(wifiSsid, wifiPassword, false);
+  connectToWiFi(false);
 
   U8 pingCount = 5;
   while(pingCount > 0)
@@ -1476,7 +1490,7 @@ void setupLocalAccessPoint(const char *ssid, const char *password)
 }
 
 
-void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConnected = false) {
+void connectToWiFi(bool disconnectIfConnected) {
 
   mqttServerLookupError = false;
   changedWifiCredentials = false;
@@ -1494,8 +1508,7 @@ void connectToWiFi(const char *ssid, const char *password, bool disconnectIfConn
 
 void initiateConnectionToWifi()
 {
-  // set passphrase
-  int status = WiFi.begin(wifiSsid, wifiPassword);
+  int status = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());
 
   if (status != WL_CONNECT_FAILED) { 
     isConnectingToWifi = true;
@@ -1542,46 +1555,6 @@ void onConnectedToWifi() {
   }
 }
 
-
-void writeStringToEeprom(int addr, int length, const char *value)
-{
-  for (int i = 0; i < length; i++)
-    EEPROM.write(addr + i, value[i]);
-        
-  EEPROM.write(addr + length, '\0');
-  EEPROM.commit();
-}
-
-
-void readStringFromEeprom(int addr, int length, char container[])
-{
-  for (int i = 0; i < length; i++)
-    container[i] = EEPROM.read(addr + i);
-
-  container[length] = '\0';   // Better safe than sorry!
-}
-
-
-// This function will write a 2 byte integer to the eeprom at the specified address and address + 1
-void EepromWriteU16(int addr, U16 value)
-{
-  byte lowByte  = ((value >> 0) & 0xFF);
-  byte highByte = ((value >> 8) & 0xFF);
-
-  EEPROM.write(addr, lowByte);
-  EEPROM.write(addr + 1, highByte);
-  EEPROM.commit();
-}
-
-
-// This function will read a 2 byte integer from the eeprom at the specified address and address + 1
-U16 EepromReadU16(int addr)
-{
-  byte lowByte  = EEPROM.read(addr);
-  byte highByte = EEPROM.read(addr + 1);
-
-  return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
-}
 
 
 void publishOtaStatusMessage(const String &msg) {
