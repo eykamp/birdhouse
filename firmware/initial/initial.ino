@@ -101,7 +101,7 @@ void activateLed(U32 ledMask);
 BlinkPattern blinkPattern = STARTUP;
 
 
-U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
+// U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
 
 
 const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
