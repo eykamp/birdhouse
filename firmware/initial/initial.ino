@@ -98,8 +98,6 @@ BlinkPattern blinkPattern = STARTUP;
 // U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
 
 
-const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
-
 const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
 const char *localGatewayAddress = "192.168.1.2";
 
@@ -903,7 +901,7 @@ void connectingToWifi()
 
   // Still not connected  :-(
 
-  if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
+  if(millis() - wifiConnectStartTime > 20 * SECONDS) {
     isConnectingToWifi = false;
   }
 }
