@@ -998,33 +998,17 @@ void printScanResult(U32 duration) {
     return;
   }
 
-  for (int i = 0; i < networksFound; i++) {
-    //xx Serial.printf("%d: %s <<%s>>, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
-  }
-
-  // This is the format the Google Location services uses.  We'll create a list of these packets here so they can be passed through by the microservice
-  // {
-  //   "macAddress": "00:25:9c:cf:1c:ac",
-  //   "signalStrength": -43,
-  //   "age": 0,
-  //   "channel": 11,
-  //   "signalToNoiseRatio": 0
-  // }
-
-// TODO: Convert to arduinoJson
-  String json = "{\"visibleHotspots\":\"["; 
+  String json = "["; 
 
   for (int i = 0; i < networksFound; i++) {
-    json += "{\\\"macAddress\\\":\\\"" + WiFi.BSSIDstr(i) + "\\\",\\\"signalStrength\\\":" + String(WiFi.RSSI(i)) + 
-                ", \\\"age\\\": 0, \\\"channel\\\":" + String(WiFi.channel(i)) + ",\\\"signalToNoiseRatio\\\": 0 }";
+    json += "{\"ssid\":\"" + (WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i)) + "\",\"macAddress\":\"" + WiFi.BSSIDstr(i) + "\",\"signalStrength\":" + String(WiFi.RSSI(i)) + 
+                ", \"channel\":" + String(WiFi.channel(i)) + " }";
     if(i < networksFound - 1)
       json += ",";
   }
-  json += "]\"}";
+  json += "]";
 
-  if(!mqttPublishAttribute(json)) {
-      publishStatusMessage("Could not upload scan results");
-  }
+  return json;
 }
 
 
