@@ -60,6 +60,7 @@ aREST Rest = aREST();
 WiFiServer server(REST_LISTEN_PORT);
 
 #define PLANTOWER_SERIAL_BAUD_RATE 9600
+#define SERIAL_BAUD_RATE 115200
 
 // Plantower config
 PMS pms(Serial);
@@ -297,7 +298,7 @@ bool changedWifiCredentials = false;    // Track if we've changed wifi connectio
 
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD_RATE);
 
   Serial.println("");
   Serial.println("");
@@ -331,14 +332,15 @@ void setup() {
   Eeprom.begin();
 
   Rest.variable("uptime", &millis);
-  Rest.variable("lastReportTime", &lastReportTime);
-  Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
-  Rest.variable("now_micros", &now_micros);
-  Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
+  Rest.variable("ledparams", &getLedParams, false);   // We'll handle quoting ourselves
+  Rest.variable("sensorsDetected", &getSensorsDetected, false);
   Rest.variable("mqttStatus", &getMqttStatus);
   Rest.variable("wifiStatus", &getWifiStatus);
+  Rest.variable("mqttServerConfigured", &mqttServerConfigured);
+  Rest.variable("mqttServerLookupError", &mqttServerLookupError);
 
 
+  Rest.variable("wifiScanResults", &getScanResults, false);
   Rest.variable("sampleDuration", &getSampleDuration);
   Rest.variable("deviceToken", &getDeviceToken);
   Rest.variable("localSsid", &getLocalSsid);
