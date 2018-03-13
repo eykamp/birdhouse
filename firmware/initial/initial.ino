@@ -287,7 +287,7 @@ void setup() {
   command.reserve(MAX_COMMAND_LENGTH);
 
   setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword());
-  connectToWiFi(changedWifiCredentials);
+  connectToWiFi(false);
 
   activateLed(NONE);
 }
