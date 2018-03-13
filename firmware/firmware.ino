@@ -79,7 +79,8 @@ bool ledsInstalledBackwards = true;   // TODO --> Store in flash
 bool traditionalLeds = false;         // TODO --> Store in flash
 
 
-Adafruit_DotStar strip = Adafruit_DotStar(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);
+Adafruit_DotStar strip(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);  // We'll never acutally use this when traditional LEDs are installed, but we don't know that at compile time, and instantiation isn't terribly harmful
+
 
 //////////////////////
 // WiFi Definitions //
