@@ -388,7 +388,7 @@ void loop() {
     connectingToWifi();
   }
 
-  if(millis() - wifiConnectStartTime > 1 * SECONDS)
+  if(!isConnectingToWifi && millis() - wifiConnectStartTime > 1 * SECONDS)
     connectToWiFi(changedWifiCredentials);
 
 
