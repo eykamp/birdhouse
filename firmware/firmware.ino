@@ -1364,11 +1364,11 @@ void updateSampleDuration(const char *duration) {
 
 
 void setWifiSsidFromScanResults(int index) {
-  if(WiFi.scanComplete() == -1) {
+  if(WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
     return;
   }
 
-  if(WiFi.scanComplete() == -2) {
+  if(WiFi.scanComplete() == WIFI_SCAN_FAILD) {
     return;
   }
 
