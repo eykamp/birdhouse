@@ -38,7 +38,7 @@ using namespace std;
 #define LED_YELLOW  D1
 #define LED_RED     D2
 ///// OR /////
-#define LED_DATA_PIN  D1
+#define LED_DATA_PIN D1
 #define LED_CLOCK_PIN D0
 
 
@@ -353,7 +353,7 @@ void loop() {
 
   blink();
 
-  if(!Serial.isSwapped())
+  if(!serialSwapped)
     Rest.handle(Serial);
 
 
@@ -368,17 +368,17 @@ void loop() {
 
 
   // First time here, let's look for a Plantower sensor
-  if(first && !Serial.isSwapped() && !plantowerSensorDetected) {
+  if(first && !serialSwapped && !plantowerSensorDetected) {
     Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
     Serial.swap();
     serialSwapped = true;
   }
 
-  if(Serial.isSwapped() && !plantowerSensorDetected && pms.read(PmsData)) 
+  if(serialSwapped && !plantowerSensorDetected && pms.read(PmsData)) 
     plantowerSensorDetected = true;
 
   // Look for 20 seconds or until we detect a sensor
-  if((millis() - firstMillis > 20 * SECONDS || plantowerSensorDetected) && Serial.isSwapped()) {
+  if((millis() - firstMillis > 20 * SECONDS || plantowerSensorDetected) && serialSwapped) {
     Serial.begin(SERIAL_BAUD_RATE);   // Serial.begin() resets our earlier swap
     serialSwapped = false;
 
@@ -872,7 +872,7 @@ void connectToWiFi(bool disconnectIfConnected) {
     if(!disconnectIfConnected)          // Don't disconnect, so nothing to do
       return;
 
-    if(!Serial.isSwapped())
+    if(!serialSwapped)
       Serial.println("Disconnecting WiFi");
 
     WiFi.disconnect();
@@ -880,7 +880,7 @@ void connectToWiFi(bool disconnectIfConnected) {
 
   auto status = WiFi.begin(getWifiSsid(), getWifiPassword());
 
-  if(!Serial.isSwapped())
+  if(!serialSwapped)
     Serial.printf("Connecting to %s/%s...\n", getWifiSsid(), getWifiPassword());
 
   if(status != WL_CONNECT_FAILED) { 
