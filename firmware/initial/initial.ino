@@ -28,18 +28,18 @@
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
 
 
-#define BME_SCL D5  // SPI (Serial Clock)
-#define BME_SDA D6  // SDA (Serial Data) 
+#define BME_SCL D5  // SPI (Clock)
+#define BME_SDA D6  // SDA (Data) 
 
 // Plantower Sensor pins are hardcoded below; they have to be on the serial pins
 
 // Output LEDs
 #define LED_BUILTIN D4
-#define LED_GREEN D0
-#define LED_YELLOW D1
-#define LED_RED D2
+#define LED_GREEN   D0
+#define LED_YELLOW  D1
+#define LED_RED     D2
 ///// OR /////
-#define LED_DATA_PIN D1
+#define LED_DATA_PIN  D1
 #define LED_CLOCK_PIN D0
 
 
