@@ -909,7 +909,8 @@ void connectingToWifi()
 
 // We just connected (or reconnected) to wifi
 void onConnectedToWifi() {
-
+  if(!serialSwapped)
+    Serial.println("Connected to wifi");
 }
 
 
