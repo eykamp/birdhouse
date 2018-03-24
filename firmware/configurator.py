@@ -11,6 +11,20 @@ import time
 
 ESP8266_VID_PID = '1A86:7523'
 
+# Our program starts running from here
+def main():
+    runUi()
+
+
+def runUi():
+    last_scene = None
+    while True:
+        try:
+            Screen.wrapper(singleton, catch_interrupt=True, arguments=[last_scene])
+            sys.exit(0)
+        except ResizeScreenError as e:
+            last_scene = e.scene
+
 
 
 
@@ -346,11 +360,5 @@ def singleton(screen, scene):
     screen.play(scenes, stop_on_resize=False, start_scene=scene)
 
 
+main()
 
-last_scene = None
-while True:
-    try:
-        Screen.wrapper(singleton, catch_interrupt=True, arguments=[last_scene])
-        sys.exit(0)
-    except ResizeScreenError as e:
-        last_scene = e.scene
