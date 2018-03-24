@@ -22,6 +22,7 @@ private:
   static const int DEVICE_KEY_LENGTH      = 20;
   static const int URL_LENGTH             = 64;
   static const int SENTINEL_MARKER_LENGTH = 64;
+  static const int SERIAL_NUMBER_LENGTH   = 32;   // For now this is just 3 chars, but could eventually be a GUID.  Let's reserve the space now.
 
   // The vars we store in EEPROM
   char localSsid[SSID_LENGTH + 1];
@@ -30,6 +31,7 @@ private:
   char wifiPassword[PASSWORD_LENGTH + 1];
   char deviceToken[DEVICE_KEY_LENGTH + 1];
   char mqttUrl[URL_LENGTH + 1];
+  char serialNumber[SERIAL_NUMBER_LENGTH + 1];
   
   U16 mqttPort;
   U16 sampleDuration;     // In seconds
@@ -47,7 +49,8 @@ private:
   static const int MQTT_URL_ADDRESS        = DEVICE_KEY_ADDRESS      + sizeof(deviceToken);
   static const int PUB_SUB_PORT_ADDRESS    = MQTT_URL_ADDRESS        + sizeof(mqttUrl);
   static const int SAMPLE_DURATION_ADDRESS = PUB_SUB_PORT_ADDRESS    + sizeof(mqttPort);
-  static const int SENTINEL_ADDRESS        = SAMPLE_DURATION_ADDRESS + sizeof(sampleDuration);
+  static const int SERIAL_NUMBER_ADDRESS   = SAMPLE_DURATION_ADDRESS + sizeof(sampleDuration);
+  static const int SENTINEL_ADDRESS        = SERIAL_NUMBER_ADDRESS   + sizeof(serialNumber);
   static const int NEXT_ADDRESS            = SENTINEL_ADDRESS        + sizeof(SENTINEL_MARKER); 
   static const int EEPROM_SIZE = NEXT_ADDRESS;
 
@@ -64,6 +67,7 @@ public:
     readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  sizeof(wifiPassword)  - 1, wifiPassword);
     readStringFromEeprom(DEVICE_KEY_ADDRESS,     sizeof(deviceToken)   - 1, deviceToken);
     readStringFromEeprom(MQTT_URL_ADDRESS,       sizeof(mqttUrl)       - 1, mqttUrl);
+    readStringFromEeprom(SERIAL_NUMBER_ADDRESS,  sizeof(serialNumber)  - 1, serialNumber);
 
     mqttPort       = EepromReadU16(PUB_SUB_PORT_ADDRESS);
     sampleDuration = EepromReadU16(SAMPLE_DURATION_ADDRESS);
@@ -118,10 +122,22 @@ public:
   void setMqttUrl(const char *url) {
     copy(mqttUrl, url, sizeof(mqttUrl) - 1);
     writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
-  }
+  }  
+
 
   const char *getMqttUrl() {
     return mqttUrl;
+  }
+
+
+  void setSerialNumber(const char *serialNum) {
+    copy(serialNumber, serialNum, sizeof(serialNumber) - 1);
+    writeStringToEeprom(SERIAL_NUMBER_ADDRESS, sizeof(serialNumber) - 1, serialNumber);
+  }
+
+
+  const char *getSerialNumber() {
+    return serialNumber;
   }
 
 
