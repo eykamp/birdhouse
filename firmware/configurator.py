@@ -145,7 +145,8 @@ class Main(Frame):
         layout3 = Layout([100])
         self.add_layout(layout3)
         layout3.add_widget(Divider())
-        layout3.add_widget(Button("Finalize", self._finalize), 0)
+        layout3.add_widget(Button("Finalize", self.finalize), 0)
+        layout3.add_widget(Button("Get Token from SSID", self.retrieve_token), 0)
 
 
         # Status message
@@ -318,7 +319,7 @@ class Main(Frame):
         time.sleep(3)    
         self.query_birdhouse(self.port)     
 
-    def _finalize(self):
+    def finalize(self):
         self.set_status_msg("Finalizing")
 
 
