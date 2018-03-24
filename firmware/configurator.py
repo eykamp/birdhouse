@@ -120,7 +120,7 @@ class Main(Frame):
         layout.add_widget(Text("MQTT Status:", "mqtt_status"))
         layout.find_widget("mqtt_status").disabled=True
 
-        layout.add_widget(RadioButtons([("Traditional", 'True'), ("Single/Multicolor", 'False')], "LED Style:", "traditionalLeds", on_change=self.input_changed))
+        layout.add_widget(RadioButtons([("Traditional (3 independent LEDs)", 'True'), ("Single/Multicolor", 'False')], "LED Style:", "traditionalLeds", on_change=self.input_changed))
         layout.add_widget(RadioButtons([("Correctly", 'False'), ("Backwards", 'True')], "LEDs Installed:", "ledsInstalledBackwards", on_change=self.input_changed))
 
         layout.add_widget(Text("Device Token:", "device_token", on_change=self.input_changed))
