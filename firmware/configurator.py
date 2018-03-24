@@ -58,6 +58,7 @@ def runUi():
 #   First: paths for extracting the desired value from the JSON string returned by the birdhouse
 #   Second: params for writing data back to the birdhouse (None means the element is not writable)
 parse_list = {
+        'birdhouse_number'       : ('["serialNumber"]',                               'serialNumber'),
         'uptime'                 : ('["uptime"]',                                     None),
         'wifi_status'            : ('["wifiStatus"]',                                 None),
         'traditionalLeds'        : ('["ledparams"]["traditionalLeds"]',               'traditionalLeds'),
@@ -104,6 +105,9 @@ class Main(Frame):
         layout.add_widget(self.port_list)
         layout.add_widget(Divider())
 
+        layout.add_widget(Text("Birdhouse Number:", "birdhouse_number", validator="^\d\d\d$", on_change=self.input_changed))
+        self.layout.find_widget("birdhouse_number").value = args.number
+
         layout.add_widget(RadioButtons([("Red", "Red"), ("Yellow", "Yellow"), ("Green", "Green"), ("Cycle", "all"), ("Off", "off")], "Test LEDs", "led_test", on_change=self.on_test_leds_changed))
         self.layout.find_widget("led_test").value = "off"
 
@@ -124,7 +128,10 @@ class Main(Frame):
         layout.add_widget(RadioButtons([("Correctly", 'False'), ("Backwards", 'True')], "LEDs Installed:", "ledsInstalledBackwards", on_change=self.input_changed))
 
         layout.add_widget(Text("Device Token:", "device_token", on_change=self.input_changed))
+
         layout.add_widget(Text("Local SSID:", "local_ssid", on_change=self.input_changed))
+        layout.find_widget("local_ssid").disabled=True
+
         layout.add_widget(Text("Local Password:", "local_pass", on_change=self.input_changed))
         layout.add_widget(Text("WiFi SSID:", "wifi_ssid", on_change=self.input_changed))
         layout.add_widget(Text("WiFi Password:", "wifi_pass", on_change=self.input_changed))
@@ -176,12 +183,17 @@ class Main(Frame):
         
         # Enable/disable based on field values -- do this before we apply colors
         self.layout.find_widget('ledsInstalledBackwards').disabled = self.layout.find_widget('traditionalLeds').value == 'False'
-
+        
+        # Set dependent field values
+        self.layout.find_widget('local_ssid').value = "Birdhouse " + self.layout.find_widget('birdhouse_number').value
+        
         for key, value in self.orig_data.items():
             widget = self.layout.find_widget(key)
 
             if widget is None:      # This can happen if on_change is called during form construction
                 pass
+            elif not widget.is_valid:
+                widget.custom_colour = "invalid"
             elif widget.value != value and parse_list[key][1] is not None:
                 widget.custom_colour = "changed"
             elif widget.disabled:
