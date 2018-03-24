@@ -70,8 +70,15 @@ def main():
 
     tbapi.set_server_attributes(device_id, server_attributes)
 
-    # Upate the dash def. to point at the device we just created (modifies dash_def)
-    update_dash_def(dash_def, cust_name, device_id)
+    try:
+        # Upate the dash def. to point at the device we just created (modifies dash_def)
+        update_dash_def(dash_def, cust_name, device_id)
+    except Exception as ex:
+        print("Exception encountered: Cleaning up...")
+        tbapi.delete_device(device_id)
+        tbapi.delete_customer_by_id(tbapi.get_id(customer))
+        raise ex
+
 
     # Create a new dash with our definition, and assign it to the new customer    
     dash = tbapi.create_dashboard_for_customer(cust_name + ' Dash', dash_def)
