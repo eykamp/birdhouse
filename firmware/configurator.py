@@ -8,11 +8,35 @@ import serial
 import serial.tools.list_ports
 import polling      # pip install polling
 import time
+import argparse
+
+from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+                                            # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+
+# Get our passwords and other private data
+sys.path.insert(0, "../management/")
+from provision_config import motherShipUrl, username, password, dashboard_template_name, sensor_type
+
 
 ESP8266_VID_PID = '1A86:7523'
 
+    
+
 # Our program starts running from here
 def main():
+    global args, tbapi
+    parser = argparse.ArgumentParser(description='Configurate your birdhouse!')
+
+    parser.add_argument('--number', '-n', metavar='NNN', type=str, help='the number of your birdhouse')
+    args = parser.parse_args()
+
+    # Validate
+    if args.number is not None:
+        if len(args.number) != 3:
+            print("Birdhouse number must be 3 digits (include leading 0s)")
+            sys.exit(1)
+    # else we'll try to get it from the birdhouse itself
+    # sys.exit()
     runUi()
 
 
@@ -297,6 +321,24 @@ class Main(Frame):
     def _finalize(self):
         self.set_status_msg("Finalizing")
 
+
+    def make_device_name(self, base_name):
+        return base_name + ' Device'
+
+
+    # Retrieve token from SB server using Local SSID field as device name
+    def retrieve_token(self):
+        device_name = self.make_device_name(self.layout.find_widget('local_ssid').value)
+        device = tbapi.get_device_by_name(device_name)
+        if device is None:
+            self.layout.find_widget('device_token').value = 'DEVICE_NOT_FOUND'
+            return
+
+        device_id = tbapi.get_id(device)
+        device_token = tbapi.get_device_token(device_id)
+        self.layout.find_widget('device_token').value = device_token
+
+
     def scan_ports(self):
         self.set_status_msg("Scanning")
         self.port_list.options = get_ports()
@@ -359,6 +401,10 @@ def singleton(screen, scene):
 
     screen.play(scenes, stop_on_resize=False, start_scene=scene)
 
+
+# These are global
+tbapi = None
+args = None
 
 main()
 
