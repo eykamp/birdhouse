@@ -443,7 +443,6 @@ void setup() {
   activateLed(NONE);
 
   Eeprom.begin();
-  verifySentinelMarker();
 
   Rest.variable("uptime", &millis);
   Rest.variable("lastReportTime", &lastReportTime);
@@ -571,14 +570,6 @@ void intitialConfig() {
 
   initialConfigMode = true;
 }
-
-// Checks if this Birdhouse has ever been booted before
-void verifySentinelMarker() {
-  // if(Eeprom.verifySentinelMarker())
-  //   intitialConfig();
-}
-
-
 
 
 bool isConnectingToWifi = false;    // True while a connection is in process
