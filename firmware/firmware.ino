@@ -1293,7 +1293,7 @@ void setWifiSsidFromScanResults(int index) {
     return;
   }
 
-  if(WiFi.scanComplete() == WIFI_SCAN_FAILD) {
+  if(WiFi.scanComplete() == WIFI_SCAN_FAILED) {
     return;
   }
 
