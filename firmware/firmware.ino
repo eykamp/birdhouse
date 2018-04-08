@@ -222,8 +222,6 @@ void messageReceivedFromMothership(char* topic, byte* payload, unsigned int leng
 U32 lastMillis = 0;
 U32 lastScanTime = 0;
 
-WiFiClient wfclient;
-PubSubClient pubSubClient(wfclient);
 U32 lastPubSubConnectAttempt = 0;
 bool mqttServerConfigured = false;
 bool mqttServerLookupError = false;
