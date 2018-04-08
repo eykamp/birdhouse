@@ -330,9 +330,6 @@ bool initialConfigMode = false;
 
 const char *defaultPingTargetHostName = "www.google.com";
 
-const char *getMqttStatus() {
-  return getSubPubStatusName(mqttState());
-}
 
 const char *getWifiStatus() {
   return getWifiStatusName(WiFi.status());
