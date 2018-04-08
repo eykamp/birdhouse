@@ -42,10 +42,6 @@ using namespace std;
 #define LED_CLOCK_PIN D0
 
 
-bool ledsInstalledBackwards = true;   // TODO --> Store in flash
-bool traditionalLeds = false;         // TODO --> Store in flash
-
-
 // We'll never acutally use this when traditional LEDs are installed, but we don't know that at compile time, and instantiation isn't terribly harmful
 Adafruit_DotStar strip(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);
 
@@ -305,7 +301,7 @@ U16 getMqttPort()              { return Eeprom.getMqttPort();       }
 
 
 String getLedParams() {
-  return String("{\"traditionalLeds\":") + (traditionalLeds ? "true" : "false") + ",\"ledsInstalledBackwards\":" + (ledsInstalledBackwards ? "true" : "false") + "}";
+  return String("{\"traditionalLeds\":") + (Eeprom.getTraditionalLeds() ? "true" : "false") + ",\"ledsInstalledBackwards\":" + (Eeprom.getLedsInstalledBackwards() ? "true" : "false") + "}";
 }
 
 
@@ -485,17 +481,17 @@ void blink() {
 
 
 bool getLowState() {
-  return ledsInstalledBackwards ? HIGH : LOW;
+  return Eeprom.getLedsInstalledBackwards() ? HIGH : LOW;
 }
 
 bool getHighState() {
-  return ledsInstalledBackwards ? LOW : HIGH;
+  return Eeprom.getLedsInstalledBackwards() ? LOW : HIGH;
 }
 
 
 void activateLed(U32 ledMask) {
 
-  if(traditionalLeds) {
+  if(Eeprom.getTraditionalLeds()) {
 
     digitalWrite(LED_RED,     (ledMask & RED)     ? getHighState() : getLowState());
     digitalWrite(LED_YELLOW,  (ledMask & YELLOW)  ? getHighState() : getLowState());
@@ -578,11 +574,12 @@ int setParamsHandler(String params) {
 
 
 int setParam(const String &key, const String &val) {
-  if(key.equalsIgnoreCase("ledsInstalledBackwards"))
-    ledsInstalledBackwards = (val[0] == 't' || val[0] == 'T');   // TODO --> Store in flash
+  if(key.equalsIgnoreCase("ledsInstalledBackwards")) {
+    Eeprom.setLedsInstalledBackwards((val[0] == 't' || val[0] == 'T') ? "1" : "0");
+  }
 
   else if(key.equalsIgnoreCase("traditionalLeds"))
-    traditionalLeds = (val[0] == 't' || val[0] == 'T');   // TODO --> Store in flash
+    Eeprom.setTraditionalLeds((val[0] == 't' || val[0] == 'T') ? "1" : "0");
 
   else if(key.equalsIgnoreCase("localSsid"))
     updateLocalSsid(val.c_str());
