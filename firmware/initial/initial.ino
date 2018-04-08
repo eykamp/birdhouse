@@ -19,7 +19,7 @@
 #include "C:/dev/birdhouse/firmware/Intervals.h"
 #include "C:/dev/birdhouse/firmware/BirdhouseEeprom.h"    // For persisting values in EEPROM
 #include "C:/dev/birdhouse/firmware/ESP8266Ping.h"        // For ping, of course
-#include "MqttUtils.h"
+#include "C:/dev/birdhouse/firmware/MqttUtils.h"
 
 using namespace std;
 
