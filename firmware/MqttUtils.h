@@ -59,6 +59,11 @@ void mqttDisconnect() {
 }
 
 
+bool mqttSubscribe(const char* topic) {
+  return pubSubClient.subscribe(topic);
+}
+
+
 void mqttSetCallback(MQTT_CALLBACK_SIGNATURE) {
   pubSubClient.setCallback(callback);
 }
