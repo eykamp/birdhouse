@@ -1037,35 +1037,35 @@ void reportMeasurements() {
 
     String json = String("{") +
     "\"uptime\":"              + String(millis()) + "," + 
-    "\"freeHeap\":"            + String(ESP.getFreeHeap()) + "," + 
-    "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads) + "," + 
+    "\"freeHeap\":"            + String(ESP.getFreeHeap()) + "}"; 
+    // "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads) + "," + 
 
-    "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
-    "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
-    "\"shinyeiPM10mass\":"     + String(mass10) + "," + 
-    "\"shinyeiPM10duration\":" + String(durationP1) + "," + 
-    "\"shinyeiPM10count\":"    + String(PM10count) + "," + 
-    "\"shinyeiPM25conc\":"     + String(PM25conc) + "," + 
-    "\"shinyeiPM25ratio\":"    + String(ratioP2) + "," + 
-    "\"shinyeiPM25mass\":"     + String(mass25) + "," + 
-    "\"shinyeiPM25duration\":" + String(durationP2) + "," + 
-    "\"shinyeiPM25count\":"    + String(PM25count) + "," +
-    "\"ashinyeiPM10conc\":"    + String(Conc10Filter1.Current()) + "," + 
-    "\"bshinyeiPM10conc\":"    + String(Conc10Filter2.Current()) + "," + 
-    "\"cshinyeiPM10conc\":"    + String(Conc10Filter3.Current()) + "," + 
-    "\"dshinyeiPM10conc\":"    + String(Conc10Filter4.Current()) + "," + 
-    "\"ashinyeiPM25conc\":"    + String(Conc25Filter1.Current()) + "," + 
-    "\"bshinyeiPM25conc\":"    + String(Conc25Filter2.Current()) + "," + 
-    "\"cshinyeiPM25conc\":"    + String(Conc25Filter3.Current()) + "," + 
-    "\"dshinyeiPM25conc\":"    + String(Conc25Filter4.Current()) + "," + 
-    "\"ashinyeiPM10count\":"   + String(Count10Filter1.Current()) + "," + 
-    "\"bshinyeiPM10count\":"   + String(Count10Filter2.Current()) + "," + 
-    "\"cshinyeiPM10count\":"   + String(Count10Filter3.Current()) + "," + 
-    "\"dshinyeiPM10count\":"   + String(Count10Filter4.Current()) + "," + 
-    "\"ashinyeiPM25count\":"   + String(Count25Filter1.Current()) + "," + 
-    "\"bshinyeiPM25count\":"   + String(Count25Filter2.Current()) + "," + 
-    "\"cshinyeiPM25count\":"   + String(Count25Filter3.Current()) + "," + 
-    "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
+    // "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
+    // "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
+    // "\"shinyeiPM10mass\":"     + String(mass10) + "," + 
+    // "\"shinyeiPM10duration\":" + String(durationP1) + "," + 
+    // "\"shinyeiPM10count\":"    + String(PM10count) + "," + 
+    // "\"shinyeiPM25conc\":"     + String(PM25conc) + "," + 
+    // "\"shinyeiPM25ratio\":"    + String(ratioP2) + "," + 
+    // "\"shinyeiPM25mass\":"     + String(mass25) + "," + 
+    // "\"shinyeiPM25duration\":" + String(durationP2) + "," + 
+    // "\"shinyeiPM25count\":"    + String(PM25count) + "," +
+    // "\"ashinyeiPM10conc\":"    + String(Conc10Filter1.Current()) + "," + 
+    // "\"bshinyeiPM10conc\":"    + String(Conc10Filter2.Current()) + "," + 
+    // "\"cshinyeiPM10conc\":"    + String(Conc10Filter3.Current()) + "," + 
+    // "\"dshinyeiPM10conc\":"    + String(Conc10Filter4.Current()) + "," + 
+    // "\"ashinyeiPM25conc\":"    + String(Conc25Filter1.Current()) + "," + 
+    // "\"bshinyeiPM25conc\":"    + String(Conc25Filter2.Current()) + "," + 
+    // "\"cshinyeiPM25conc\":"    + String(Conc25Filter3.Current()) + "," + 
+    // "\"dshinyeiPM25conc\":"    + String(Conc25Filter4.Current()) + "," + 
+    // "\"ashinyeiPM10count\":"   + String(Count10Filter1.Current()) + "," + 
+    // "\"bshinyeiPM10count\":"   + String(Count10Filter2.Current()) + "," + 
+    // "\"cshinyeiPM10count\":"   + String(Count10Filter3.Current()) + "," + 
+    // "\"dshinyeiPM10count\":"   + String(Count10Filter4.Current()) + "," + 
+    // "\"ashinyeiPM25count\":"   + String(Count25Filter1.Current()) + "," + 
+    // "\"bshinyeiPM25count\":"   + String(Count25Filter2.Current()) + "," + 
+    // "\"cshinyeiPM25count\":"   + String(Count25Filter3.Current()) + "," + 
+    // "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
 
     mqttPublishTelemetry(json);
 
