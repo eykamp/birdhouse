@@ -452,7 +452,7 @@ U16 getMqttPort()              { return Eeprom.getMqttPort();       }
 void publishSampleDuration() {
   StaticJsonBuffer<128> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
-  root["sampleDuration"] = sampleDuration;
+  root["sampleDuration"] = getSampleDuration();
 
   String json;
   root.printTo(json);
