@@ -109,31 +109,31 @@ PMS::DATA PmsData;
 // Bigger numbers hew truer to the unfiltered data
 ExponentialFilter<F32> TemperatureSmoothingFilter(30, 0);
 
-static const F64 Conc10InitialVal = 20;
-static const F64 Conc25InitialVal = .05;
-static const F64 Count10InitialVal = .5;
-static const F64 Count25InitialVal = 0;
+// static const F64 Conc10InitialVal = 20;
+// static const F64 Conc25InitialVal = .05;
+// static const F64 Count10InitialVal = .5;
+// static const F64 Count25InitialVal = 0;
 
-ExponentialFilter<F64> Conc10Filter1(3, Conc10InitialVal);
-ExponentialFilter<F64> Conc10Filter2(5, Conc10InitialVal);
-ExponentialFilter<F64> Conc10Filter3(10, Conc10InitialVal);
-ExponentialFilter<F64> Conc10Filter4(20, Conc10InitialVal);
+// ExponentialFilter<F64> Conc10Filter1(3, Conc10InitialVal);
+// ExponentialFilter<F64> Conc10Filter2(5, Conc10InitialVal);
+// ExponentialFilter<F64> Conc10Filter3(10, Conc10InitialVal);
+// ExponentialFilter<F64> Conc10Filter4(20, Conc10InitialVal);
 
-ExponentialFilter<F64> Conc25Filter1(3, Conc25InitialVal);
-ExponentialFilter<F64> Conc25Filter2(5, Conc25InitialVal);
-ExponentialFilter<F64> Conc25Filter3(10, Conc25InitialVal);
-ExponentialFilter<F64> Conc25Filter4(20, Conc25InitialVal);
+// ExponentialFilter<F64> Conc25Filter1(3, Conc25InitialVal);
+// ExponentialFilter<F64> Conc25Filter2(5, Conc25InitialVal);
+// ExponentialFilter<F64> Conc25Filter3(10, Conc25InitialVal);
+// ExponentialFilter<F64> Conc25Filter4(20, Conc25InitialVal);
 
 
-ExponentialFilter<F64> Count10Filter1(3, Count10InitialVal);
-ExponentialFilter<F64> Count10Filter2(5, Count10InitialVal);
-ExponentialFilter<F64> Count10Filter3(10, Count10InitialVal);
-ExponentialFilter<F64> Count10Filter4(20, Count10InitialVal);
+// ExponentialFilter<F64> Count10Filter1(3, Count10InitialVal);
+// ExponentialFilter<F64> Count10Filter2(5, Count10InitialVal);
+// ExponentialFilter<F64> Count10Filter3(10, Count10InitialVal);
+// ExponentialFilter<F64> Count10Filter4(20, Count10InitialVal);
 
-ExponentialFilter<F64> Count25Filter1(3, Count25InitialVal);
-ExponentialFilter<F64> Count25Filter2(5, Count25InitialVal);
-ExponentialFilter<F64> Count25Filter3(10, Count25InitialVal);
-ExponentialFilter<F64> Count25Filter4(20, Count25InitialVal);
+// ExponentialFilter<F64> Count25Filter1(3, Count25InitialVal);
+// ExponentialFilter<F64> Count25Filter2(5, Count25InitialVal);
+// ExponentialFilter<F64> Count25Filter3(10, Count25InitialVal);
+// ExponentialFilter<F64> Count25Filter4(20, Count25InitialVal);
 
 
 
@@ -999,39 +999,39 @@ void reportMeasurements() {
     // This method does not use the correction factors, based on the presence of humidity and rain in the paper.
     //
     // convert from particles/0.01 ft3 to μg/m3
-    static const F64 K = 3531.5; // .01 ft^3 / m^3    
-    static const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
+    // static const F64 K = 3531.5; // .01 ft^3 / m^3    
+    // static const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
 
-    // PM10 mass concentration algorithm
-    static const F64 largeParticleRadius = 2.6 * pow(10, -6);     // The radius of a particle in the channel >2.5 μm is 2.60 μm (from paper)
-    static const F64 mass10 = density * sphericalVolume(largeParticleRadius);     // μg/particle
-    F64 PM10conc = PM10count * K * mass10;    // μg/m^3
+    // // PM10 mass concentration algorithm
+    // static const F64 largeParticleRadius = 2.6 * pow(10, -6);     // The radius of a particle in the channel >2.5 μm is 2.60 μm (from paper)
+    // static const F64 mass10 = density * sphericalVolume(largeParticleRadius);     // μg/particle
+    // F64 PM10conc = PM10count * K * mass10;    // μg/m^3
     
-    // PM2.5 mass concentration algorithm
-    static const F64 smallParticleRadius = 0.44 * pow(10, -6);    // The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
-    static const F64 mass25 = density * sphericalVolume(smallParticleRadius);   // μg/particle
-    F64 PM25conc = PM25count * K * mass25;    // μg/m^3
+    // // PM2.5 mass concentration algorithm
+    // static const F64 smallParticleRadius = 0.44 * pow(10, -6);    // The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
+    // static const F64 mass25 = density * sphericalVolume(smallParticleRadius);   // μg/particle
+    // F64 PM25conc = PM25count * K * mass25;    // μg/m^3
 
 
-    Conc10Filter1.Filter(PM10conc);
-    Conc10Filter2.Filter(PM10conc);
-    Conc10Filter3.Filter(PM10conc);
-    Conc10Filter4.Filter(PM10conc);
+    // Conc10Filter1.Filter(PM10conc);
+    // Conc10Filter2.Filter(PM10conc);
+    // Conc10Filter3.Filter(PM10conc);
+    // Conc10Filter4.Filter(PM10conc);
 
-    Conc25Filter1.Filter(PM25conc);
-    Conc25Filter2.Filter(PM25conc);
-    Conc25Filter3.Filter(PM25conc);
-    Conc25Filter4.Filter(PM25conc);
+    // Conc25Filter1.Filter(PM25conc);
+    // Conc25Filter2.Filter(PM25conc);
+    // Conc25Filter3.Filter(PM25conc);
+    // Conc25Filter4.Filter(PM25conc);
     
-    Count10Filter1.Filter(PM10count);
-    Count10Filter2.Filter(PM10count);
-    Count10Filter3.Filter(PM10count);
-    Count10Filter4.Filter(PM10count);
+    // Count10Filter1.Filter(PM10count);
+    // Count10Filter2.Filter(PM10count);
+    // Count10Filter3.Filter(PM10count);
+    // Count10Filter4.Filter(PM10count);
     
-    Count25Filter1.Filter(PM25count);
-    Count25Filter2.Filter(PM25count);
-    Count25Filter3.Filter(PM25count);
-    Count25Filter4.Filter(PM25count);
+    // Count25Filter1.Filter(PM25count);
+    // Count25Filter2.Filter(PM25count);
+    // Count25Filter3.Filter(PM25count);
+    // Count25Filter4.Filter(PM25count);
 
     String json = String("{") +
     "\"uptime\":"              + String(millis()) + "," + 
