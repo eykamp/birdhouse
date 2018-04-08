@@ -8,7 +8,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>   // Include the WebServer library
-#include <PubSubClient.h>       // For MQTT
 #include <Dns.h>
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
@@ -17,6 +16,7 @@
 #include "Types.h"
 #include "Intervals.h"
 #include "BirdhouseEeprom.h"
+#include "MqttUtils.h"
 
 #include <Adafruit_DotStar.h>
 
@@ -291,67 +291,6 @@ void reconnectToPubSubServer() {
 }
 
 
-
-void mqttSetServer(IPAddress &ip, uint16_t port) {
-  pubSubClient.setServer(ip, port);
-}
-
-
-bool mqttConnect(const char *id, const char *user, const char *pass) {
-  return pubSubClient.connect(id, user, pass);
-}
-
-
-bool mqttConnected() {
-  return pubSubClient.connected();
-}
-
-
-void mqttDisconnect() {
-  pubSubClient.disconnect();
-}
-
-
-bool mqttLoop() {
-  return pubSubClient.loop();
-}
-
-
-int mqttState() {
-  return pubSubClient.state();
-}
-
-
-void mqttSetCallback(MQTT_CALLBACK_SIGNATURE) {
-  pubSubClient.setCallback(callback);
-}
-
-
-bool mqttPublishAttribute(const JsonObject &jsonObj) {
-  String json;
-  jsonObj.printTo(json);
-
-  return mqttPublish("v1/devices/me/attributes", json.c_str());
-}
-
-bool mqttPublishAttribute(const String &payload) {
-  return mqttPublish("v1/devices/me/attributes", payload.c_str());
-}
-
-
-bool mqttPublishTelemetry(const String &payload) {
-  return mqttPublish("v1/devices/me/telemetry", payload.c_str());
-}
-
-
-bool mqttPublish(const char* topic, const char* payload) {
-  return pubSubClient.publish(topic, payload, false);
-}
-
-
-bool mqttSubscribe(const char* topic) {
-  return pubSubClient.subscribe(topic);
-}
 
 
 void onConnectedToPubSubServer() {
@@ -1385,21 +1324,6 @@ const char *getWifiStatusName(wl_status_t status) {
                                     "UNKNOWN";
 }
 
-
-const char *getSubPubStatusName(int status) {
-  return
-    status == MQTT_CONNECTION_TIMEOUT      ? "CONNECTION_TIMEOUT" :       // The server didn't respond within the keepalive time
-    status == MQTT_CONNECTION_LOST         ? "CONNECTION_LOST" :          // The network connection was broken
-    status == MQTT_CONNECT_FAILED          ? "CONNECT_FAILED" :           // The network connection failed
-    status == MQTT_DISCONNECTED            ? "DISCONNECTED" :             // The client is disconnected cleanly
-    status == MQTT_CONNECTED               ? "CONNECTED" :                // The cient is connected
-    status == MQTT_CONNECT_BAD_PROTOCOL    ? "CONNECT_BAD_PROTOCOL" :     // The server doesn't support the requested version of MQTT
-    status == MQTT_CONNECT_BAD_CLIENT_ID   ? "CONNECT_BAD_CLIENT_ID" :    // The server rejected the client identifier
-    status == MQTT_CONNECT_UNAVAILABLE     ? "CONNECT_UNAVAILABLE" :      // The server was unable to accept the connection
-    status == MQTT_CONNECT_BAD_CREDENTIALS ? "CONNECT_BAD_CREDENTIALS" :  // The username/password were rejected
-    status == MQTT_CONNECT_UNAUTHORIZED    ? "CONNECT_UNAUTHORIZED" :     // The client was not authorized to connect
-                                             "UNKNOWN";
-}
 
 
 // Get a list of wifi hotspots the device can see
