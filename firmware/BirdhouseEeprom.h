@@ -10,87 +10,144 @@
 
 // This class helps manage the variables we persist in EEPROM
 
+
+
 class BirdhouseEeprom : public EEPROMClass {
 
-private:
+// Sizes
+static const int SSID_LENGTH             = 32;
+static const int PASSWORD_LENGTH         = 63;
+static const int DEVICE_KEY_LENGTH       = 20;
+static const int URL_LENGTH              = 64;
+static const int SENTINEL_MARKER_LENGTH  = 64;
+static const int FIRMWARE_VERSION_LENGTH = 12;
 
+
+  // XMacro!
+#define NUMERIC_FIELD_LIST \
+  FIELD(temperatureCalibrationFactor, F32,  atof, TEMPERATURE_CALIBRATION_FACTOR_ADDRESS, getTemperatureCalibrationFactor, setTemperatureCalibrationFactor) \
+  FIELD(temperatureCalibrationOffset, F32,  atof, TEMPERATURE_CALIBRATION_OFFSET_ADDRESS, getTemperatureCalibrationOffset, setTemperatureCalibrationOffset) \
+  FIELD(humidityCalibrationFactor,    F32,  atof, HUMIDITY_CALIBRATION_FACTOR_ADDRESS,    getHumidityCalibrationFactor,    setHumidityCalibrationFactor)    \
+  FIELD(humidityCalibrationOffset,    F32,  atof, HUMIDITY_CALIBRATION_OFFSET_ADDRESS,    getHumidityCalibrationOffset,    setHumidityCalibrationOffset)    \
+  FIELD(pressureCalibrationFactor,    F32,  atof, PRESURE_CALIBRATION_FACTOR_ADDRESS,     getPressureCalibrationFactor,    setPressureCalibrationFactor)    \
+  FIELD(pressureCalibrationOffset,    F32,  atof, PRESURE_CALIBRATION_OFFSET_ADDRESS,     getPressureCalibrationOffset,    setPressureCalibrationOffset)    \
+  FIELD(PM10CalibrationFactor,        F32,  atof, PM10_CALIBRATION_FACTOR_ADDRESS,        getPM10CalibrationFactor,        setPM10CalibrationFactor)        \
+  FIELD(PM10CalibrationOffset,        F32,  atof, PM10_CALIBRATION_OFFSET_ADDRESS,        getPM10CalibrationOffset,        setPM10CalibrationOffset)        \
+  FIELD(PM25CalibrationFactor,        F32,  atof, PM25_CALIBRATION_FACTOR_ADDRESS,        getPM25CalibrationFactor,        setPM25CalibrationFactor)        \
+  FIELD(PM25CalibrationOffset,        F32,  atof, PM25_CALIBRATION_OFFSET_ADDRESS,        getPM25CalibrationOffset,        setPM25CalibrationOffset)        \
+  FIELD(PM1CalibrationFactor,         F32,  atof, PM1_CALIBRATION_FACTOR_ADDRESS,         getPM1CalibrationFactor,         setPM1CalibrationFactor)         \
+  FIELD(PM1CalibrationOffset,         F32,  atof, PM1_CALIBRATION_OFFSET_ADDRESS,         getPM1CalibrationOffset,         setPM1CalibrationOffset)         \
+  FIELD(mqttPort,                     U16,  atoi, PUB_SUB_PORT_ADDRESS,                   getMqttPort,                     setMqttPort)                     \
+  FIELD(sampleDuration,               U16,  atoi, SAMPLE_DURATION_ADDRESS,                getSampleDuration,               setSampleDuration)               \
+  FIELD(ledsInstalledBackwards,       bool, atoi, LEDS_INSTALLED_BACKWARDS_ADDRESS,       getLedsInstalledBackwards,       setLedsInstalledBackwards)       \
+  FIELD(traditionalLeds,              bool, atoi, TRADITIONAL_LEDS_ADDRESS,               getTraditionalLeds,              setTraditionalLeds)              \
+
+#define STRING_FIELD_LIST \
+  FIELD(0, localSsid,       LOCAL_SSID_ADDRESS,       SSID_LENGTH,             getLocalSsid,       setLocalSsid)       \
+  FIELD(1, localPassword,   LOCAL_PASSWORD_ADDRESS,   PASSWORD_LENGTH,         getLocalPassword,   setLocalPassword)   \
+  FIELD(2, wifiSsid,        WIFI_SSID_ADDRESS,        SSID_LENGTH,             getWifiSsid,        setWifiSsid)        \
+  FIELD(3, wifiPassword,    WIFI_PASSWORD_ADDRESS,    PASSWORD_LENGTH,         getWifiPassword,    setWifiPassword)    \
+  FIELD(4, deviceToken,     DEVICE_KEY_ADDRESS,       DEVICE_KEY_LENGTH,       getDeviceToken,     setDeviceToken)     \
+  FIELD(5, mqttUrl,         MQTT_URL_ADDRESS,         URL_LENGTH,              getMqttUrl,         setMqttUrl)         \
+  FIELD(6, firmwareVersion, FIRMWARE_VERSION_ADDRESS, FIRMWARE_VERSION_LENGTH, getFirmwareVersion, setFirmwareVersion) \
+
+
+
+private:
   typedef EEPROMClass Parent;
 
-  // Sizes
-  static const int SSID_LENGTH            = 32;
-  static const int PASSWORD_LENGTH        = 63;
-  static const int DEVICE_KEY_LENGTH      = 20;
-  static const int URL_LENGTH             = 64;
-  static const int SENTINEL_MARKER_LENGTH = 64;
-  static const int SERIAL_NUMBER_LENGTH   = 32;   // For now this is just 3 chars, but could eventually be a GUID.  Let's reserve the space now.
 
-  // The vars we store in EEPROM
-  char localSsid[SSID_LENGTH + 1];
-  char localPassword[PASSWORD_LENGTH + 1];
-  char wifiSsid[SSID_LENGTH + 1];
-  char wifiPassword[PASSWORD_LENGTH + 1];
-  char deviceToken[DEVICE_KEY_LENGTH + 1];
-  char mqttUrl[URL_LENGTH + 1];
-  char serialNumber[SERIAL_NUMBER_LENGTH + 1];
-  
-  U16 mqttPort;
-  U16 sampleDuration;     // In seconds
+  // The vars we store in EEPROM are declared via these two xmacros:
+
+  // Procuces a block of code that follows this pattern:
+  //    F32 temperatureCalibrationFactor;
+  #define FIELD(name, datatype, c, d, e, f)             \
+    datatype name;
+    NUMERIC_FIELD_LIST  
+  #undef FIELD
+
+
+  // Procuces a block of code that follows this pattern:
+  //    char localSsid[SSID_LENGTH + 1];
+  #define FIELD(a, name, c, length, e, f)  char name[length + 1];
+    STRING_FIELD_LIST  
+  #undef FIELD
 
   const char SENTINEL_MARKER[SENTINEL_MARKER_LENGTH + 1] = "SensorBot by Chris Eykamp -- v106";   // Changing this will cause devices to revert to default configuration
 
+// Create a block of code that looks like this:
+//     int lengths[] = { 0, sizeof(localSsid), ...};
+// constexpr static int lengths[] = { 0
+//     #define FIELD(a, name, c, d, e, f) , sizeof(name)
+//         STRING_FIELD_LIST
+//     #undef FIELD
+// };
 
 
-  // Addresses
-  static const int LOCAL_SSID_ADDRESS      = 0;
-  static const int LOCAL_PASSWORD_ADDRESS  = LOCAL_SSID_ADDRESS      + sizeof(localSsid);
-  static const int WIFI_SSID_ADDRESS       = LOCAL_PASSWORD_ADDRESS  + sizeof(localPassword);
-  static const int WIFI_PASSWORD_ADDRESS   = WIFI_SSID_ADDRESS       + sizeof(wifiSsid);
-  static const int DEVICE_KEY_ADDRESS      = WIFI_PASSWORD_ADDRESS   + sizeof(wifiPassword);
-  static const int MQTT_URL_ADDRESS        = DEVICE_KEY_ADDRESS      + sizeof(deviceToken);
-  static const int PUB_SUB_PORT_ADDRESS    = MQTT_URL_ADDRESS        + sizeof(mqttUrl);
-  static const int SAMPLE_DURATION_ADDRESS = PUB_SUB_PORT_ADDRESS    + sizeof(mqttPort);
-  static const int SERIAL_NUMBER_ADDRESS   = SAMPLE_DURATION_ADDRESS + sizeof(sampleDuration);
-  static const int SENTINEL_ADDRESS        = SERIAL_NUMBER_ADDRESS   + sizeof(serialNumber);
-  static const int NEXT_ADDRESS            = SENTINEL_ADDRESS        + sizeof(SENTINEL_MARKER); 
-  static const int EEPROM_SIZE = NEXT_ADDRESS;
+// constexpr static int totalLength(int index) {
+//     return index == lengths[index] ? 0 : (lengths[index] + totalLength(index - 1));
+// }
 
 
+// #define FIELD(index, b, address, d, e, f)     const int address = totalLength(index);
+//   STRING_FIELD_LIST  
+// #undef FIELD
+
+
+
+
+
+  // Memory layout:
+  const int LOCAL_SSID_ADDRESS                     = 0;  
+  const int LOCAL_PASSWORD_ADDRESS                 = LOCAL_SSID_ADDRESS                     + sizeof(localSsid); 
+  const int WIFI_SSID_ADDRESS                      = LOCAL_PASSWORD_ADDRESS                 + sizeof(localPassword); 
+  const int WIFI_PASSWORD_ADDRESS                  = WIFI_SSID_ADDRESS                      + sizeof(wifiSsid);  
+  const int DEVICE_KEY_ADDRESS                     = WIFI_PASSWORD_ADDRESS                  + sizeof(wifiPassword);  
+  const int MQTT_URL_ADDRESS                       = DEVICE_KEY_ADDRESS                     + sizeof(deviceToken); 
+  const int PUB_SUB_PORT_ADDRESS                   = MQTT_URL_ADDRESS                       + sizeof(mqttUrl); 
+  const int SAMPLE_DURATION_ADDRESS                = PUB_SUB_PORT_ADDRESS                   + sizeof(mqttPort);  
+  const int FIRMWARE_VERSION_ADDRESS               = SAMPLE_DURATION_ADDRESS                + sizeof(firmwareVersion); 
+  const int LEDS_INSTALLED_BACKWARDS_ADDRESS       = FIRMWARE_VERSION_ADDRESS               + sizeof(ledsInstalledBackwards);  
+  const int TRADITIONAL_LEDS_ADDRESS               = LEDS_INSTALLED_BACKWARDS_ADDRESS       + sizeof(traditionalLeds); 
+  const int TEMPERATURE_CALIBRATION_FACTOR_ADDRESS = TRADITIONAL_LEDS_ADDRESS               + sizeof(temperatureCalibrationFactor);  
+  const int TEMPERATURE_CALIBRATION_OFFSET_ADDRESS = TEMPERATURE_CALIBRATION_FACTOR_ADDRESS + sizeof(temperatureCalibrationOffset);  
+  const int HUMIDITY_CALIBRATION_FACTOR_ADDRESS    = TEMPERATURE_CALIBRATION_OFFSET_ADDRESS + sizeof(humidityCalibrationFactor); 
+  const int HUMIDITY_CALIBRATION_OFFSET_ADDRESS    = HUMIDITY_CALIBRATION_FACTOR_ADDRESS    + sizeof(humidityCalibrationOffset); 
+  const int PRESURE_CALIBRATION_FACTOR_ADDRESS     = HUMIDITY_CALIBRATION_OFFSET_ADDRESS    + sizeof(pressureCalibrationFactor); 
+  const int PRESURE_CALIBRATION_OFFSET_ADDRESS     = PRESURE_CALIBRATION_FACTOR_ADDRESS     + sizeof(pressureCalibrationOffset); 
+  const int PM10_CALIBRATION_FACTOR_ADDRESS        = PRESURE_CALIBRATION_OFFSET_ADDRESS     + sizeof(PM10CalibrationFactor); 
+  const int PM10_CALIBRATION_OFFSET_ADDRESS        = PM10_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM10CalibrationOffset); 
+  const int PM25_CALIBRATION_FACTOR_ADDRESS        = PM10_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM25CalibrationFactor); 
+  const int PM25_CALIBRATION_OFFSET_ADDRESS        = PM25_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM25CalibrationOffset); 
+  const int PM1_CALIBRATION_FACTOR_ADDRESS         = PM25_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM1CalibrationFactor);
+  const int PM1_CALIBRATION_OFFSET_ADDRESS         = PM1_CALIBRATION_FACTOR_ADDRESS         + sizeof(PM1CalibrationOffset);
+
+  const int SENTINEL_ADDRESS        = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(sampleDuration);
+  const int NEXT_ADDRESS            = SENTINEL_ADDRESS               + sizeof(SENTINEL_MARKER); 
+  const int EEPROM_SIZE = NEXT_ADDRESS;
+
+// static_assert(xWIFI_SSID_ADDRESS == WIFI_SSID_ADDRESS, "No!");
 
 public:
 
   void begin() {
     Parent::begin(EEPROM_SIZE);
 
-    readStringFromEeprom(LOCAL_SSID_ADDRESS,     sizeof(localSsid)     - 1, localSsid);
-    readStringFromEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
-    readStringFromEeprom(WIFI_SSID_ADDRESS,      sizeof(wifiSsid)      - 1, wifiSsid);
-    readStringFromEeprom(WIFI_PASSWORD_ADDRESS,  sizeof(wifiPassword)  - 1, wifiPassword);
-    readStringFromEeprom(DEVICE_KEY_ADDRESS,     sizeof(deviceToken)   - 1, deviceToken);
-    readStringFromEeprom(MQTT_URL_ADDRESS,       sizeof(mqttUrl)       - 1, mqttUrl);
-    readStringFromEeprom(SERIAL_NUMBER_ADDRESS,  sizeof(serialNumber)  - 1, serialNumber);
 
-    mqttPort       = EepromReadU16(PUB_SUB_PORT_ADDRESS);
-    sampleDuration = EepromReadU16(SAMPLE_DURATION_ADDRESS);
-  }
+    // Procuces a block of code that follows this pattern:
+    //     readStringFromEeprom(LOCAL_SSID_ADDRESS,       sizeof(localSsid)       - 1, localSsid);
+    #define FIELD(a, name, c, address, d, g)                      \
+      readStringFromEeprom(address, sizeof(name) - 1, name);
+      STRING_FIELD_LIST  
+    #undef FIELD
 
 
-  void setLocalSsid(const char *ssid) {
-    copy(localSsid, ssid, sizeof(localSsid) - 1);
-    writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
-  }
-
-  const char *getLocalSsid() {
-    return localSsid;
-  }
-
-
-  void setLocalPassword(const char *password) {
-    copy(localPassword, password, sizeof(localPassword) - 1);
-    writeStringToEeprom(LOCAL_PASSWORD_ADDRESS, sizeof(localPassword) - 1, localPassword);
-  }
-
-  const char *getLocalPassword() {
-    return localPassword;
+    // Procuces a block of code that follows this pattern:
+    //     temperatureCalibrationFactor = readNumberFromEeprom<F32>(TEMPERATURE_CALIBRATION_FACTOR_ADDRESS);
+    #define FIELD(name, datatype, c, address, e, f)             \
+      name = readNumberFromEeprom<datatype>(address);
+      NUMERIC_FIELD_LIST  
+    #undef FIELD
   }
 
 
@@ -99,76 +156,53 @@ public:
   }
 
 
-  void setWifiSsid(const char *ssid) {
-    copy(wifiSsid, ssid, sizeof(wifiSsid) - 1);
-    writeStringToEeprom(WIFI_SSID_ADDRESS, sizeof(wifiSsid) - 1, wifiSsid);
-  }
+  // Create a block of code for every item in STRING_FIELD_LIST that looks like this
+  //     void setLocalSsid(const char *ssid) {
+  //       copy(localSsid, ssid, sizeof(localSsid) - 1);
+  //       writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
+  //     }
+  //
+  //     const char *getLocalSsid() {
+  //       return localSsid;
+  //     }
+  #define FIELD(a, name, address, d, getter, setter)               \
+    void setter(const char *token) {                               \
+      copy(name, token, sizeof(name) - 1);                         \
+      writeStringToEeprom(address, sizeof(name) - 1, name);        \
+    }                                                              \
+                                                                   \
+    const char *getter() {                                         \
+      return name;                                                 \
+    }                                                              \
 
-  const char *getWifiSsid() {
-    return wifiSsid;
-  }
-
-
-  void setWifiPassword(const char *password) {
-    copy(wifiPassword, password, sizeof(wifiPassword) - 1);
-    writeStringToEeprom(WIFI_PASSWORD_ADDRESS, sizeof(wifiPassword) - 1, wifiPassword);
-  }
-
-  const char *getWifiPassword() {
-    return wifiPassword;
-  }
-
-
-  void setMqttUrl(const char *url) {
-    copy(mqttUrl, url, sizeof(mqttUrl) - 1);
-    writeStringToEeprom(MQTT_URL_ADDRESS, sizeof(mqttUrl) - 1, mqttUrl);
-  }  
+    STRING_FIELD_LIST  
+  #undef FIELD
 
 
-  const char *getMqttUrl() {
-    return mqttUrl;
-  }
+  // Create a block of code for every item in NUMERIC_FIELD_LIST that looks like this
+  //     void setTemperatureCalibrationFactor(const char *stringifiedParam) {                           
+  //         temperatureCalibrationFactor = atof(stringifiedParam);                              
+  //         writeNumberToEeprom(TEMPERATURE_CALIBRATION_FACTOR_ADDRESS, temperatureCalibrationFactor);                                 
+  //     }                                                                     
+  //                                                                           
+  //     F32 getTemperatureCalibrationFactor() {                                                   
+  //        return temperatureCalibrationFactor;                                                        
+  //     }                                                                     
+  #define FIELD(name, datatype, fromStringFn, address, getter, setter)    \
+    void setter(const char *stringifiedParam) {                           \
+        name = fromStringFn(stringifiedParam);                            \
+        writeNumberToEeprom(address, name);                               \
+    }                                                                     \
+                                                                          \
+    datatype getter() {                                                   \
+       return name;                                                       \
+    }                                                                     \
+
+    NUMERIC_FIELD_LIST  
+  #undef FIELD
 
 
-  void setSerialNumber(const char *serialNum) {
-    copy(serialNumber, serialNum, sizeof(serialNumber) - 1);
-    writeStringToEeprom(SERIAL_NUMBER_ADDRESS, sizeof(serialNumber) - 1, serialNumber);
-  }
 
-
-  const char *getSerialNumber() {
-    return serialNumber;
-  }
-
-
-  void setDeviceToken(const char *token) {
-    copy(deviceToken, token, sizeof(deviceToken) - 1);
-    writeStringToEeprom(DEVICE_KEY_ADDRESS, sizeof(deviceToken) - 1, deviceToken);
-  }
-
-  const char *getDeviceToken() {
-    return deviceToken;
-  }
-
-
-  void setMqttPort(const char *port) {
-    mqttPort = atoi(port);
-    EepromWriteU16(PUB_SUB_PORT_ADDRESS, mqttPort);
-  }
-
-  U16 getMqttPort() {
-    return mqttPort;
-  }
-
-
-  void setSampleDuration(const char *duration) {
-    sampleDuration = atoi(duration);
-    EepromWriteU16(SAMPLE_DURATION_ADDRESS, sampleDuration);
-  }
-
-  U16 getSampleDuration() {
-    return sampleDuration;
-  }
 
   void writeSentinelMarker() {
     writeStringToEeprom(SENTINEL_ADDRESS, sizeof(SENTINEL_MARKER) - 1, SENTINEL_MARKER);
@@ -187,8 +221,7 @@ public:
 private:
   // Utility functions
 
-  void writeStringToEeprom(int addr, int length, const char *value)
-  {
+  void writeStringToEeprom(int addr, int length, const char *value) {
     for (int i = 0; i < length; i++)
       write(addr + i, value[i]);
           
@@ -197,8 +230,7 @@ private:
   }
 
 
-  void readStringFromEeprom(int addr, int length, char container[])
-  {
+  void readStringFromEeprom(int addr, int length, char container[]) {
     for (int i = 0; i < length; i++)
       container[i] = read(addr + i);
 
@@ -206,25 +238,30 @@ private:
   }
 
 
-  // This function will write a 2 byte integer to the eeprom at the specified address and address + 1
-  void EepromWriteU16(int addr, U16 value)
-  {
-    byte lowByte  = ((value >> 0) & 0xFF);
-    byte highByte = ((value >> 8) & 0xFF);
+  // This function will write a numeric value byte-by-byte to eeprom at the specified address
+  template <typename T>
+  void writeNumberToEeprom(int addr, T value) {
+    byte *p = reinterpret_cast<byte *>(&value);
 
-    write(addr, lowByte);
-    write(addr + 1, highByte);
+    for(int i = 0; i < sizeof(T); i++) {
+      write(addr + i, p[i]);    // Write the ith byte 
+    }
+
     commit();
   }
 
 
-  // This function will read a 2 byte integer from the eeprom at the specified address and address + 1
-  U16 EepromReadU16(int addr)
-  {
-    byte lowByte  = read(addr);
-    byte highByte = read(addr + 1);
+  // This function will read a numeric from addr byte-by-byte and reconstitute into a whole
+  template <typename T>
+  T readNumberFromEeprom(int addr) {
+    T value = 0;
+    byte *p = reinterpret_cast<byte *>(&value);
 
-    return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
+    for(int i = 0; i < sizeof(T); i++) {
+      p[i] = read(addr + i);
+    }
+
+    return value;
   }
 
 
