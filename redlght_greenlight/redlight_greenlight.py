@@ -120,6 +120,16 @@ class handle_update:
     def GET(self, status):
         web.debug(status)
         current_version = web.ctx.env.get('HTTP_X_ESP8266_VERSION')
+        # Other available headers
+        # http.setUserAgent(F("ESP8266-http-Update"));
+        # http.addHeader(F("x-ESP8266-STA-MAC"), WiFi.macAddress());
+        # http.addHeader(F("x-ESP8266-AP-MAC"), WiFi.softAPmacAddress());
+        # http.addHeader(F("x-ESP8266-free-space"), String(ESP.getFreeSketchSpace()));
+        # http.addHeader(F("x-ESP8266-sketch-size"), String(ESP.getSketchSize()));
+        # http.addHeader(F("x-ESP8266-sketch-md5"), String(ESP.getSketchMD5()));
+        # http.addHeader(F("x-ESP8266-chip-size"), String(ESP.getFlashChipRealSize()));
+        # http.addHeader(F("x-ESP8266-sdk-version"), ESP.getSdkVersion());
+
 
         # Use passed url params to display a debugging payload -- all will be read as strings; specify defaults in web.input() call to avoid exceptions for missing values
         # params = web.input(mqtt_status='Not specified')
