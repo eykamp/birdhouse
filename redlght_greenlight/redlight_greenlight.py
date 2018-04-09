@@ -8,7 +8,7 @@ import os
 import base64
 import time
 from pprint import pprint
-
+import hashlib          # for md5 
 
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 from thingsboard_api_tools import TbApi # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -142,16 +142,18 @@ class handle_update:
 
         if newest_firmware:
             web.debug("Upgrading birdhouse to " + newest_firmware)
-            file = open(newest_firmware, 'rb')
-            bin_image = file.read()
-            byte_count = str(len(bin_image))
+            with open(newest_firmware, 'rb') as file:
+                bin_image = file.read()
+                byte_count = str(len(bin_image))
+                md5 = hashlib.md5(bin_image).hexdigest()
 
-            web.debug("Sending update (" + byte_count + " bytes)")
+                web.debug("Sending update (" + byte_count + " bytes)")
 
-            web.header('Content-type','application/octet-stream')
-            web.header('Content-transfer-encoding','base64') 
-            web.header('Content-length', byte_count)
-            return bin_image
+                web.header('Content-type','application/octet-stream')
+                web.header('Content-transfer-encoding','base64') 
+                web.header('Content-length', byte_count)
+                web.header('x-MD5', md5)
+                return bin_image
         else:
             web.debug("Birdhouse already at most recent version (" + current_version + ")")
 
