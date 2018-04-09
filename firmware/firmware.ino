@@ -874,11 +874,7 @@ void checkForFirmwareUpdates() {
   if(WiFi.status() != WL_CONNECTED)
     return;
 
-
-//   t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, String("/update/?mqtt_status=")+getMqttStatus(), FIRMWARE_VERSION);
-  String path = String("/update/") + getSubPubStatusName(mqttState()) + String("/");
-
-  t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, path.c_str(), FIRMWARE_VERSION);
+  t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, "/update/", FIRMWARE_VERSION);
 
   switch(ret) {
     case HTTP_UPDATE_FAILED:
