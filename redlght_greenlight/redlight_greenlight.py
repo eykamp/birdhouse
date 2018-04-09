@@ -147,7 +147,7 @@ class handle_update:
                 byte_count = str(len(bin_image))
                 md5 = hashlib.md5(bin_image).hexdigest()
 
-                web.debug("Sending update (" + byte_count + " bytes)")
+                web.debug("Sending update (" + byte_count + " bytes), with hash " + md5)
 
                 web.header('Content-type','application/octet-stream')
                 web.header('Content-transfer-encoding','base64') 
