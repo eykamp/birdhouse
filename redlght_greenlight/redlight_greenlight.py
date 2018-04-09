@@ -21,7 +21,7 @@ gmaps = googlemaps.Client(key=google_geolocation_key)
 urls = (
     '/', 'set_led_color',
     '/hotspots/', 'handle_hotspots',
-    '/update/(.*)/', 'handle_update',
+    '/update/(.*)', 'handle_update',
     '/purpleair/(.*)', 'handle_purpleair'
 )
 
