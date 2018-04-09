@@ -8,7 +8,7 @@ import os
 import base64
 import time
 from pprint import pprint
-
+import hashlib          # for md5 
 
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 from thingsboard_api_tools import TbApi # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -21,7 +21,7 @@ gmaps = googlemaps.Client(key=google_geolocation_key)
 urls = (
     '/', 'set_led_color',
     '/hotspots/', 'handle_hotspots',
-    '/update/(.*)/', 'handle_update',
+    '/update/(.*)', 'handle_update',
     '/purpleair/(.*)', 'handle_purpleair'
 )
 
@@ -93,37 +93,69 @@ class handle_hotspots:
             return
 
 class handle_update:
-    def GET(self,status):
+    # Returns the full file/path of the latest firmware, or None if we are already running the latest
+    def find_firmware(self, current_version):
+        updates_folder = "/tmp"
+        
+        v = re.search("(\d+)\.(\d+)", current_version)
+        newest_major = int(v.group(1))
+        newest_minor = int(v.group(2))
+        newest_firmware = None
+
+
+        for file in os.listdir(updates_folder):
+            candidate = re.search("(\d+)\.(\d+).bin", file)
+            if candidate:
+                c_major = int(candidate.group(1))
+                c_minor = int(candidate.group(2))
+
+                if c_major > newest_major or c_minor > newest_minor:
+                    newest_major = c_major
+                    newest_minor = c_minor
+                    newest_firmware = os.path.join(updates_folder, file)
+
+        return newest_firmware
+
+
+    def GET(self, status):
         web.debug(status)
         current_version = web.ctx.env.get('HTTP_X_ESP8266_VERSION')
+        # Other available headers
+        # http.setUserAgent(F("ESP8266-http-Update"));
+        # http.addHeader(F("x-ESP8266-STA-MAC"), WiFi.macAddress());
+        # http.addHeader(F("x-ESP8266-AP-MAC"), WiFi.softAPmacAddress());
+        # http.addHeader(F("x-ESP8266-free-space"), String(ESP.getFreeSketchSpace()));
+        # http.addHeader(F("x-ESP8266-sketch-size"), String(ESP.getSketchSize()));
+        # http.addHeader(F("x-ESP8266-sketch-md5"), String(ESP.getSketchMD5()));
+        # http.addHeader(F("x-ESP8266-chip-size"), String(ESP.getFlashChipRealSize()));
+        # http.addHeader(F("x-ESP8266-sdk-version"), ESP.getSdkVersion());
 
-        # # Use passed url params to display a debugging payload -- all will be read as strings; specify defaults in web.input() call to avoid exceptions for missing values
+
+        # Use passed url params to display a debugging payload -- all will be read as strings; specify defaults in web.input() call to avoid exceptions for missing values
         # params = web.input(mqtt_status='Not specified')
         # mqtt_status = params.mqtt_status
         # web.debug("MQTT status:", mqtt_status)
 
+        newest_firmware = self.find_firmware(current_version)
 
-        v = re.search("(\d+)\.(\d+)", current_version)
-        major = int(v.group(1))
-        minor = int(v.group(2))
 
-        next_version = '/tmp/firmware_' + str(major) + '.' + str(minor + 1) + '.bin'
-        web.debug("Looking for version", next_version)
 
-        if os.path.exists(next_version):
-            # domain = re.sub(r':[0-9]+$', '', web.ctx.homedomain)
-            # raise web.SeeOther(domain + '/firmware_images/firmware_1.24.bin')       # Handled by Apache
+        if newest_firmware:
+            web.debug("Upgrading birdhouse to " + newest_firmware)
+            with open(newest_firmware, 'rb') as file:
+                bin_image = file.read()
+                byte_count = str(len(bin_image))
+                md5 = hashlib.md5(bin_image).hexdigest()
 
-            file = open(next_version, 'rb')
-            bin_image = file.read()
-            byte_count = str(len(bin_image))
+                web.debug("Sending update (" + byte_count + " bytes), with hash " + md5)
 
-            web.debug("Sending update (" + byte_count + " bytes)")
-
-            web.header('Content-type','application/octet-stream')
-            web.header('Content-transfer-encoding','base64') 
-            web.header('Content-length', byte_count)
-            return bin_image
+                web.header('Content-type','application/octet-stream')
+                web.header('Content-transfer-encoding','base64') 
+                web.header('Content-length', byte_count)
+                web.header('x-MD5', md5)
+                return bin_image
+        else:
+            web.debug("Birdhouse already at most recent version (" + current_version + ")")
 
         raise web.NotModified()
 
