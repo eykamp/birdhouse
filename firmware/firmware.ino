@@ -24,7 +24,6 @@
 #include <PMS.h>                // Plantower
 
 // OTA Updates
-#include <ArduinoOTA.h>
 #include <ESP8266httpUpdate.h>
 
 #include "c:/dev/aREST/aREST.h"              // Our REST server for provisioning
@@ -431,7 +430,6 @@ void setup() {
   setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword());
   connectToWiFi(changedWifiCredentials);
 
-  setupOta();
 
   activateLed(NONE);
 
@@ -1490,50 +1488,6 @@ void publishStatusMessage(const String &msg) {
 
   mqttPublishAttribute(json);  
 }
-
-
-void setupOta() {
-
-  // Are these ever called?
-  ArduinoOTA.onStart([]() {
-    activateLed(RED | YELLOW);
-    publishOtaStatusMessage("Starting update");
-  });
-
-
-  ArduinoOTA.onEnd([]() {
-    publishOtaStatusMessage("Update successful");
-    for(int i = 0; i < 10; i++) { activateLed(GREEN); delay(50); activateLed(NONE); delay(50); }
-    activateLed(RED | YELLOW | GREEN);
-  });
-
-
-  static bool lastProgressUpdate = false;
-
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    activateLed(YELLOW | lastProgressUpdate ? GREEN : RED);
-    lastProgressUpdate = !lastProgressUpdate;
-  });
-
-
-  ArduinoOTA.onError([](ota_error_t error) {
-    String msg;
-    if (error == OTA_AUTH_ERROR)         msg = "Auth Failed";
-    else if (error == OTA_BEGIN_ERROR)   msg = "Begin Failed";
-    else if (error == OTA_CONNECT_ERROR) msg = "Connect Failed";
-    else if (error == OTA_RECEIVE_ERROR) msg = "Receive Failed";
-    else if (error == OTA_END_ERROR)     msg = "End Failed";
-
-    publishOtaStatusMessage("Update failed: " + msg);
-
-    ESP.restart();
-  });
-
-
-  ArduinoOTA.begin();
-}
-
-
 
 
 // enum rst_reason {
