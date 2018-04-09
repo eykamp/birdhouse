@@ -664,31 +664,6 @@ const char *getTemperatureSensorName() {
 }
 
 
-void processConfigCommand(const String &command) {
-  if(command.startsWith("stat") || command.startsWith("show")) {
-    //xx Serial.println("\n====================================");
-    //xx Serial.println("Wifi Diagnostics:");
-    //xx WiFi.printDiag(Serial); 
-    //xx Serial.println("====================================");
-    //xx Serial.printf("Free sketch space: %d\n", ESP.getFreeSketchSpace());
-    //xx Serial.printf("Local ssid: %s\n", localSsid);
-    //xx Serial.printf("Local password: %s\n", localPassword);
-    //xx Serial.printf("MQTT url: %s\n", mqttUrl);
-    //xx Serial.printf("MQTT port: %d\n", mqttPort);
-    //xx Serial.printf("Device token: %s\n", deviceToken);
-    //xx Serial.printf("Temperature sensor: %s\n", BME_ok ? "OK" : "Not found");
-    //xx Serial.println("====================================");
-    //xx Serial.printf("Wifi status: %s\n",         getWifiStatusName(WiFi.status()));
-    //xx Serial.printf("MQTT status: %s\n", getSubPubStatusName(mqttState()));
-    //xx Serial.printf("Sampling duration: %d seconds   [set sample duration <n>]\n", sampleDuration);
-  }
-  else if(command.startsWith("ping")) {
-    const int commandPrefixLen = strlen("PING ");
-    ping((command.length() > commandPrefixLen) ? &command.c_str()[commandPrefixLen] : defaultPingTargetHostName);
-  }
-}
-
-
 // Blocking scan
 void scanVisibleNetworks() {
   WiFi.scanNetworks(false, true);    // Include hidden access points
