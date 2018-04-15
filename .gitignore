@@ -10,3 +10,5 @@ redlght_greenlight/redlight_greenlight_config\.py
 telemetry_manager/telemetry_manager_config\.py
 
 firmware/b\.bat
+
+firmware/configurator_config\.py
