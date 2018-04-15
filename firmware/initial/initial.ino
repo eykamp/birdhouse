@@ -361,7 +361,7 @@ void intitialConfig() {
 
 bool isConnectingToWifi = false;    // True while a connection is in process
 
-U32 wifiConnectStartTime;
+U32 wifiConnectStartTime = 0;
 
 U32 serialSwappedTime;
 
