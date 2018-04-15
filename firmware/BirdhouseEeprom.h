@@ -38,6 +38,7 @@ static const int FIRMWARE_VERSION_LENGTH = 12;
   FIELD(PM1CalibrationFactor,         F32,  atof, PM1_CALIBRATION_FACTOR_ADDRESS,         getPM1CalibrationFactor,         setPM1CalibrationFactor)         \
   FIELD(PM1CalibrationOffset,         F32,  atof, PM1_CALIBRATION_OFFSET_ADDRESS,         getPM1CalibrationOffset,         setPM1CalibrationOffset)         \
   FIELD(mqttPort,                     U16,  atoi, PUB_SUB_PORT_ADDRESS,                   getMqttPort,                     setMqttPort)                     \
+  FIELD(birdhouseNumber,              U16,  atoi, BIRDHOUSE_NUMBER_ADDRESS,               getBirdhouseNumber,              setBirdhouseNumber)              \
   FIELD(sampleDuration,               U16,  atoi, SAMPLE_DURATION_ADDRESS,                getSampleDuration,               setSampleDuration)               \
   FIELD(ledsInstalledBackwards,       bool, atoi, LEDS_INSTALLED_BACKWARDS_ADDRESS,       getLedsInstalledBackwards,       setLedsInstalledBackwards)       \
   FIELD(traditionalLeds,              bool, atoi, TRADITIONAL_LEDS_ADDRESS,               getTraditionalLeds,              setTraditionalLeds)              \
