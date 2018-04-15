@@ -367,15 +367,16 @@ void setup() {
   // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
 
 
-  Rest.variable("sampleCount", &plantowerSampleCount);
+  Rest.variable("sampleCount",     &plantowerSampleCount);
   Rest.variable("sampleDurations", &getSampleDuration);
-  Rest.variable("deviceToken", &getDeviceToken);
-  Rest.variable("localSsid", &getLocalSsid);
-  Rest.variable("localPass", &getLocalPassword);
-  Rest.variable("wifiSsid", &getWifiSsid);
-  Rest.variable("wifiPass", &getWifiPassword);
-  Rest.variable("mqttUrl", &getMqttUrl);
-  Rest.variable("mqttPort", &getMqttPort);
+  Rest.variable("deviceToken",     &getDeviceToken);
+  Rest.variable("localSsid",       &getLocalSsid);
+  Rest.variable("localPass",       &getLocalPassword);
+  Rest.variable("wifiSsid",        &getWifiSsid);
+  Rest.variable("wifiPass",        &getWifiPassword);
+  Rest.variable("mqttUrl",         &getMqttUrl);
+  Rest.variable("mqttPort",        &getMqttPort);
+  Rest.variable("serialNumber",    &getBirdhouseNumber);
 
   // These all take a single parameter specified on the cmd line
   Rest.function("setparams", setParamsHandler);
@@ -415,14 +416,15 @@ void setup() {
 }
 
 
-const char *getDeviceToken()   { return Eeprom.getDeviceToken();    }
-const char *getLocalSsid()     { return Eeprom.getLocalSsid();      }
-const char *getLocalPassword() { return Eeprom.getLocalPassword();  }
-const char *getWifiSsid()      { return Eeprom.getWifiSsid();       }
-const char *getWifiPassword()  { return Eeprom.getWifiPassword();   }
-const char *getMqttUrl()       { return Eeprom.getMqttUrl();        }
-U16 getSampleDuration()        { return Eeprom.getSampleDuration(); }
-U16 getMqttPort()              { return Eeprom.getMqttPort();       }
+const char *getDeviceToken()   { return Eeprom.getDeviceToken();     }
+const char *getLocalSsid()     { return Eeprom.getLocalSsid();       }
+const char *getLocalPassword() { return Eeprom.getLocalPassword();   }
+const char *getWifiSsid()      { return Eeprom.getWifiSsid();        }
+const char *getWifiPassword()  { return Eeprom.getWifiPassword();    }
+const char *getMqttUrl()       { return Eeprom.getMqttUrl();         }
+U16 getSampleDuration()        { return Eeprom.getSampleDuration();  }
+U16 getMqttPort()              { return Eeprom.getMqttPort();        }
+U16 getBirdhouseNumber()       { return Eeprom.getBirdhouseNumber(); }
 
 
 bool needToReconnectToWifi = false;
