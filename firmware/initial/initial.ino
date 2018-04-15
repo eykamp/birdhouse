@@ -276,6 +276,7 @@ void setup() {
   Rest.function("ledson",   ledsOnHandler);
   Rest.function("ledsoff",  ledsOffHandler);
   Rest.function("updateFirmware", updateFirmware);
+  Rest.function("leds",     ledsHandler);
 
 
   Rest.set_id("brdhse");  // Should be 9 chars or less
@@ -546,6 +547,36 @@ int ledsOffHandler(String params) {
 
 int ledsOnHandler(String params) {
   setBlinkMode(ALL_ON);
+}
+
+
+int ledsHandler(String params) {
+
+  vector<pair<String,String>> kvPairs;
+  ParameterManager::parse(params, kvPairs);
+
+  for(int i = 0; i < kvPairs.size(); i++) {
+    // setParam(kvPairs[i].first, kvPairs[i].second);
+
+    if(kvPairs[i].first.equalsIgnoreCase("color")) {
+      if(kvPairs[i].second.equalsIgnoreCase("red"))
+        setBlinkMode(SOLID_RED);
+
+      if(kvPairs[i].second.equalsIgnoreCase("yellow"))
+        setBlinkMode(SOLID_YELLOW);
+
+      if(kvPairs[i].second.equalsIgnoreCase("green"))
+        setBlinkMode(SOLID_GREEN);
+
+      if(kvPairs[i].second.equalsIgnoreCase("all"))
+        setBlinkMode(ALL_ON);
+
+      if(kvPairs[i].second.equalsIgnoreCase("off"))
+        setBlinkMode(OFF);
+    }
+  }
+
+  return 1;
 }
 
 
