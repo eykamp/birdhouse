@@ -96,8 +96,6 @@ private:
 
 
 
-
-
   // Memory layout:
   const int LOCAL_SSID_ADDRESS                     = 0;  
   const int LOCAL_PASSWORD_ADDRESS                 = LOCAL_SSID_ADDRESS                     + sizeof(localSsid); 
@@ -107,27 +105,29 @@ private:
   const int MQTT_URL_ADDRESS                       = DEVICE_KEY_ADDRESS                     + sizeof(deviceToken); 
   const int PUB_SUB_PORT_ADDRESS                   = MQTT_URL_ADDRESS                       + sizeof(mqttUrl); 
   const int SAMPLE_DURATION_ADDRESS                = PUB_SUB_PORT_ADDRESS                   + sizeof(mqttPort);  
-  const int FIRMWARE_VERSION_ADDRESS               = SAMPLE_DURATION_ADDRESS                + sizeof(firmwareVersion); 
-  const int LEDS_INSTALLED_BACKWARDS_ADDRESS       = FIRMWARE_VERSION_ADDRESS               + sizeof(ledsInstalledBackwards);  
-  const int TRADITIONAL_LEDS_ADDRESS               = LEDS_INSTALLED_BACKWARDS_ADDRESS       + sizeof(traditionalLeds); 
-  const int TEMPERATURE_CALIBRATION_FACTOR_ADDRESS = TRADITIONAL_LEDS_ADDRESS               + sizeof(temperatureCalibrationFactor);  
-  const int TEMPERATURE_CALIBRATION_OFFSET_ADDRESS = TEMPERATURE_CALIBRATION_FACTOR_ADDRESS + sizeof(temperatureCalibrationOffset);  
-  const int HUMIDITY_CALIBRATION_FACTOR_ADDRESS    = TEMPERATURE_CALIBRATION_OFFSET_ADDRESS + sizeof(humidityCalibrationFactor); 
-  const int HUMIDITY_CALIBRATION_OFFSET_ADDRESS    = HUMIDITY_CALIBRATION_FACTOR_ADDRESS    + sizeof(humidityCalibrationOffset); 
-  const int PRESURE_CALIBRATION_FACTOR_ADDRESS     = HUMIDITY_CALIBRATION_OFFSET_ADDRESS    + sizeof(pressureCalibrationFactor); 
-  const int PRESURE_CALIBRATION_OFFSET_ADDRESS     = PRESURE_CALIBRATION_FACTOR_ADDRESS     + sizeof(pressureCalibrationOffset); 
-  const int PM10_CALIBRATION_FACTOR_ADDRESS        = PRESURE_CALIBRATION_OFFSET_ADDRESS     + sizeof(PM10CalibrationFactor); 
-  const int PM10_CALIBRATION_OFFSET_ADDRESS        = PM10_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM10CalibrationOffset); 
-  const int PM25_CALIBRATION_FACTOR_ADDRESS        = PM10_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM25CalibrationFactor); 
-  const int PM25_CALIBRATION_OFFSET_ADDRESS        = PM25_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM25CalibrationOffset); 
-  const int PM1_CALIBRATION_FACTOR_ADDRESS         = PM25_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM1CalibrationFactor);
-  const int PM1_CALIBRATION_OFFSET_ADDRESS         = PM1_CALIBRATION_FACTOR_ADDRESS         + sizeof(PM1CalibrationOffset);
 
-  const int SENTINEL_ADDRESS        = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(sampleDuration);
+  const int BIRDHOUSE_NUMBER_ADDRESS               = SAMPLE_DURATION_ADDRESS                + sizeof(sampleDuration);  
+
+
+  const int FIRMWARE_VERSION_ADDRESS               = BIRDHOUSE_NUMBER_ADDRESS               + sizeof(birdhouseNumber); 
+  const int LEDS_INSTALLED_BACKWARDS_ADDRESS       = FIRMWARE_VERSION_ADDRESS               + sizeof(firmwareVersion);  
+  const int TRADITIONAL_LEDS_ADDRESS               = LEDS_INSTALLED_BACKWARDS_ADDRESS       + sizeof(ledsInstalledBackwards); 
+  const int TEMPERATURE_CALIBRATION_FACTOR_ADDRESS = TRADITIONAL_LEDS_ADDRESS               + sizeof(traditionalLeds);  
+  const int TEMPERATURE_CALIBRATION_OFFSET_ADDRESS = TEMPERATURE_CALIBRATION_FACTOR_ADDRESS + sizeof(temperatureCalibrationFactor);  
+  const int HUMIDITY_CALIBRATION_FACTOR_ADDRESS    = TEMPERATURE_CALIBRATION_OFFSET_ADDRESS + sizeof(temperatureCalibrationOffset); 
+  const int HUMIDITY_CALIBRATION_OFFSET_ADDRESS    = HUMIDITY_CALIBRATION_FACTOR_ADDRESS    + sizeof(humidityCalibrationFactor); 
+  const int PRESURE_CALIBRATION_FACTOR_ADDRESS     = HUMIDITY_CALIBRATION_OFFSET_ADDRESS    + sizeof(humidityCalibrationOffset); 
+  const int PRESURE_CALIBRATION_OFFSET_ADDRESS     = PRESURE_CALIBRATION_FACTOR_ADDRESS     + sizeof(pressureCalibrationFactor); 
+  const int PM10_CALIBRATION_FACTOR_ADDRESS        = PRESURE_CALIBRATION_OFFSET_ADDRESS     + sizeof(pressureCalibrationOffset); 
+  const int PM10_CALIBRATION_OFFSET_ADDRESS        = PM10_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM10CalibrationFactor); 
+  const int PM25_CALIBRATION_FACTOR_ADDRESS        = PM10_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM10CalibrationOffset); 
+  const int PM25_CALIBRATION_OFFSET_ADDRESS        = PM25_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM25CalibrationFactor); 
+  const int PM1_CALIBRATION_FACTOR_ADDRESS         = PM25_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM25CalibrationOffset);
+  const int PM1_CALIBRATION_OFFSET_ADDRESS         = PM1_CALIBRATION_FACTOR_ADDRESS         + sizeof(PM1CalibrationFactor);
+
+  const int SENTINEL_ADDRESS        = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(PM1CalibrationOffset);
   const int NEXT_ADDRESS            = SENTINEL_ADDRESS               + sizeof(SENTINEL_MARKER); 
   const int EEPROM_SIZE = NEXT_ADDRESS;
-
-// static_assert(xWIFI_SSID_ADDRESS == WIFI_SSID_ADDRESS, "No!");
 
 public:
 
