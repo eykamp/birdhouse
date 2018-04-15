@@ -164,7 +164,7 @@ private:
 // Helpers
 
 // Modifies tokens
-void split(const String &str, const String &delim, std::vector<String> &tokens) {
+static void split(const String &str, const String &delim, std::vector<String> &tokens) {
   auto start = 0U;
   auto end = str.indexOf(delim);
   while (end != -1)
@@ -179,7 +179,7 @@ void split(const String &str, const String &delim, std::vector<String> &tokens) 
 
 
 // Modifies kv 
-bool split(const String &str, const String &delim, std::pair<String, String> &kv) {
+static bool split(const String &str, const String &delim, std::pair<String, String> &kv) {
   auto pos = str.indexOf(delim);
   if(pos == -1)
     return false;
@@ -191,8 +191,9 @@ bool split(const String &str, const String &delim, std::pair<String, String> &kv
 }
 
 
+public:
 // Modifies kvPairs
-void parse(const String &params, std::vector<std::pair<String,String>> &kvPairs) {
+static void parse(const String &params, std::vector<std::pair<String,String>> &kvPairs) {
   std::vector<String> tokens;
   split(params, "&", tokens);
 
