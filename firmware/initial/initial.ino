@@ -128,7 +128,6 @@ void setupPubSubClient() {
 }
 
 
-U32 pubSubConnectFailures = 0;
 U32 now_millis;
 
 bool serialSwapped = false;
@@ -165,7 +164,7 @@ void reconnectToPubSubServer() {
   if (mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
     onConnectedToPubSubServer();
   } else {    // Connection failed
-    pubSubConnectFailures++;
+
   }
 }
 
@@ -174,8 +173,6 @@ void reconnectToPubSubServer() {
 void onConnectedToPubSubServer() {
   // Announce ourselves to the server
   publishStatusMessage("Initialized");
-
-  pubSubConnectFailures = 0;
 }
 
 
@@ -687,7 +684,6 @@ void updateLocalSsid(const char *ssid) {
 
 void updateLocalPassword(const char *password) {
   Eeprom.setLocalPassword(password);
-  pubSubConnectFailures = 0;
 }
 
 
@@ -700,14 +696,12 @@ void updateWifiSsid(const char *ssid) {
 void updateWifiPassword(const char *password) {
   Eeprom.setWifiPassword(password);
   changedWifiCredentials = true;
-  pubSubConnectFailures = 0;
 }
 
 
 void updateMqttUrl(const char *url) {
   Eeprom.setMqttUrl(url);
 
-  pubSubConnectFailures = 0;
   mqttDisconnect();
   mqttServerConfigured = false;
   mqttServerLookupError = false;
@@ -721,7 +715,6 @@ void updateMqttUrl(const char *url) {
 
 void updateDeviceToken(const char *token) {
   Eeprom.setDeviceToken(token);
-  pubSubConnectFailures = 0;
 }
 
 
@@ -731,7 +724,6 @@ void updateMqttPort(const char *port) {
   if(Eeprom.getMqttPort() == 0)
     return;
 
-  pubSubConnectFailures = 0;
   mqttDisconnect();
   mqttServerConfigured = false;
   mqttServerLookupError = false;
