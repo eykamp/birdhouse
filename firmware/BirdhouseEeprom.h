@@ -204,18 +204,18 @@ public:
 
 
 
-  void writeSentinelMarker() {
-    writeStringToEeprom(SENTINEL_ADDRESS, sizeof(SENTINEL_MARKER) - 1, SENTINEL_MARKER);
-  }
+  // void writeSentinelMarker() {
+  //   writeStringToEeprom(SENTINEL_ADDRESS, sizeof(SENTINEL_MARKER) - 1, SENTINEL_MARKER);
+  // }
 
 
-  bool verifySentinelMarker() {
-    char storedSentinelMarker[SENTINEL_MARKER_LENGTH + 1];
-    readStringFromEeprom(SENTINEL_ADDRESS, sizeof(storedSentinelMarker) - 1, storedSentinelMarker);
+  // bool verifySentinelMarker() {
+  //   char storedSentinelMarker[SENTINEL_MARKER_LENGTH + 1];
+  //   readStringFromEeprom(SENTINEL_ADDRESS, sizeof(storedSentinelMarker) - 1, storedSentinelMarker);
 
-    // Return true if the marker is there, false otherwise
-    return (strcmp(SENTINEL_MARKER, storedSentinelMarker) == 0);
-  }
+  //   // Return true if the marker is there, false otherwise
+  //   return (strcmp(SENTINEL_MARKER, storedSentinelMarker) == 0);
+  // }
 
 
 private:
