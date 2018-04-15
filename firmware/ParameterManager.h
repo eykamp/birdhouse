@@ -108,6 +108,10 @@ int setParam(const String &key, const String &val) {
     Eeprom.setSampleDuration(val.c_str());
   }
 
+  else if(key.equalsIgnoreCase("serialNumber")) {
+    Eeprom.setBirdhouseNumber(val.c_str());
+  }
+
   else if(key.equalsIgnoreCase("temperatureCalibrationFactor"))
     Eeprom.setTemperatureCalibrationFactor(val.c_str());
 
