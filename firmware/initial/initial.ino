@@ -794,13 +794,13 @@ void connectToWiFi(bool disconnectIfConnected) {
   }
 
   auto status = WiFi.begin(getWifiSsid(), getWifiPassword());
+  wifiConnectStartTime = millis();    
 
   if(!serialSwapped)
     Serial.printf("Connecting to %s/%s...\n", getWifiSsid(), getWifiPassword());
 
   if(status != WL_CONNECT_FAILED) { 
     isConnectingToWifi = true;
-    wifiConnectStartTime = millis();    
   }
 }
 
