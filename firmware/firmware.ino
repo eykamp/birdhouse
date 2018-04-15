@@ -17,6 +17,8 @@
 #include "Intervals.h"
 #include "BirdhouseEeprom.h"
 #include "MqttUtils.h"
+#include "ListServerUtils.h"
+
 
 #include <Adafruit_DotStar.h>
 
@@ -58,9 +60,6 @@
 #define BME_SCL D5  // SPI (Serial Clock)
 #define BME_SDA D6  // SDA (Serial Data) 
 
-// Shinyei sensor
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM10 D3  // "P2"
-#define SHINYEI_SENSOR_DIGITAL_PIN_PM25 D3  // "P1"
 
 // Plantower Sensor pins are hardcoded below; they have to be on the serial pins
 
@@ -108,31 +107,6 @@ PMS::DATA PmsData;
 // Bigger numbers hew truer to the unfiltered data
 ExponentialFilter<F32> TemperatureSmoothingFilter(30, 0);
 
-// static const F64 Conc10InitialVal = 20;
-// static const F64 Conc25InitialVal = .05;
-// static const F64 Count10InitialVal = .5;
-// static const F64 Count25InitialVal = 0;
-
-// ExponentialFilter<F64> Conc10Filter1(3, Conc10InitialVal);
-// ExponentialFilter<F64> Conc10Filter2(5, Conc10InitialVal);
-// ExponentialFilter<F64> Conc10Filter3(10, Conc10InitialVal);
-// ExponentialFilter<F64> Conc10Filter4(20, Conc10InitialVal);
-
-// ExponentialFilter<F64> Conc25Filter1(3, Conc25InitialVal);
-// ExponentialFilter<F64> Conc25Filter2(5, Conc25InitialVal);
-// ExponentialFilter<F64> Conc25Filter3(10, Conc25InitialVal);
-// ExponentialFilter<F64> Conc25Filter4(20, Conc25InitialVal);
-
-
-// ExponentialFilter<F64> Count10Filter1(3, Count10InitialVal);
-// ExponentialFilter<F64> Count10Filter2(5, Count10InitialVal);
-// ExponentialFilter<F64> Count10Filter3(10, Count10InitialVal);
-// ExponentialFilter<F64> Count10Filter4(20, Count10InitialVal);
-
-// ExponentialFilter<F64> Count25Filter1(3, Count25InitialVal);
-// ExponentialFilter<F64> Count25Filter2(5, Count25InitialVal);
-// ExponentialFilter<F64> Count25Filter3(10, Count25InitialVal);
-// ExponentialFilter<F64> Count25Filter4(20, Count25InitialVal);
 
 
 
@@ -167,6 +141,8 @@ bool plantowerSensorDetected = false;
 bool plantowerSensorDetectReported = false;
 bool plantowerSensorNondetectReported = false;
 
+
+ParameterManager paramManager;
 
 U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
 
@@ -238,7 +214,7 @@ void setupPubSubClient() {
   IPAddress serverIp;
 
   if(WiFi.hostByName(Eeprom.getMqttUrl(), serverIp)) {
-    mqttSetServer(serverIp, Eeprom.getMqttPort());
+    mqtt.mqttSetServer(serverIp, Eeprom.getMqttPort());
     mqttServerConfigured = true;
   } else {
     mqttServerLookupError = true;   // TODO: Try again in a few minutes
@@ -258,7 +234,7 @@ void loopPubSub() {
     return;
 
   // Ensure constant contact with the mother ship
-  if(!mqttConnected()) {
+  if(!mqtt.mqttConnected()) {
     if (now_millis - lastPubSubConnectAttempt > 5 * SECONDS) {
       reconnectToPubSubServer();      // Attempt to reconnect
       lastPubSubConnectAttempt = now_millis;
@@ -266,7 +242,7 @@ void loopPubSub() {
     }
   }
 
-  mqttLoop();
+  mqtt.mqttLoop();
 }
 
 
@@ -279,10 +255,8 @@ void reconnectToPubSubServer() {
     return;
 
   // Attempt to connect
-  if (mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
+  if(mqtt.mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
     onConnectedToPubSubServer();
-  } else {    // Connection failed
-
   }
 }
 
@@ -290,13 +264,13 @@ void reconnectToPubSubServer() {
 
 
 void onConnectedToPubSubServer() {
-  mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
+  mqtt.mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Announce ourselves to the server
-  publishLocalCredentials();
-  publishSampleDuration();
-  publishTempSensorNameAndSoftwareVersion();
-  publishStatusMessage("Connected");
+  mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress);
+  mqtt.publishSampleDuration(getSampleDuration());
+  mqtt.publishTempSensorNameAndSoftwareVersion(getTemperatureSensorName(), FIRMWARE_VERSION);
+  mqtt.publishStatusMessage("Connected");
 
   reportPlantowerSensorStatus();
   reportResetReason();
@@ -309,7 +283,7 @@ void onConnectedToPubSubServer() {
 U32 plantowerPm1Sum = 0;
 U32 plantowerPm25Sum = 0;
 U32 plantowerPm10Sum = 0;
-int plantowerSampleCount = 0;
+U16 plantowerSampleCount = 0;
 
 #define BLINK_STATES 2
 U8 blinkColor[BLINK_STATES] = { NONE, NONE };
@@ -330,6 +304,15 @@ const char *defaultPingTargetHostName = "www.google.com";
 const char *getWifiStatus() {
   return getWifiStatusName(WiFi.status());
 }
+
+const char *getMqttStatus() {
+  return mqtt.getMqttStatus();
+}
+
+int setParamsHandler(String params) {   // Can't be const ref because of aREST design
+  return paramManager.setParamsHandler(params);
+}
+
 
 
 const U32 MAX_COMMAND_LENGTH = 128;
@@ -377,7 +360,6 @@ void setup() {
   Rest.variable("uptime", &millis);
   Rest.variable("lastReportTime", &lastReportTime);
   Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
-  Rest.variable("now_micros", &now_micros);
   Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
   Rest.variable("mqttStatus", &getMqttStatus);
   Rest.variable("wifiStatus", &getWifiStatus);
@@ -396,13 +378,7 @@ void setup() {
   Rest.variable("mqttPort", &getMqttPort);
 
   // These all take a single parameter specified on the cmd line
-  Rest.function("localssid",    localSsidHandler);
-  Rest.function("localpass",    localPasswordHandler);
-  Rest.function("wifissid",     wifiSsidHandler);
-  Rest.function("wifipass",     wifiPasswordHandler);
-  Rest.function("devicetoken",  deviceTokenHandler);
-  Rest.function("mqtturl",      mqttUrlHandler);
-  Rest.function("mqttport",     mqttPortHandler);
+  Rest.function("setparams", setParamsHandler);
 
   Rest.function("restart",      rebootHandler);
 
@@ -418,7 +394,12 @@ void setup() {
 
 
   setupPubSubClient();
-  // mqttSetCallback(messageReceivedFromMothership);
+  mqtt.mqttSetCallback(messageReceivedFromMothership);
+
+  paramManager.setLocalSsidChangedCallback([]()       { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
+  paramManager.setLocalPasswordChangedCallback([]()   { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
+  paramManager.setWifiCredentialsChangedCallback([]() { changedWifiCredentials = true; });
+  paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
 
   setupSensors();
  
@@ -444,62 +425,8 @@ U16 getSampleDuration()        { return Eeprom.getSampleDuration(); }
 U16 getMqttPort()              { return Eeprom.getMqttPort();       }
 
 
-void publishSampleDuration() {
-  StaticJsonBuffer<128> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
-  root["sampleDuration"] = getSampleDuration();
-
-  String json;
-  root.printTo(json);
-
-  mqttPublishAttribute(json);  
-}
-
-
-void publishLocalCredentials() {
-  StaticJsonBuffer<256> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
-  root["localSsid"] = Eeprom.getLocalSsid();
-  root["localPassword"] = Eeprom.getLocalPassword();
-  root["localIpAddress"] = localAccessPointAddress;
-
-  String json;
-  root.printTo(json);
-
-  mqttPublishAttribute(json);
-}
-
-
-void publishTempSensorNameAndSoftwareVersion() {
-  StaticJsonBuffer<128> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
-  root["temperatureSensor"] = getTemperatureSensorName();
-  root["firmwareVersion"] = FIRMWARE_VERSION;
-
-  String json;
-  root.printTo(json);
-
-  mqttPublishAttribute(json);
-}
-
-
 bool needToReconnectToWifi = false;
 bool needToConnect = false;
-
-// Called the very first time a Birdhouse is booted -- set defaults
-void intitialConfig() {
-  updateLocalPassword("88888888");
-  updateLocalSsid("NewBirdhouse666");  
-  updateWifiPassword("NOT_SET");
-  updateWifiSsid("NOT_SET");  
-  updateMqttUrl("www.sensorbot.org");
-  updateMqttPort("1883");
-  updateSampleDuration("30");
-  updateDeviceToken("NOT_SET");
-
-  initialConfigMode = true;
-}
-
 
 bool isConnectingToWifi = false;    // True while a connection is in process
 
@@ -530,7 +457,7 @@ void loop() {
 
   loopPubSub();
 
-  if(mqttState() == MQTT_CONNECTED)
+  if(mqtt.mqttState() == MQTT_CONNECTED)
     loopSensors();
 
 
@@ -680,51 +607,6 @@ int rebootHandler(String params) {
   return 1;
 }
 
-int localSsidHandler(String params) {
-  updateLocalSsid(params.c_str());
-  return 1;
-}
-
-
-int localPasswordHandler(String params) {
-  if(strlen(params.c_str()) < 8 || strlen(params.c_str()) > Eeprom.getLocalPasswordSize() - 1)
-    return 0;
-
-  updateLocalPassword(params.c_str());
-
-  return 1;
-}
-
-
-int wifiSsidHandler(String params) {
-  updateWifiSsid(params.c_str());
-  return 1;
-}
-
-
-int wifiPasswordHandler(String params) {
-  updateWifiPassword(params.c_str());
-  return 1;
-}
-
-
-int deviceTokenHandler(String params) {
-  updateDeviceToken(params.c_str());
-  return 1;
-}
-
-
-int mqttUrlHandler(String params) {
-  updateMqttUrl(params.c_str());
-  return 1;
-}
-
-
-int mqttPortHandler(String params) {
-  updateMqttPort(params.c_str());
-  return 1;
-}
-
 
 bool BME_ok = false;
 
@@ -759,10 +641,6 @@ void setupSensors() {
     TemperatureSmoothingFilter.SetCurrent(t);
   }
 
-
-  pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM10, INPUT);
-  pinMode(SHINYEI_SENSOR_DIGITAL_PIN_PM25, INPUT);
-
   resetDataCollection();
 }
 
@@ -782,33 +660,12 @@ const char *getTemperatureSensorName() {
 }
 
 
-bool triggerP1, triggerP2;
-U32 durationP1, durationP2;
-U32 triggerOnP1, triggerOnP2;
-
-U32 shinyeiLogicReads = 0;
-
 // Read sensors each loop tick
 void loopSensors() {
 
   // Serial1.print(now_millis);
 
-  // Collect Shinyei data every loop
-  bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
-  bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
-
-  shinyeiLogicReads++;
-
   if(now_micros - samplingPeriodStartTime_micros > Eeprom.getSampleDuration() * SECONDS_TO_MICROS) {
-    // If we overshot our sampling period slightly, compute a correction
-    U32 overage = (now_micros - samplingPeriodStartTime_micros) - Eeprom.getSampleDuration() * SECONDS_TO_MICROS;
-
-    if(valP1 == LOW) {
-      durationP1 += now_micros - triggerOnP1 - overage;
-    }
-    if(valP2 == LOW) {
-      durationP2 += now_micros - triggerOnP2 - overage;
-    }
 
     reportMeasurements();
 
@@ -824,34 +681,6 @@ void loopSensors() {
   }
 
   else {
-
-    // Track the duration each pin is LOW  
-    // Going low... start timer
-    if(valP1 == LOW && triggerP1 == LOW) {
-      triggerP1 = HIGH;
-      triggerOnP1 = now_micros;
-    }
-    
-    // Going high... stop timer
-    else if (valP1 == HIGH && triggerP1 == HIGH) {
-      U32 pulseLengthP1 = now_micros - triggerOnP1;
-      durationP1 += pulseLengthP1;
-      triggerP1 = LOW;
-    }
-    
-    // Going low... start timer
-    if(valP2 == LOW && triggerP2 == LOW) {
-      triggerP2 = HIGH;
-      triggerOnP2 = now_micros;
-    }
-    
-    // Going high... stop timer
-    else if (valP2 == HIGH && triggerP2 == HIGH) {
-      U32 pulseLengthP2 = now_micros - triggerOnP2;
-      durationP2 += pulseLengthP2;
-      triggerP2 = LOW;
-    }
-
 
     if(serialSwapped && pms.read(PmsData)) {
       blinkMode = 3;
@@ -885,23 +714,10 @@ void checkForFirmwareUpdates() {
 
 
 void resetDataCollection() {
+
   // Start the cycle anew
-
-  bool valP1 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM10);
-  bool valP2 = digitalRead(SHINYEI_SENSOR_DIGITAL_PIN_PM25);
-
-  durationP1 = 0;
-  durationP2 = 0;
-  shinyeiLogicReads = 0;
-
   samplingPeriodStartTime_micros = micros();
-  triggerOnP1 = samplingPeriodStartTime_micros;
-  triggerOnP2 = samplingPeriodStartTime_micros;
     
-  // We want to trigger when the Shinyei pins change state from what we just read
-  triggerP1 = !valP1;
-  triggerP2 = !valP2;
-
   // Reset Plantower data
   plantowerPm1Sum = 0;
   plantowerPm25Sum = 0;
@@ -910,50 +726,26 @@ void resetDataCollection() {
 }
 
 
-
-// Generates PM10 and PM2.5 count from LPO.
-// Derived from code created by Chris Nafis from graph provided by Shinyei
-// http://www.howmuchsnow.com/arduino/airquality/grovedust/
-// ratio is a number between 0 and 100
-F64 lpoToParticleCount(F64 ratio) { 
-  return 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) + 520 * ratio + 0.62;  // Particles per .01 ft^3
-}
-
-F64 sphericalVolume(F64 radius) {
-  static const F64 pi = 3.14159;
-  return (4.0 / 3.0) * pi * pow(radius, 3);
-}
-
-
-void reportPlantowerDetectNondetect(bool sensorFound) {
-  mqttPublishAttribute(String("{\"plantowerSensorDetected\":") + (sensorFound ? "True" : "False") + "}");
-}
-
-
-void reportLocalIp() {
-  mqttPublishAttribute(String("{\"lanIpAddress\":\"") + WiFi.localIP().toString() + "\"}");
-}
-
-
 void reportPlantowerSensorStatus() {
   // Report each status only once
   if(!plantowerSensorDetected && !plantowerSensorNondetectReported) {
-    reportPlantowerDetectNondetect(false);
+    mqtt.reportPlantowerDetectNondetect(false);
     plantowerSensorNondetectReported = true;
   }
 
   if(plantowerSensorDetected && !plantowerSensorDetectReported) {
-    reportPlantowerDetectNondetect(true);
+    mqtt.reportPlantowerDetectNondetect(true);
     plantowerSensorDetectReported = true;
   }
 }
 
 
+// Do this once
 void reportResetReason() {
   if(reportedResetReason)
     return;
 
-  mqttPublishAttribute(String("{\"lastResetReason\":\"") + ESP.getResetReason() + "\"}");
+  mqtt.publishResetReason(ESP.getResetReason());
   reportedResetReason = true;
 }
 
@@ -964,112 +756,16 @@ void reportMeasurements() {
     activateLed(YELLOW);
 
     lastReportTime = millis();
-    // Function creates particle count and mass concentration
-    // from PPD-42 low pulse occupancy (LPO).
 
-    //               microseconds            microseconds           
-    F64 ratioP1 = durationP1 / ((F64)Eeprom.getSampleDuration() * SECONDS_TO_MICROS) * 100.0;    // Generate a percentage expressed as an integer between 0 and 100
-    F64 ratioP2 = durationP2 / ((F64)Eeprom.getSampleDuration() * SECONDS_TO_MICROS) * 100.0;
-
-    F64 countP1 = lpoToParticleCount(ratioP1);  // Particles / .01 ft^3
-    F64 countP2 = lpoToParticleCount(ratioP2);  // Particles / .01 ft^3
-
-    F64 PM10count = countP1;
-    F64 PM25count = countP2 - countP1;
-    
-    // Assumes density, shape, and size of dust
-    // to estimate mass concentration from particle count.
-    // This method was described in a 2009 paper
-    // Preliminary Screening System for Ambient Air Quality in Southeast Philadelphia by Uva, M., Falcone, R., McClellan, A., and Ostapowicz, E.
-    // http://www.cleanair.org/sites/default/files/Drexel%20Air%20Monitoring_-_Final_Report_-_Team_19_0.pdf
-    // http://www.eunetair.it/cost/meetings/Istanbul/01-PRESENTATIONS/06_WG3-WG4-SESSION_WG3/04_ISTANBUL_WG-MC-MEETING_Jovasevic-Stojanovic.pdf
-    //
-    // This method does not use the correction factors, based on the presence of humidity and rain in the paper.
-    //
-    // convert from particles/0.01 ft3 to μg/m3
-    // static const F64 K = 3531.5; // .01 ft^3 / m^3    
-    // static const F64 density = 1.65 * pow(10, 12);   // All particles assumed spherical, with a density of 1.65E12 μg/m^3 (from paper)
-
-    // // PM10 mass concentration algorithm
-    // static const F64 largeParticleRadius = 2.6 * pow(10, -6);     // The radius of a particle in the channel >2.5 μm is 2.60 μm (from paper)
-    // static const F64 mass10 = density * sphericalVolume(largeParticleRadius);     // μg/particle
-    // F64 PM10conc = PM10count * K * mass10;    // μg/m^3
-    
-    // // PM2.5 mass concentration algorithm
-    // static const F64 smallParticleRadius = 0.44 * pow(10, -6);    // The radius of a particle in the channel <2.5 μm is 0.44 μm (from paper)
-    // static const F64 mass25 = density * sphericalVolume(smallParticleRadius);   // μg/particle
-    // F64 PM25conc = PM25count * K * mass25;    // μg/m^3
-
-
-    // Conc10Filter1.Filter(PM10conc);
-    // Conc10Filter2.Filter(PM10conc);
-    // Conc10Filter3.Filter(PM10conc);
-    // Conc10Filter4.Filter(PM10conc);
-
-    // Conc25Filter1.Filter(PM25conc);
-    // Conc25Filter2.Filter(PM25conc);
-    // Conc25Filter3.Filter(PM25conc);
-    // Conc25Filter4.Filter(PM25conc);
-    
-    // Count10Filter1.Filter(PM10count);
-    // Count10Filter2.Filter(PM10count);
-    // Count10Filter3.Filter(PM10count);
-    // Count10Filter4.Filter(PM10count);
-    
-    // Count25Filter1.Filter(PM25count);
-    // Count25Filter2.Filter(PM25count);
-    // Count25Filter3.Filter(PM25count);
-    // Count25Filter4.Filter(PM25count);
-
-    String json = String("{") +
-    "\"uptime\":"              + String(millis()) + "," + 
-    "\"freeHeap\":"            + String(ESP.getFreeHeap()) + "}"; 
-    // "\"shinyeiLogicGoodReads\":"   + String(shinyeiLogicReads) + "," + 
-
-    // "\"shinyeiPM10conc\":"     + String(PM10conc) + "," + 
-    // "\"shinyeiPM10ratio\":"    + String(ratioP1) + "," + 
-    // "\"shinyeiPM10mass\":"     + String(mass10) + "," + 
-    // "\"shinyeiPM10duration\":" + String(durationP1) + "," + 
-    // "\"shinyeiPM10count\":"    + String(PM10count) + "," + 
-    // "\"shinyeiPM25conc\":"     + String(PM25conc) + "," + 
-    // "\"shinyeiPM25ratio\":"    + String(ratioP2) + "," + 
-    // "\"shinyeiPM25mass\":"     + String(mass25) + "," + 
-    // "\"shinyeiPM25duration\":" + String(durationP2) + "," + 
-    // "\"shinyeiPM25count\":"    + String(PM25count) + "," +
-    // "\"ashinyeiPM10conc\":"    + String(Conc10Filter1.Current()) + "," + 
-    // "\"bshinyeiPM10conc\":"    + String(Conc10Filter2.Current()) + "," + 
-    // "\"cshinyeiPM10conc\":"    + String(Conc10Filter3.Current()) + "," + 
-    // "\"dshinyeiPM10conc\":"    + String(Conc10Filter4.Current()) + "," + 
-    // "\"ashinyeiPM25conc\":"    + String(Conc25Filter1.Current()) + "," + 
-    // "\"bshinyeiPM25conc\":"    + String(Conc25Filter2.Current()) + "," + 
-    // "\"cshinyeiPM25conc\":"    + String(Conc25Filter3.Current()) + "," + 
-    // "\"dshinyeiPM25conc\":"    + String(Conc25Filter4.Current()) + "," + 
-    // "\"ashinyeiPM10count\":"   + String(Count10Filter1.Current()) + "," + 
-    // "\"bshinyeiPM10count\":"   + String(Count10Filter2.Current()) + "," + 
-    // "\"cshinyeiPM10count\":"   + String(Count10Filter3.Current()) + "," + 
-    // "\"dshinyeiPM10count\":"   + String(Count10Filter4.Current()) + "," + 
-    // "\"ashinyeiPM25count\":"   + String(Count25Filter1.Current()) + "," + 
-    // "\"bshinyeiPM25count\":"   + String(Count25Filter2.Current()) + "," + 
-    // "\"cshinyeiPM25count\":"   + String(Count25Filter3.Current()) + "," + 
-    // "\"dshinyeiPM25count\":"   + String(Count25Filter4.Current()) + " } ";
-
-    mqttPublishTelemetry(json);
+    mqtt.publishDeviceData(millis(), ESP.getFreeHeap());
 
   if(plantowerSampleCount > 0) {
-    F64 pm1 = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
+    F64 pm1  = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
     F64 pm25 = (F64(plantowerPm25Sum) / (F64)plantowerSampleCount);
     F64 pm10 = (F64(plantowerPm10Sum) / (F64)plantowerSampleCount);
   
-
-     json = String("{") +
-      "\"plantowerPM1conc\":"     + String(pm1)  + "," + 
-      "\"plantowerPM25conc\":"    + String(pm25) + "," + 
-      "\"plantowerPM10conc\":"    + String(pm10) + "," +
-      "\"plantowerSampleCount\":" + String(plantowerSampleCount) + "}";
-
-    mqttPublishTelemetry(json);
+    mqtt.publishPmData(pm1, pm25, pm10, plantowerSampleCount);
     reportPlantowerSensorStatus();
-
   }
 
   if(BME_ok) {
@@ -1079,9 +775,7 @@ void reportMeasurements() {
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
     TemperatureSmoothingFilter.Filter(temp);
 
-    json = "{\"temperature\":" + String(temp) + ",\"humidity\":" + String(hum) + ",\"pressure\":" + String(pres) + ",\"temperature_smoothed\":" + String(TemperatureSmoothingFilter.Current()) + "}";
-
-    mqttPublishTelemetry(json);
+    mqtt.publishWeatherData(temp, TemperatureSmoothingFilter.Current(), hum, pres);
   }
 
   delay(500);
@@ -1183,7 +877,7 @@ void reportMeasurements() {
 void printScanResult(U32 duration);     // Forward declare
 
 void scanVisibleNetworks() {
-  publishStatusMessage("scanning");
+  mqtt.publishStatusMessage("scanning");
 
   WiFi.scanNetworks(false, true);    // Include hidden access points
 
@@ -1206,58 +900,11 @@ void scanVisibleNetworks() {
 }
 
 
-void updateLocalSsid(const char *ssid) {
-  Eeprom.setLocalSsid(ssid);
-  publishLocalCredentials();
-}
-
-
-void updateLocalPassword(const char *password) {
-  Eeprom.setLocalPassword(password);
-
-  publishLocalCredentials();
-}
-
-
-void updateWifiSsid(const char *ssid) {
-  Eeprom.setWifiSsid(ssid);
-  changedWifiCredentials = true;
-}
-
-
-void updateWifiPassword(const char *password) {
-  Eeprom.setWifiPassword(password);
-  changedWifiCredentials = true;
-  // initiateConnectionToWifi();
-}
-
-
-void updateMqttUrl(const char *url) {
-  Eeprom.setMqttUrl(url);
-
-  mqttDisconnect();
-  mqttServerConfigured = false;
-  mqttServerLookupError = false;
-
-  setupPubSubClient();
-
-  // Let's immediately connect our PubSub client
-  reconnectToPubSubServer();
-}
-
-
-void updateDeviceToken(const char *token) {
-  Eeprom.setDeviceToken(token);
-}
-
-
-void updateMqttPort(const char *port) {
-  Eeprom.setMqttPort(port);
-
+void onMqttPortUpdated() {
   if(Eeprom.getMqttPort() == 0)
     return;
 
-  mqttDisconnect();
+  mqtt.mqttDisconnect();
   mqttServerConfigured = false;
   mqttServerLookupError = false;
 
@@ -1265,12 +912,6 @@ void updateMqttPort(const char *port) {
 
   // Let's immediately connect our PubSub client
   reconnectToPubSubServer();
-}
-
-
-void updateSampleDuration(const char *duration) {
-  Eeprom.setSampleDuration(duration);
-  publishSampleDuration();
 }
 
 
@@ -1288,7 +929,7 @@ void setWifiSsidFromScanResults(int index) {
     return;
   }
   
-  updateWifiSsid(WiFi.SSID(index - 1).c_str());
+  paramManager.setParam("wifiSsid", WiFi.SSID(index - 1));  
 }
 
 
@@ -1311,7 +952,7 @@ const char *getWifiStatusName(wl_status_t status) {
 void printScanResult(U32 duration) {
   int networksFound = WiFi.scanComplete();
 
-  publishStatusMessage("scan results: " + String(networksFound) + " hotspots found in " + String(duration) + "ms");
+  mqtt.publishStatusMessage("scan results: " + String(networksFound) + " hotspots found in " + String(duration) + "ms");
 
   if(networksFound <= 0) {
     return;
@@ -1341,9 +982,6 @@ void printScanResult(U32 duration) {
   }
   json += "]\"}";
 
-  if(!mqttPublishAttribute(json)) {
-      publishStatusMessage("Could not upload scan results");
-  }
 }
 
 
@@ -1437,7 +1075,7 @@ void connectingToWifi()
 void onConnectedToWifi() {
   server.begin();
 
-  reportLocalIp();
+  mqtt.publishLocalIp(WiFi.localIP());
 
   // Switch over to Plantower
   Serial.println("Turning over the serial port to the Plantower... no more messages here.");
@@ -1452,30 +1090,6 @@ void onConnectedToWifi() {
   }
 }
 
-
-
-void publishOtaStatusMessage(const String &msg) {
-  StaticJsonBuffer<128> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
-  root["otaUpdate"] = msg;
-
-  String json;
-  root.printTo(json);
-
-  mqttPublishAttribute(json);  
-}
-
-
-void publishStatusMessage(const String &msg) {
-  StaticJsonBuffer<128> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
-  root["status"] = msg;
-
-  String json;
-  root.printTo(json);
-
-  mqttPublishAttribute(json);  
-}
 
 
 // enum rst_reason {

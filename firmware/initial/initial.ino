@@ -10,16 +10,18 @@
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
-#include <Adafruit_DotStar.h>
+#include <Adafruit_DotStar.h>   // Handle those single LED variants
 #include <PMS.h>                // Plantower
-#include <vector>
-#include <utility>    // For pair
+
+// OTA Updates
+#include <ESP8266httpUpdate.h>
 
 #include "C:/dev/birdhouse/firmware/Types.h"
 #include "C:/dev/birdhouse/firmware/Intervals.h"
 #include "C:/dev/birdhouse/firmware/BirdhouseEeprom.h"    // For persisting values in EEPROM
 #include "C:/dev/birdhouse/firmware/ESP8266Ping.h"        // For ping, of course
 #include "C:/dev/birdhouse/firmware/MqttUtils.h"
+#include "C:/dev/birdhouse/firmware/ParameterManager.h"
 
 using namespace std;
 
@@ -44,6 +46,9 @@ using namespace std;
 
 // We'll never acutally use this when traditional LEDs are installed, but we don't know that at compile time, and instantiation isn't terribly harmful
 Adafruit_DotStar strip(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);
+
+
+ParameterManager paramManager;
 
 //////////////////////
 // WiFi Definitions //
@@ -120,7 +125,7 @@ void setupPubSubClient() {
   IPAddress serverIp;
 
   if(WiFi.hostByName(Eeprom.getMqttUrl(), serverIp)) {
-    mqttSetServer(serverIp, Eeprom.getMqttPort());
+    mqtt.mqttSetServer(serverIp, Eeprom.getMqttPort());
     mqttServerConfigured = true;
   } else {
     mqttServerLookupError = true;   // TODO: Try again in a few minutes
@@ -140,7 +145,7 @@ void loopPubSub() {
     return;
 
   // Ensure constant contact with the mother ship
-  if(!mqttConnected()) {
+  if(!mqtt.mqttConnected()) {
     if (now_millis - lastPubSubConnectAttempt > 5 * SECONDS) {
       reconnectToPubSubServer();      // Attempt to reconnect
       lastPubSubConnectAttempt = now_millis;
@@ -148,7 +153,7 @@ void loopPubSub() {
     }
   }
 
-  mqttLoop();
+  mqtt.mqttLoop();
 }
 
 
@@ -161,10 +166,8 @@ void reconnectToPubSubServer() {
     return;
 
   // Attempt to connect
-  if (mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
+  if(mqtt.mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
     onConnectedToPubSubServer();
-  } else {    // Connection failed
-
   }
 }
 
@@ -172,7 +175,7 @@ void reconnectToPubSubServer() {
 
 void onConnectedToPubSubServer() {
   // Announce ourselves to the server
-  publishStatusMessage("Initialized");
+  mqtt.publishStatusMessage("Initialized");
 }
 
 
@@ -195,6 +198,15 @@ const char *defaultPingTargetHostName = "www.google.com";
 const char *getWifiStatus() {
   return getWifiStatusName(WiFi.status());
 }
+
+const char *getMqttStatus() {
+  return mqtt.getMqttStatus();
+}
+
+int setParamsHandler(String params) {     // Can't be const ref because of aREST design
+  return paramManager.setParamsHandler(params);
+}
+
 
 
 const U32 MAX_COMMAND_LENGTH = 128;
@@ -262,6 +274,7 @@ void setup() {
   Rest.function("restart",  rebootHandler);
   Rest.function("ledson",   ledsOnHandler);
   Rest.function("ledsoff",  ledsOffHandler);
+  Rest.function("updateFirmware", updateFirmware);
 
 
   Rest.set_id("brdhse");  // Should be 9 chars or less
@@ -272,6 +285,9 @@ void setup() {
   WiFi.setAutoConnect(false);
   WiFi.setAutoReconnect(true);
 
+
+  paramManager.setWifiCredentialsChangedCallback([]() { changedWifiCredentials = true; });
+  paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
 
   setupPubSubClient();
 
@@ -311,16 +327,29 @@ bool needToConnect = false;
 
 // Called the very first time a Birdhouse is booted -- set defaults
 void intitialConfig() {
-  updateLocalPassword("88888888");
-  updateLocalSsid("NewBirdhouse666");  
-  updateWifiPassword("NOT_SET");
-  updateWifiSsid("NOT_SET");  
-  updateMqttUrl("www.sensorbot.org");
-  updateMqttPort("1883");
-  Eeprom.setSampleDuration("30");
-  updateDeviceToken("NOT_SET");
+  paramManager.setParam("localPassword",  "88888888");  
+  paramManager.setParam("localSsid",      "NewBirdhouse666");  
+  paramManager.setParam("wifiPassword",   "NOT_SET");  
+  paramManager.setParam("wifiSsid",       "NOT_SET");  
+  paramManager.setParam("mqttUrl",        "www.sensorbot.org");  
+  paramManager.setParam("mqttPort",       "1883");  
+  paramManager.setParam("deviceToken",    "NOT_SET");  
+  paramManager.setParam("sampleDuration", "30");  
+  
+  paramManager.setParam("temperatureCalibrationFactor", "1.0");
+  paramManager.setParam("temperatureCalibrationOffset", "0");
+  paramManager.setParam("humidityCalibrationFactor",    "1.0");
+  paramManager.setParam("humidityCalibrationOffset",    "0");
+  paramManager.setParam("pressureCalibrationFactor",    "1.0");
+  paramManager.setParam("pressureCalibrationOffset",    "0");
+  paramManager.setParam("pM10CalibrationFactor",        "1.0");
+  paramManager.setParam("pM10CalibrationOffset",        "0");
+  paramManager.setParam("pM25CalibrationFactor",        "1.0");
+  paramManager.setParam("pM25CalibrationOffset",        "0");
+  paramManager.setParam("pM1CalibrationFactor",         "1.0");
+  paramManager.setParam("pM1CalibrationOffset",         "0");
 
-  Eeprom.writeSentinelMarker();
+  // Eeprom.writeSentinelMarker();
 
   initialConfigMode = true;
 }
@@ -507,7 +536,6 @@ void activateLed(U32 ledMask) {
 }
 
 
-
 int ledsOffHandler(String params) {
   setBlinkMode(OFF);
 }
@@ -518,93 +546,27 @@ int ledsOnHandler(String params) {
 }
 
 
-// Modifies tokens
-void split(const String &str, const String &delim, vector<String> &tokens) {
-  auto start = 0U;
-  auto end = str.indexOf(delim);
-  while (end != -1)
-  {
-    tokens.push_back(str.substring(start, end));
-    start = end + delim.length();
-    end = str.indexOf(delim, start);
+int updateFirmware(String param) {
+  if(WiFi.status() != WL_CONNECTED)
+    return 0;
+
+  // Where do we check for firmware updates?
+  #define FIRMWARE_UPDATE_SERVER "www.sensorbot.org"
+  #define FIRMWARE_UPDATE_PORT 8989
+
+
+  t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, "/update/", "0.0");
+
+  switch(ret) {
+    case HTTP_UPDATE_FAILED:
+        break;
+    case HTTP_UPDATE_NO_UPDATES:
+        break;
+    case HTTP_UPDATE_OK:    // Never get here because if there is an update, the update() function will take over and we'll reboot
+        break;
   }
-
-  tokens.push_back(str.substring(start));
-}
-
-// Modifies kv 
-bool split(const String &str, const String &delim, pair<String, String> &kv) {
-  auto pos = str.indexOf(delim);
-  if(pos == -1)
-    return false;
-
-  kv.first = str.substring(0, pos);
-  kv.second = str.substring(pos + 1);
-
-  return true;
-}
-
-
-// Modifies kvPairs
-void parse(const String &params, vector<pair<String,String>> &kvPairs) {
-  vector<String> tokens;
-  split(params, "&", tokens);
-
-  pair<String, String> kv;
-  for(int i = 0; i < tokens.size(); i++) {
-    if(split(tokens[i], "=", kv))
-      kvPairs.push_back(kv);
-  }
-}
-
-
-int setParamsHandler(String params) {
-
-  vector<pair<String,String>> kvPairs;
-  parse(params, kvPairs);
-
-  for(int i = 0; i < kvPairs.size(); i++)
-    setParam(kvPairs[i].first, kvPairs[i].second);
 
   return 1;
-}
-
-
-int setParam(const String &key, const String &val) {
-  if(key.equalsIgnoreCase("ledsInstalledBackwards")) {
-    Eeprom.setLedsInstalledBackwards((val[0] == 't' || val[0] == 'T') ? "1" : "0");
-  }
-
-  else if(key.equalsIgnoreCase("traditionalLeds"))
-    Eeprom.setTraditionalLeds((val[0] == 't' || val[0] == 'T') ? "1" : "0");
-
-  else if(key.equalsIgnoreCase("localSsid"))
-    updateLocalSsid(val.c_str());
-
-  else if(key.equalsIgnoreCase("localPass")) {
-    if(val.length() < 8 || val.length() > Eeprom.getLocalPasswordSize() - 1)
-      return 0;
-
-    updateLocalPassword(val.c_str());
-  }
-
-  else if(key.equalsIgnoreCase("wifiSsid")) 
-    updateWifiSsid(val.c_str());
-
-  else if(key.equalsIgnoreCase("wifiPass"))
-    updateWifiPassword(val.c_str());
-
-  else if(key.equalsIgnoreCase("deviceToken"))
-    updateDeviceToken(val.c_str());
-
-  else if(key.equalsIgnoreCase("mqttUrl"))
-    updateMqttUrl(val.c_str());
-
-  else if(key.equalsIgnoreCase("mqttPort")) 
-    updateMqttPort(val.c_str());
-
-  return 1;
-
 }
 
 
@@ -677,54 +639,11 @@ void scanVisibleNetworks() {
 }
 
 
-void updateLocalSsid(const char *ssid) {
-  Eeprom.setLocalSsid(ssid);
-}
-
-
-void updateLocalPassword(const char *password) {
-  Eeprom.setLocalPassword(password);
-}
-
-
-void updateWifiSsid(const char *ssid) {
-  Eeprom.setWifiSsid(ssid);
-  changedWifiCredentials = true;
-}
-
-
-void updateWifiPassword(const char *password) {
-  Eeprom.setWifiPassword(password);
-  changedWifiCredentials = true;
-}
-
-
-void updateMqttUrl(const char *url) {
-  Eeprom.setMqttUrl(url);
-
-  mqttDisconnect();
-  mqttServerConfigured = false;
-  mqttServerLookupError = false;
-
-  setupPubSubClient();
-
-  // Let's immediately connect our PubSub client
-  reconnectToPubSubServer();
-}
-
-
-void updateDeviceToken(const char *token) {
-  Eeprom.setDeviceToken(token);
-}
-
-
-void updateMqttPort(const char *port) {
-  Eeprom.setMqttPort(port);
-
+void onMqttPortUpdated() {
   if(Eeprom.getMqttPort() == 0)
     return;
 
-  mqttDisconnect();
+  mqtt.mqttDisconnect();
   mqttServerConfigured = false;
   mqttServerLookupError = false;
 
@@ -745,7 +664,7 @@ void setWifiSsidFromScanResults(int index) {
     return;
   }
   
-  updateWifiSsid(WiFi.SSID(index - 1).c_str());
+  paramManager.setParam("wifiSsid", WiFi.SSID(index - 1));  
 }
 
 
@@ -875,16 +794,4 @@ void connectingToWifi()
 void onConnectedToWifi() {
   if(!serialSwapped)
     Serial.println("Connected to wifi");
-}
-
-
-void publishStatusMessage(const String &msg) {
-  StaticJsonBuffer<128> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
-  root["status"] = msg;
-
-  String json;
-  root.printTo(json);
-
-  mqttPublishAttribute(json);  
 }
