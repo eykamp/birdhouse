@@ -9,26 +9,57 @@ import serial.tools.list_ports
 import polling      # pip install polling
 import time
 import argparse
+import subprocess
+import os
 
 from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
                                             # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
 # Get our passwords and other private data
 sys.path.insert(0, "../management/")
-from provision_config import motherShipUrl, username, password, dashboard_template_name, sensor_type
+from configurator_config import motherShipUrl, username, password #, dashboard_template_name, sensor_type
 
 
 ESP8266_VID_PID = '1A86:7523'
 
+
+ARDUINO_BUILD_EXE_LOCATION = r"C:\Program Files (x86)\Arduino\arduino_debug.exe"
+BUILD_FOLDER = r"C:\Temp\BirdhouseFirmwareBuildFolder"
+SOURCE_FILE = r"initial\initial.ino"
+
+port = None
     
 
 # Our program starts running from here
 def main():
-    global args, tbapi
+    
+    global args, tbapi, port
+
+
+    tbapi = TbApi(motherShipUrl, username, password)
+
+
     parser = argparse.ArgumentParser(description='Configurate your birdhouse!')
 
     parser.add_argument('--number', '-n', metavar='NNN', type=str, help='the number of your birdhouse')
+    parser.add_argument('--nocompile', action='store_true', help="skip compilation, upload stored binary")
+    parser.add_argument('--noupload', action='store_true', help="skip compilation and upload, rely on previously uploaded binary")
+
     args = parser.parse_args()
+    
+    # Find out what port the Birdhouse is on:
+    try:
+        port = get_best_guess_port()
+
+        if not port:
+            print("Plug birdhouse in, please!")
+            port = polling.poll(lambda: get_best_guess_port(), timeout=30, step=0.5)
+    except Exception as ex:
+        print("Could not find any COM ports")
+        raise ex
+
+
+    compile_and_upload_firmware(compile=(not args.nocompile), upload=(not args.noupload))
 
     # Validate
     if args.number is not None:
@@ -40,14 +71,83 @@ def main():
     runUi()
 
 
+
+def run_win_cmd(cmd, args, echo_to_console=True):
+    result = []
+
+    cmdline = '"%s" %s' % (cmd, args)
+
+    try:
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except FileNotFoundError as ex:
+        print("Could not find %s" % cmd)
+        sys.exit()
+    except Exception as ex:
+        print("Command failed: %s" % cmd)
+        raise ex
+
+    for line in process.stdout:
+        line = line.decode()
+        result.append(line)
+
+        if echo_to_console:
+            print(line.replace('\r\n',''))
+
+    errcode = process.returncode
+    print(errcode)
+    # for line in result:
+    #     print(line.decode())
+    if errcode is not None:
+        raise Exception('cmd %s failed, see above for details', cmd)
+
+
+
+''' https://github.com/arduino/Arduino/blob/master/build/shared/manpage.adoc '''
+def compile_and_upload_firmware(compile=True, upload=True, shell=True):
+
+    if not compile and not upload:
+        return
+
+    if compile:
+        build_option = "--verify"
+    if upload:
+        build_option = "--upload"
+
+    if not os.path.exists(SOURCE_FILE):
+        raise Exception("Could not find sketch %s" % SOURCE_FILE)
+
+    if BUILD_FOLDER is None:
+        raise Exception("No build folder!")
+    if os.path.exists(BUILD_FOLDER) and not os.path.isdir(BUILD_FOLDER):
+        raise Exception("%s is not a valid folder!" % BUILD_FOLDER)
+    if not os.path.exists(BUILD_FOLDER):
+        if not os.path.exists(BUILD_FOLDER):
+            try:
+                os.makedirs(BUILD_FOLDER)
+            except Exception:
+                pass    # We'll hadle this below
+
+        if not os.path.exists(BUILD_FOLDER) or not os.path.isdir(BUILD_FOLDER):
+            raise Exception("Could not create build folder %s!" % BUILD_FOLDER)
+
+
+
+    args = '%s --pref build.path="%s" --port %s "%s"' % (build_option, BUILD_FOLDER, port, SOURCE_FILE)
+
+    print(ARDUINO_BUILD_EXE_LOCATION, args)
+    run_win_cmd(ARDUINO_BUILD_EXE_LOCATION, args)
+
+
+
+
 def runUi():
     last_scene = None
     while True:
         try:
             Screen.wrapper(singleton, catch_interrupt=True, arguments=[last_scene])
             sys.exit(0)
-        except ResizeScreenError as e:
-            last_scene = e.scene
+        except ResizeScreenError as ex:
+            last_scene = ex.scene
 
 
 
@@ -77,34 +177,38 @@ parse_list = {
 
 class Main(Frame):
     def __init__(self, screen):
+        global port
+
         self.has_connection_to_birdhouse = False
         self.initializing = True
         self.orig_data = None
 
         self.bhserial = None
+        self.port = port
 
-        super(Main, self).__init__(screen,
-                                   screen.height * 2 // 3,
-                                   screen.width * 2 // 3,
-                                   hover_focus=True,
+        if not port:
+            raise Exception("I don't know what port to use!")
+
+        super(Main, self).__init__(screen, 
+                                   screen.height * 2 // 3, 
+                                   screen.width * 2 // 3, 
+                                   hover_focus=True, 
                                    title="Birdhouse Configurator")
-
-        # Add some colors to our palette
-        self.palette["changed"] = (Screen.COLOUR_RED, Screen.A_NORMAL, Screen.COLOUR_BLUE)
-
-        self.port_list = ListBox(4, [], name="ports", on_select=self.on_select_port)
-        self._status_msg = Label("Welcome!")
-
-        self.reset_form()
 
         layout = Layout([100], fill_frame=True)
         self.add_layout(layout)
         self.layout = layout    # For use when detecting changes
 
-        # Connection info
-        layout.add_widget(self.port_list)
-        layout.add_widget(Divider())
 
+        # Add some colors to our palette
+        self.palette["changed"] = (Screen.COLOUR_RED, Screen.A_NORMAL, Screen.COLOUR_BLUE)
+
+        self._status_msg = Label("Welcome!")
+
+        self.reset_form()
+
+
+        # Connection info
         layout.add_widget(Text("Birdhouse Number:", "birdhouse_number", validator="^\d\d\d$", on_change=self.input_changed))
         self.layout.find_widget("birdhouse_number").value = args.number
 
@@ -164,14 +268,16 @@ class Main(Frame):
 
         self.fix()  # Calculate positions of widgets
 
-        try:
-            print("Plug birdhouse in, please!")
-            polling.poll(lambda: self.scan_ports(), timeout=30, step=0.5)
-        except Exception as ex:
-            print("Could not find any COM ports")
-            raise ex
 
         self.initializing = False
+
+        self.bhserial = serial.Serial(port, 115200, timeout=5)
+        self.query_birdhouse(port)
+
+        self.port = port
+        self.has_connection_to_birdhouse = True
+
+
         self.input_changed()
 
 
@@ -187,19 +293,20 @@ class Main(Frame):
         # Set dependent field values
         self.layout.find_widget('local_ssid').value = "Birdhouse " + self.layout.find_widget('birdhouse_number').value
         
-        for key, value in self.orig_data.items():
-            widget = self.layout.find_widget(key)
+        if self.orig_data:
+            for key, value in self.orig_data.items():
+                widget = self.layout.find_widget(key)
 
-            if widget is None:      # This can happen if on_change is called during form construction
-                pass
-            elif not widget.is_valid:
-                widget.custom_colour = "invalid"
-            elif widget.value != value and parse_list[key][1] is not None:
-                widget.custom_colour = "changed"
-            elif widget.disabled:
-                widget.custom_colour = "disabled"
-            else:
-                widget.custom_colour = "edit_text"
+                if widget is None:      # This can happen if on_change is called during form construction
+                    pass
+                elif not widget.is_valid:
+                    widget.custom_colour = "invalid"
+                elif widget.value != value and parse_list[key][1] is not None:
+                    widget.custom_colour = "changed"
+                elif widget.disabled:
+                    widget.custom_colour = "disabled"
+                else:
+                    widget.custom_colour = "edit_text"
 
 
     def on_test_leds_changed(self):
@@ -221,16 +328,7 @@ class Main(Frame):
                 self.set_status_msg(val + " LED should be on")
 
 
-    def on_select_port(self, port=None):
-        if port is None:
-            port = self.port_list.value
-
-        self.query_birdhouse(port)
-        self.port = port
-
-
     def query_birdhouse(self, port):
-        self.set_status_msg("Querying birdhouse on port " + port)
         self.has_connection_to_birdhouse = False
 
         tries = 10
@@ -278,15 +376,37 @@ class Main(Frame):
             exec(cmd)
 
 
-    def parse_response(self, resp):
-        print("parsing ", resp)
+    def parse_response(self, json):
         for data_element in parse_list:
-            # Runs a series of commands that look like: self.data["local_pass"] = (resp["variables"]["localPass"])
-            cmd = 'self.data["' + data_element + '"] = str(resp["variables"]' + parse_list[data_element][0]  + ')'
-            exec(cmd)
+            # Runs a series of commands that look like: self.data["local_pass"] = (json["variables"]["localPass"])
+            cmd = 'self.data["' + data_element + '"] = str(json["variables"]' + parse_list[data_element][0]  + ')'
+            try:
+                exec(cmd)
+            except KeyError as ex:
+                print("Could not find expected key in JSON received from Birdhouse.  Looking for: %s, but did not find it.\nJSON: %s" % (data_element, json))
+                sys.exit()
+            except Exception as ex:
+                print("Trying to execute line: %s" % cmd)
+                print("JSON: %s" % json)
+                print(ex)
+                raise ex
+
+            # Special handlers:
+            self.data['birdhouse_number'] = str(self.data['birdhouse_number']).zfill(3)
 
             widget = self.layout.find_widget(data_element)
-            widget.value = eval('str(resp["variables"]' + parse_list[data_element][0]  + ')')
+            if not widget:
+                print("Could not find widget %s", data_element)
+                sys.exit(1)
+            try:
+                widget.value = eval('str(json["variables"]' + parse_list[data_element][0]  + ')')
+            except AttributeError as ex:
+                print("Failed evaluting element %s" % data_element)
+                raise ex
+
+            # Special handlers:
+            self.layout.find_widget('birdhouse_number').value = self.data['birdhouse_number']
+
 
 
     def write_values(self):
@@ -336,12 +456,13 @@ class Main(Frame):
 
 
     def make_device_name(self, base_name):
-        return base_name + ' Device'
+        return base_name
 
 
     # Retrieve token from SB server using Local SSID field as device name
     def retrieve_token(self):
         device_name = self.make_device_name(self.layout.find_widget('local_ssid').value)
+        print("Looking for device %s" % device_name)
         device = tbapi.get_device_by_name(device_name)
         if device is None:
             self.layout.find_widget('device_token').value = 'DEVICE_NOT_FOUND'
@@ -352,35 +473,12 @@ class Main(Frame):
         self.layout.find_widget('device_token').value = device_token
 
 
-    def scan_ports(self):
-        self.set_status_msg("Scanning")
-        self.port_list.options = get_ports()
-        port = get_best_guess_port()
-
-        if port == None:
-            self.has_connection_to_birdhouse = False
-            if len(self.port_list.options) == 0:
-                self.set_status_msg("No serial ports found.  Is a birdhouse plugged in?")
-                return False
-            else:
-                self.set_status_msg("Please select a port!")
-                return True
-
-        self.set_status_msg("Autodetected birdhouse on " + port)
-        self.bhserial = serial.Serial(port, 115200, timeout=5)
-        self.on_select_port(port)
-        self.port = port
-        self.has_connection_to_birdhouse = True
-        return True
-
-
-
-
     def _quit(self):
         self.save()
         print("Bye!")
         print(self.data)
         raise StopApplication("User pressed quit")
+
 
 
 # Build a list of ports we can use
