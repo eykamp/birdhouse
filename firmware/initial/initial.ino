@@ -259,14 +259,15 @@ void setup() {
 
 
   Rest.variable("wifiScanResults", &getScanResults, false);
-  Rest.variable("sampleDuration", &getSampleDuration);
-  Rest.variable("deviceToken", &getDeviceToken);
-  Rest.variable("localSsid", &getLocalSsid);
-  Rest.variable("localPass", &getLocalPassword);
-  Rest.variable("wifiSsid", &getWifiSsid);
-  Rest.variable("wifiPass", &getWifiPassword);
-  Rest.variable("mqttUrl", &getMqttUrl);
-  Rest.variable("mqttPort", &getMqttPort);
+  Rest.variable("sampleDuration",  &getSampleDuration);
+  Rest.variable("deviceToken",     &getDeviceToken);
+  Rest.variable("localSsid",       &getLocalSsid);
+  Rest.variable("localPass",       &getLocalPassword);
+  Rest.variable("wifiSsid",        &getWifiSsid);
+  Rest.variable("wifiPass",        &getWifiPassword);
+  Rest.variable("mqttUrl",         &getMqttUrl);
+  Rest.variable("mqttPort",        &getMqttPort);
+  Rest.variable("serialNumber",    &getBirdhouseNumber);
 
 
   // These all take a single parameter specified on the cmd line
@@ -303,14 +304,15 @@ void setup() {
 
 
 // Pass through functions for aREST variables
-const char *getDeviceToken()   { return Eeprom.getDeviceToken();    }
-const char *getLocalSsid()     { return Eeprom.getLocalSsid();      }
-const char *getLocalPassword() { return Eeprom.getLocalPassword();  }
-const char *getWifiSsid()      { return Eeprom.getWifiSsid();       }
-const char *getWifiPassword()  { return Eeprom.getWifiPassword();   }
-const char *getMqttUrl()       { return Eeprom.getMqttUrl();        }
-U16 getSampleDuration()        { return Eeprom.getSampleDuration(); }
-U16 getMqttPort()              { return Eeprom.getMqttPort();       }
+const char *getDeviceToken()   { return Eeprom.getDeviceToken();     }
+const char *getLocalSsid()     { return Eeprom.getLocalSsid();       }
+const char *getLocalPassword() { return Eeprom.getLocalPassword();   }
+const char *getWifiSsid()      { return Eeprom.getWifiSsid();        }
+const char *getWifiPassword()  { return Eeprom.getWifiPassword();    }
+const char *getMqttUrl()       { return Eeprom.getMqttUrl();         }
+U16 getSampleDuration()        { return Eeprom.getSampleDuration();  }
+U16 getMqttPort()              { return Eeprom.getMqttPort();        }
+U16 getBirdhouseNumber()       { return Eeprom.getBirdhouseNumber(); }
 
 
 String getLedParams() {
@@ -327,14 +329,15 @@ bool needToConnect = false;
 
 // Called the very first time a Birdhouse is booted -- set defaults
 void intitialConfig() {
-  paramManager.setParam("localPassword",  "88888888");  
-  paramManager.setParam("localSsid",      "NewBirdhouse666");  
-  paramManager.setParam("wifiPassword",   "NOT_SET");  
-  paramManager.setParam("wifiSsid",       "NOT_SET");  
-  paramManager.setParam("mqttUrl",        "www.sensorbot.org");  
-  paramManager.setParam("mqttPort",       "1883");  
-  paramManager.setParam("deviceToken",    "NOT_SET");  
-  paramManager.setParam("sampleDuration", "30");  
+  paramManager.setParam("localPassword",   "88888888");  
+  paramManager.setParam("localSsid",       "NewBirdhouse666");  
+  paramManager.setParam("wifiPassword",    "NOT_SET");  
+  paramManager.setParam("wifiSsid",        "NOT_SET");  
+  paramManager.setParam("mqttUrl",         "www.sensorbot.org");  
+  paramManager.setParam("mqttPort",        "1883");  
+  paramManager.setParam("deviceToken",     "NOT_SET");  
+  paramManager.setParam("sampleDuration",  "30");  
+  paramManager.setParam("serialNumber",    "-1");  
   
   paramManager.setParam("temperatureCalibrationFactor", "1.0");
   paramManager.setParam("temperatureCalibrationOffset", "0");
