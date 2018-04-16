@@ -42,6 +42,14 @@ def main():
     parser = argparse.ArgumentParser(description='Configurate your birdhouse!')
 
     parser.add_argument('--number', '-n', metavar='NNN', type=str, help='the number of your birdhouse')
+    parser.add_argument('--localssid', metavar='ssid', type=str, help='The local SSID for the birdhouse wifi')
+    parser.add_argument('--localpass', metavar='pass', type=str, help='The local password for the birdhouse wifi')
+    parser.add_argument('--wifissid', metavar='ssid', type=str, help='The SSID for the local wifi')
+    parser.add_argument('--wifipass', metavar='pass', type=str, help='The password for the local wifi')
+    parser.add_argument('--mqtturl', metavar='url', type=str, help='The url for sending telemetry to')
+    parser.add_argument('--mqttport', metavar='port', type=str, help='The server\'s MQTT port')
+
+
     parser.add_argument('--nocompile', action='store_true', help="skip compilation, upload stored binary")
     parser.add_argument('--noupload', action='store_true', help="skip compilation and upload, rely on previously uploaded binary")
 
@@ -59,7 +67,7 @@ def main():
         raise ex
 
 
-    compile_and_upload_firmware(compile=(not args.nocompile), upload=(not args.noupload))
+    # compile_and_upload_firmware(compile=(not args.nocompile), upload=(not args.noupload))
 
     # Validate
     if args.number is not None:
@@ -157,31 +165,35 @@ def runUi():
 # The values are tuples with:
 #   First: paths for extracting the desired value from the JSON string returned by the birdhouse
 #   Second: params for writing data back to the birdhouse (None means the element is not writable)
+#   Third: The associated command line override, if any
 parse_list = {
-        'birdhouse_number'       : ('["serialNumber"]',                               'serialNumber'),
-        'uptime'                 : ('["uptime"]',                                     None),
-        'wifi_status'            : ('["wifiStatus"]',                                 None),
-        'traditionalLeds'        : ('["ledparams"]["traditionalLeds"]',               'traditionalLeds'),
-        'ledsInstalledBackwards' : ('["ledparams"]["ledsInstalledBackwards"]',        'ledsInstalledBackwards'),
-        'plantowerSensorDetected': ('["sensorsDetected"]["plantowerSensorDetected"]', None),
-        'temperatureSensor'      : ('["sensorsDetected"]["temperatureSensor"]',       None),
-        'mqtt_status'            : ('["mqttStatus"]',                                 None),
-        'device_token'           : ('["deviceToken"]',                                'deviceToken'),
-        'local_ssid'             : ('["localSsid"]',                                  'localSsid'),
-        'local_pass'             : ('["localPass"]',                                  'localPass'),
-        'wifi_ssid'              : ('["wifiSsid"]',                                   'wifiSsid'),
-        'wifi_pass'              : ('["wifiPass"]',                                   'wifiPass'),
-        'mqtt_url'               : ('["mqttUrl"]',                                    'mqttUrl'),
-        'mqtt_port'              : ('["mqttPort"]',                                   'mqttPort'),
+        'birdhouse_number'       : ('["serialNumber"]',                               'serialNumber',           'number'),
+        'uptime'                 : ('["uptime"]',                                     None,                     None),
+        'wifi_status'            : ('["wifiStatus"]',                                 None,                     None),
+        'traditionalLeds'        : ('["ledparams"]["traditionalLeds"]',               'traditionalLeds',        None),
+        'ledsInstalledBackwards' : ('["ledparams"]["ledsInstalledBackwards"]',        'ledsInstalledBackwards', None),
+        'plantowerSensorDetected': ('["sensorsDetected"]["plantowerSensorDetected"]', None,                     None),
+        'temperatureSensor'      : ('["sensorsDetected"]["temperatureSensor"]',       None,                     None),
+        'mqtt_status'            : ('["mqttStatus"]',                                 None,                     None),
+        'device_token'           : ('["deviceToken"]',                                'deviceToken',            'token'),
+        'local_ssid'             : ('["localSsid"]',                                  'localSsid',              'localssid'),
+        'local_pass'             : ('["localPass"]',                                  'localPass',              'localpass'),
+        'wifi_ssid'              : ('["wifiSsid"]',                                   'wifiSsid',               'wifissid'),
+        'wifi_pass'              : ('["wifiPass"]',                                   'wifiPass',               'wifipass'),
+        'mqtt_url'               : ('["mqttUrl"]',                                    'mqttUrl',                'mqtturl'),
+        'mqtt_port'              : ('["mqttPort"]',                                   'mqttPort',               'mqttport'),
     }
 
 class Main(Frame):
+
+    overwrite_params_with_cmd_line_values = True
+
     def __init__(self, screen):
         global port
 
         self.has_connection_to_birdhouse = False
         self.initializing = True
-        self.orig_data = None
+        self.orig_data = { }
 
         self.bhserial = None
         self.port = port
@@ -279,6 +291,7 @@ class Main(Frame):
 
 
         self.input_changed()
+        self.overwrite_params_with_cmd_line_values = False
 
 
     def input_changed(self):
@@ -353,8 +366,10 @@ class Main(Frame):
                 self.has_connection_to_birdhouse = True
                 print("tries", tries)
                 tries = 0
+
                 self.parse_response(resp)
-                self.orig_data = self.data
+                # self.orig_data = self.data
+
 
             if self.has_connection_to_birdhouse:
                 self.set_status_msg("Got response from birdhouse")
@@ -372,8 +387,7 @@ class Main(Frame):
 
     def reset_form(self):
         for data_element in parse_list:
-            cmd = 'self.data["' + data_element + '"] = "Unknown"'
-            exec(cmd)
+            self.data[data_element] = "Unknown"
 
 
     def parse_response(self, json):
@@ -392,14 +406,32 @@ class Main(Frame):
                 raise ex
 
             # Special handlers:
-            self.data['birdhouse_number'] = str(self.data['birdhouse_number']).zfill(3)
+            if data_element == 'birdhouse_number':
+                self.data[data_element] = str(self.data[data_element]).zfill(3)
 
+
+            # Do this before clobbering with cmd line params so that the changes will be highlighted on the form
+            self.orig_data[data_element] = self.data[data_element]
+
+            # Overwrite any values with those from the cmd line
+            if self.overwrite_params_with_cmd_line_values:
+                if parse_list[data_element][2] is not None:
+                    try:
+                        initVal = eval("args." + parse_list[data_element][2])
+                    except AttributeError:
+                        initVal = None
+                    if initVal is not None:
+                        self.data[data_element] = initVal
+                        print("Setting %s to %s" %( data_element, str(initVal)))
+
+
+            # Populate the widget
             widget = self.layout.find_widget(data_element)
             if not widget:
                 print("Could not find widget %s", data_element)
                 sys.exit(1)
             try:
-                widget.value = eval('str(json["variables"]' + parse_list[data_element][0]  + ')')
+                widget.value =  self.data[data_element]
             except AttributeError as ex:
                 print("Failed evaluting element %s" % data_element)
                 raise ex
