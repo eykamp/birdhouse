@@ -397,9 +397,8 @@ void setup() {
   setupPubSubClient();
   mqtt.mqttSetCallback(messageReceivedFromMothership);
 
-  paramManager.setLocalSsidChangedCallback([]()       { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
-  paramManager.setLocalPasswordChangedCallback([]()   { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
-  paramManager.setWifiCredentialsChangedCallback([]() { changedWifiCredentials = true; });
+  paramManager.setLocalCredentialsChangedCallback([]()    { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
+  paramManager.setWifiCredentialsChangedCallback([]()     { changedWifiCredentials = true; });
   paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
 
   setupSensors();

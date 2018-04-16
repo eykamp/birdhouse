@@ -12,21 +12,15 @@ class ParameterManager
 
 private:
 
-std::function<void()> localSsidChangedCallback;
-std::function<void()> localPasswordChangedCallback;
+std::function<void()> localCredentialsChangedCallback;
 std::function<void()> wifiCredentialsChangedCallback;
 std::function<void()> mqttCredentialsChangedCallback;
 
 
 public:
 
-void setLocalSsidChangedCallback(std::function<void()> callback) {
-  localSsidChangedCallback = callback;
-}
-
-
-void setLocalPasswordChangedCallback(std::function<void()> callback) {
-  localPasswordChangedCallback = callback;
+void setLocalCredentialsChangedCallback(std::function<void()> callback) {
+  localCredentialsChangedCallback = callback;
 }
 
 
@@ -40,8 +34,7 @@ void setMqttCredentialsChangedCallback(std::function<void()> callback) {
 
 
 ParameterManager() {
-  localSsidChangedCallback = NULL;
-  localPasswordChangedCallback = NULL;
+  localCredentialsChangedCallback = NULL;
   wifiCredentialsChangedCallback = NULL;
   mqttCredentialsChangedCallback = NULL;
 }
@@ -59,8 +52,8 @@ int setParam(const String &key, const String &val) {
   {
     Eeprom.setLocalSsid(val.c_str());
 
-    if(localSsidChangedCallback)
-      localSsidChangedCallback();
+    if(localCredentialsChangedCallback)
+      localCredentialsChangedCallback();
   }
 
   else if(key.equalsIgnoreCase("localPass")) {
@@ -69,8 +62,8 @@ int setParam(const String &key, const String &val) {
 
     Eeprom.setLocalPassword(val.c_str());
 
-    if(localPasswordChangedCallback)
-      localPasswordChangedCallback();
+    if(localCredentialsChangedCallback)
+      localCredentialsChangedCallback();
   }
 
   else if(key.equalsIgnoreCase("wifiSsid")) {
