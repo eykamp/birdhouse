@@ -38,7 +38,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.116" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.117" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
@@ -358,16 +358,17 @@ void setup() {
   delay(500);
   activateLed(NONE);
 
+  handleUpgrade();
 
   Rest.variable("uptime", &millis);
+  Rest.variable("ledparams", &getLedParams, false);   // We'll handle quoting ourselves
+  Rest.variable("sensorsDetected", &getSensorsDetected, false);
+  Rest.variable("calibrationFactors", &getCalibrationFactors, false);
+
   Rest.variable("lastReportTime", &lastReportTime);
-  Rest.variable("plantowerSensorDetected", &plantowerSensorDetected);
   Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
   Rest.variable("mqttStatus", &getMqttStatus);
   Rest.variable("wifiStatus", &getWifiStatus);
-
-  // Rest.variable("firmwareVersion", &F(FIRMWARE_VERSION));
-
 
   Rest.variable("sampleCount",     &plantowerSampleCount);
   Rest.variable("sampleDurations", &getSampleDuration);
@@ -379,6 +380,7 @@ void setup() {
   Rest.variable("mqttUrl",         &getMqttUrl);
   Rest.variable("mqttPort",        &getMqttPort);
   Rest.variable("serialNumber",    &getBirdhouseNumber);
+  Rest.variable("firmwareVersion", &getFirmwareVersion);
 
   // These all take a single parameter specified on the cmd line
   Rest.function("setparams", setParamsHandler);
@@ -417,15 +419,151 @@ void setup() {
 }
 
 
-const char *getDeviceToken()   { return Eeprom.getDeviceToken();     }
-const char *getLocalSsid()     { return Eeprom.getLocalSsid();       }
-const char *getLocalPassword() { return Eeprom.getLocalPassword();   }
-const char *getWifiSsid()      { return Eeprom.getWifiSsid();        }
-const char *getWifiPassword()  { return Eeprom.getWifiPassword();    }
-const char *getMqttUrl()       { return Eeprom.getMqttUrl();         }
-U16 getSampleDuration()        { return Eeprom.getSampleDuration();  }
-U16 getMqttPort()              { return Eeprom.getMqttPort();        }
-U16 getBirdhouseNumber()       { return Eeprom.getBirdhouseNumber(); }
+void handleUpgrade() {
+  // Did we just upgrade our firmware?  If so, is there anything we need to do?
+
+  if(String(Eeprom.getFirmwareVersion()) == FIRMWARE_VERSION) {
+    Serial.println("Equal!");
+    return;
+  }
+
+  Serial.println("not");
+
+
+  // // 0.116 => 0.117
+  // Serial.println("Migrating firmware...");
+
+  // static const int SSID_LENGTH             = 32;
+  // static const int PASSWORD_LENGTH         = 63;
+  // static const int DEVICE_KEY_LENGTH       = 20;
+  // static const int URL_LENGTH              = 64;
+  // static const int SENTINEL_MARKER_LENGTH  = 64;
+  // static const int FIRMWARE_VERSION_LENGTH = 12;
+
+  // char xlocalSsid[SSID_LENGTH + 1];
+  // char xlocalPassword[PASSWORD_LENGTH + 1];
+  // char xwifiSsid[SSID_LENGTH + 1];
+  // char xwifiPassword[PASSWORD_LENGTH + 1];
+  // char xdeviceToken[DEVICE_KEY_LENGTH + 1];
+  // char xmqttUrl[URL_LENGTH + 1];
+
+  // // Old addresses
+  // int local_ssid_address      = 0;
+  // int local_password_address  = local_ssid_address      + sizeof(xlocalSsid);
+  // int wifi_ssid_address       = local_password_address  + sizeof(xlocalPassword);
+  // int wifi_password_address   = wifi_ssid_address       + sizeof(xwifiSsid);
+  // int device_key_address      = wifi_password_address   + sizeof(xwifiPassword);
+  // int mqtt_url_address        = device_key_address      + sizeof(xdeviceToken);
+  // int pub_sub_port_address    = mqtt_url_address        + sizeof(xmqttUrl);
+  // int sample_duration_address = pub_sub_port_address    + sizeof(U16);
+  // int sentinel_address        = sample_duration_address + sizeof(U16);
+
+  // // Read vals
+  // Eeprom.readStringFromEeprom(local_ssid_address,     sizeof(xlocalSsid)     - 1, xlocalSsid);
+  // Eeprom.readStringFromEeprom(device_key_address,     sizeof(xdeviceToken)   - 1, xdeviceToken);
+
+
+  // Eeprom.setDeviceToken(xdeviceToken);
+
+  // String ssid = String(xlocalSsid);
+  // String sn;
+
+  // if(ssid == "Birdhouse One")
+  // {
+  //   sn = "001";
+  //   ssid = "Birdhouse 001";
+  // }
+
+  // if(ssid == "Birdhouse Two")
+  // {
+  //   sn = "002";
+  //   ssid = "Birdhouse 002";
+  // }
+
+  // if(ssid == "Birdhouse Three")
+  // {
+  //   sn = "003";
+  //   ssid = "Birdhouse 003";
+  // }
+
+  // if(ssid == "Birdhouse Four")
+  // {
+  //   sn = "004";
+  //   ssid = "Birdhouse 004";
+  // }
+
+
+  // paramManager.setParam("localPassword",   "88888888");  
+  // paramManager.setParam("localSsid",       ssid);
+  // paramManager.setParam("wifiPassword",    "funkymonkey");  
+  // paramManager.setParam("wifiSsid",        "The Grand Duchy");  
+  // paramManager.setParam("mqttUrl",         "www.sensorbot.org");  
+  // paramManager.setParam("mqttPort",        "1883");  
+  // paramManager.setParam("deviceToken",     String(xdeviceToken));  
+  // paramManager.setParam("sampleDuration",  "30");  
+  // paramManager.setParam("serialNumber",    sn); 
+  
+  // paramManager.setParam("temperatureCalibrationFactor", "1.0");
+  // paramManager.setParam("temperatureCalibrationOffset", "0");
+  // paramManager.setParam("humidityCalibrationFactor",    "1.0");
+  // paramManager.setParam("humidityCalibrationOffset",    "0");
+  // paramManager.setParam("pressureCalibrationFactor",    "1.0");
+  // paramManager.setParam("pressureCalibrationOffset",    "0");
+  // paramManager.setParam("pM10CalibrationFactor",        "1.0");
+  // paramManager.setParam("pM10CalibrationOffset",        "0");
+  // paramManager.setParam("pM25CalibrationFactor",        "1.0");
+  // paramManager.setParam("pM25CalibrationOffset",        "0");
+  // paramManager.setParam("pM1CalibrationFactor",         "1.0");
+  // paramManager.setParam("pM1CalibrationOffset",         "0");
+
+  // Eeprom.setLedsInstalledBackwards("false");
+  // Eeprom.setTraditionalLeds("true");
+
+
+  // Eeprom.setFirmwareVersion(FIRMWARE_VERSION);
+
+  // ESP.restart();
+}
+
+
+String getLedParams() {
+  return String("{\"traditionalLeds\":") + (Eeprom.getTraditionalLeds() ? "true" : "false") + ",\"ledsInstalledBackwards\":" + (Eeprom.getLedsInstalledBackwards() ? "true" : "false") + "}";
+}
+
+
+String getSensorsDetected() {
+  return String("{\"plantowerSensorDetected\":") + (plantowerSensorDetected ? "true" : "false") + ",\"temperatureSensor\":\"" + getTemperatureSensorName() + "\"}";
+}
+
+
+String getCalibrationFactors() {
+  return String("{") + 
+    "\"temperatureCalibrationFactor\":" + String(Eeprom.getTemperatureCalibrationFactor()) + "," +
+    "\"temperatureCalibrationOffset\":" + String(Eeprom.getTemperatureCalibrationOffset()) + "," +
+    "\"humidityCalibrationFactor\":"    + String(Eeprom.getHumidityCalibrationFactor())    + "," +
+    "\"humidityCalibrationOffset\":"    + String(Eeprom.getHumidityCalibrationOffset())    + "," +
+    "\"pressureCalibrationFactor\":"    + String(Eeprom.getPressureCalibrationFactor())    + "," +
+    "\"pressureCalibrationOffset\":"    + String(Eeprom.getPressureCalibrationOffset())    + "," +
+    "\"pm10CalibrationFactor\":"        + String(Eeprom.getPM10CalibrationFactor())        + "," +
+    "\"pm10CalibrationOffset\":"        + String(Eeprom.getPM10CalibrationOffset())        + "," +
+    "\"pm25CalibrationFactor\":"        + String(Eeprom.getPM25CalibrationFactor())        + "," +
+    "\"pm25CalibrationOffset\":"        + String(Eeprom.getPM25CalibrationOffset())        + "," +
+    "\"pm1CalibrationFactor\":"         + String(Eeprom.getPM1CalibrationFactor())         + "," +
+    "\"pm1CalibrationOffset\":"         + String(Eeprom.getPM1CalibrationOffset())         + "}";
+}
+
+
+
+const char *getDeviceToken()     { return Eeprom.getDeviceToken();     }
+const char *getLocalSsid()       { return Eeprom.getLocalSsid();       }
+const char *getLocalPassword()   { return Eeprom.getLocalPassword();   }
+const char *getWifiSsid()        { return Eeprom.getWifiSsid();        }
+const char *getWifiPassword()    { return Eeprom.getWifiPassword();    }
+const char *getMqttUrl()         { return Eeprom.getMqttUrl();         }
+const char *getFirmwareVersion() { return Eeprom.getFirmwareVersion(); }
+U16 getSampleDuration()          { return Eeprom.getSampleDuration();  }
+U16 getMqttPort()                { return Eeprom.getMqttPort();        }
+U16 getBirdhouseNumber()         { return Eeprom.getBirdhouseNumber(); }
 
 
 bool needToReconnectToWifi = false;
@@ -700,6 +838,7 @@ void loopSensors() {
 
 
 void checkForFirmwareUpdates() {
+
   if(WiFi.status() != WL_CONNECTED)
     return;
 
