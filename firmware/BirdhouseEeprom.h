@@ -222,20 +222,6 @@ private:
 
   // This function will read a numeric from addr byte-by-byte and reconstitute into a whole
   template <typename T>
-  void writeNumberToEeprom(int addr, T value) {
-    byte *p = reinterpret_cast<byte *>(&value);
-
-    for(int i = 0; i < sizeof(T); i++) {
-      write(addr + i, p[i]);    // Write the ith byte 
-    }
-
-    commit();
-  }
-
-
-
-  // This function will write a numeric value byte-by-byte to eeprom at the specified address
-  template <typename T>
   T readNumberFromEeprom(int addr) {
     T value = 0;
     byte *p = reinterpret_cast<byte *>(&value);
@@ -248,12 +234,24 @@ private:
   }
 
 
+
+  // This function will write a numeric value byte-by-byte to eeprom at the specified address
+  template <typename T>
+  void writeNumberToEeprom(int addr, T value) {
+    byte *p = reinterpret_cast<byte *>(&value);
+
+    for(int i = 0; i < sizeof(T); i++) {
+      write(addr + i, p[i]);    // Write the ith byte 
+    }
+
+    commit();
+  }
+
+
   void copy(char *dest, const char *source, U32 destSize) {
     strncpy(dest, source, destSize);
     dest[destSize] = '\0';
   }
-
-
 
 };
 
