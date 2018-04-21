@@ -136,8 +136,8 @@ public:
 
 
     // Procuces a block of code that follows this pattern:
-    //     readStringFromEeprom(LOCAL_SSID_ADDRESS,       sizeof(localSsid)       - 1, localSsid);
-    #define FIELD(a, name, c, address, d, g)                      \
+    //     readStringFromEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
+    #define FIELD(a, name, address, d, e, f)                      \
       readStringFromEeprom(address, sizeof(name) - 1, name);
       STRING_FIELD_LIST  
     #undef FIELD
