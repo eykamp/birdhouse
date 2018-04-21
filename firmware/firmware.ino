@@ -339,6 +339,7 @@ void setup() {
 
 
 
+
   pinMode(LED_BUILTIN, OUTPUT);
 
   pinMode(LED_RED, OUTPUT);
@@ -346,6 +347,7 @@ void setup() {
   pinMode(LED_GREEN, OUTPUT);
 
   strip.begin();
+  Eeprom.begin();
 
 
   activateLed(RED);
@@ -356,7 +358,6 @@ void setup() {
   delay(500);
   activateLed(NONE);
 
-  Eeprom.begin();
 
   Rest.variable("uptime", &millis);
   Rest.variable("lastReportTime", &lastReportTime);
