@@ -201,7 +201,12 @@ public:
 
 
 
+  void readStringFromEeprom(int addr, int length, char container[]) {
+    for (int i = 0; i < length; i++)
+      container[i] = read(addr + i);
 
+    container[length] = '\0';   // Better safe than sorry!
+  }
 
 private:
   // Utility functions
@@ -212,14 +217,6 @@ private:
           
     write(addr + length, '\0');
     commit();
-  }
-
-
-  void readStringFromEeprom(int addr, int length, char container[]) {
-    for (int i = 0; i < length; i++)
-      container[i] = read(addr + i);
-
-    container[length] = '\0';   // Better safe than sorry!
   }
 
 
