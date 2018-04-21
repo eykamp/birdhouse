@@ -1,9 +1,10 @@
 // TODO: No AQ readings for 1 min after turned on (as per specs)
 // TODO: No AQ measurements when humidity > 95% (as per specs)
 
-
-#define NUMBER_VARIABLES 30
-
+#define AREST_NUMBER_VARIABLES 30
+#define AREST_NUMBER_FUNCTIONS 20
+#define AREST_PARAMS_MODE 1
+#define AREST_BUFFER_SIZE 4000
 
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
