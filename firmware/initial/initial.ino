@@ -252,6 +252,8 @@ void setup() {
   Rest.variable("uptime", &millis);
   Rest.variable("ledparams", &getLedParams, false);   // We'll handle quoting ourselves
   Rest.variable("sensorsDetected", &getSensorsDetected, false);
+  Rest.variable("calibrationFactors", &getCalibrationFactors, false);
+
   Rest.variable("mqttStatus", &getMqttStatus);
   Rest.variable("wifiStatus", &getWifiStatus);
   Rest.variable("mqttServerConfigured", &mqttServerConfigured);
@@ -326,6 +328,23 @@ String getLedParams() {
 String getSensorsDetected() {
   return String("{\"plantowerSensorDetected\":") + (plantowerSensorDetected ? "true" : "false") + ",\"temperatureSensor\":\"" + getTemperatureSensorName() + "\"}";
 }
+
+
+String getCalibrationFactors() {
+  return String("{") + 
+    "\"temperatureCalibrationFactor\":" + String(Eeprom.getTemperatureCalibrationFactor()) + "," +
+    "\"temperatureCalibrationOffset\":" + String(Eeprom.getTemperatureCalibrationOffset()) + "," +
+    "\"humidityCalibrationFactor\":"    + String(Eeprom.getHumidityCalibrationFactor())    + "," +
+    "\"humidityCalibrationOffset\":"    + String(Eeprom.getHumidityCalibrationOffset())    + "," +
+    "\"pressureCalibrationFactor\":"    + String(Eeprom.getPressureCalibrationFactor())    + "," +
+    "\"pressureCalibrationOffset\":"    + String(Eeprom.getPressureCalibrationOffset())    + "," +
+    "\"pm10CalibrationFactor\":"        + String(Eeprom.getPM10CalibrationFactor())        + "," +
+    "\"pm10CalibrationOffset\":"        + String(Eeprom.getPM10CalibrationOffset())        + "," +
+    "\"pm25CalibrationFactor\":"        + String(Eeprom.getPM25CalibrationFactor())        + "," +
+    "\"pm25CalibrationOffset\":"        + String(Eeprom.getPM25CalibrationOffset())        + "," +
+    "\"pm1CalibrationFactor\":"         + String(Eeprom.getPM1CalibrationFactor())         + "," +
+    "\"pm1CalibrationOffset\":"         + String(Eeprom.getPM1CalibrationOffset())         + "}";
+
 
 
 bool needToConnect = false;
