@@ -157,7 +157,7 @@ public:
   }
 
 
-  // Create a block of code for every item in STRING_FIELD_LIST that looks like this
+  // Create a block of code for every item in STRING_FIELD_LIST that looks like this:
   //     void setLocalSsid(const char *ssid) {
   //       copy(localSsid, ssid, sizeof(localSsid) - 1);
   //       writeStringToEeprom(LOCAL_SSID_ADDRESS, sizeof(localSsid) - 1, localSsid);
@@ -180,7 +180,7 @@ public:
   #undef FIELD
 
 
-  // Create a block of code for every item in NUMERIC_FIELD_LIST that looks like this
+  // Create a block of code for every item in NUMERIC_FIELD_LIST that looks like this:
   //     void setTemperatureCalibrationFactor(const char *stringifiedParam) {                           
   //         temperatureCalibrationFactor = atof(stringifiedParam);                              
   //         writeNumberToEeprom(TEMPERATURE_CALIBRATION_FACTOR_ADDRESS, temperatureCalibrationFactor);                                 
@@ -239,7 +239,7 @@ private:
   }
 
 
-  // This function will write a numeric value byte-by-byte to eeprom at the specified address
+  // This function will read a numeric from addr byte-by-byte and reconstitute into a whole
   template <typename T>
   void writeNumberToEeprom(int addr, T value) {
     byte *p = reinterpret_cast<byte *>(&value);
@@ -252,7 +252,8 @@ private:
   }
 
 
-  // This function will read a numeric from addr byte-by-byte and reconstitute into a whole
+
+  // This function will write a numeric value byte-by-byte to eeprom at the specified address
   template <typename T>
   T readNumberFromEeprom(int addr) {
     T value = 0;
