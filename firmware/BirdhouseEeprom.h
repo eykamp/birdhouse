@@ -19,7 +19,6 @@ static const int SSID_LENGTH             = 32;
 static const int PASSWORD_LENGTH         = 63;
 static const int DEVICE_KEY_LENGTH       = 20;
 static const int URL_LENGTH              = 64;
-static const int SENTINEL_MARKER_LENGTH  = 64;
 static const int FIRMWARE_VERSION_LENGTH = 12;
 
 
@@ -74,7 +73,6 @@ private:
     STRING_FIELD_LIST  
   #undef FIELD
 
-  const char SENTINEL_MARKER[SENTINEL_MARKER_LENGTH + 1] = "SensorBot by Chris Eykamp -- v106";   // Changing this will cause devices to revert to default configuration
 
 // Create a block of code that looks like this:
 //     int lengths[] = { 0, sizeof(localSsid), ...};
@@ -125,8 +123,7 @@ private:
   const int PM1_CALIBRATION_FACTOR_ADDRESS         = PM25_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM25CalibrationOffset);
   const int PM1_CALIBRATION_OFFSET_ADDRESS         = PM1_CALIBRATION_FACTOR_ADDRESS         + sizeof(PM1CalibrationFactor);
 
-  const int SENTINEL_ADDRESS        = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(PM1CalibrationOffset);
-  const int NEXT_ADDRESS            = SENTINEL_ADDRESS               + sizeof(SENTINEL_MARKER); 
+  const int NEXT_ADDRESS            = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(PM1CalibrationOffset); 
   const int EEPROM_SIZE = NEXT_ADDRESS;
 
 public:
@@ -204,19 +201,6 @@ public:
 
 
 
-
-  // void writeSentinelMarker() {
-  //   writeStringToEeprom(SENTINEL_ADDRESS, sizeof(SENTINEL_MARKER) - 1, SENTINEL_MARKER);
-  // }
-
-
-  // bool verifySentinelMarker() {
-  //   char storedSentinelMarker[SENTINEL_MARKER_LENGTH + 1];
-  //   readStringFromEeprom(SENTINEL_ADDRESS, sizeof(storedSentinelMarker) - 1, storedSentinelMarker);
-
-  //   // Return true if the marker is there, false otherwise
-  //   return (strcmp(SENTINEL_MARKER, storedSentinelMarker) == 0);
-  // }
 
 
 private:
