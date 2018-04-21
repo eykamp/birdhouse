@@ -268,6 +268,7 @@ void setup() {
   Rest.variable("mqttUrl",         &getMqttUrl);
   Rest.variable("mqttPort",        &getMqttPort);
   Rest.variable("serialNumber",    &getBirdhouseNumber);
+  Rest.variable("firmwareVersion", &getFirmwareVersion);
 
 
   // These all take a single parameter specified on the cmd line
@@ -305,15 +306,16 @@ void setup() {
 
 
 // Pass through functions for aREST variables
-const char *getDeviceToken()   { return Eeprom.getDeviceToken();     }
-const char *getLocalSsid()     { return Eeprom.getLocalSsid();       }
-const char *getLocalPassword() { return Eeprom.getLocalPassword();   }
-const char *getWifiSsid()      { return Eeprom.getWifiSsid();        }
-const char *getWifiPassword()  { return Eeprom.getWifiPassword();    }
-const char *getMqttUrl()       { return Eeprom.getMqttUrl();         }
-U16 getSampleDuration()        { return Eeprom.getSampleDuration();  }
-U16 getMqttPort()              { return Eeprom.getMqttPort();        }
-U16 getBirdhouseNumber()       { return Eeprom.getBirdhouseNumber(); }
+const char *getDeviceToken()     { return Eeprom.getDeviceToken();     }
+const char *getLocalSsid()       { return Eeprom.getLocalSsid();       }
+const char *getLocalPassword()   { return Eeprom.getLocalPassword();   }
+const char *getWifiSsid()        { return Eeprom.getWifiSsid();        }
+const char *getWifiPassword()    { return Eeprom.getWifiPassword();    }
+const char *getMqttUrl()         { return Eeprom.getMqttUrl();         }
+const char *getFirmwareVersion() { return "Configuration Firmware";    }
+U16 getSampleDuration()          { return Eeprom.getSampleDuration();  }
+U16 getMqttPort()                { return Eeprom.getMqttPort();        }
+U16 getBirdhouseNumber()         { return Eeprom.getBirdhouseNumber(); }
 
 
 String getLedParams() {
