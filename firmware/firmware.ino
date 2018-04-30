@@ -920,9 +920,9 @@ void scanVisibleNetworks() {
   U32 scanStartTime = millis();
 
   // Wait for scan to complete with max 30 seconds
-  const int maxTime = 30;
+  static const int MAX_SCAN_TIME = 30 * SECONDS;
   while(!WiFi.scanComplete()) { 
-    if(millis() - scanStartTime > maxTime * SECONDS) {
+    if(millis() - scanStartTime > MAX_SCAN_TIME) {
       lastScanTime = millis();
       return;
     }
