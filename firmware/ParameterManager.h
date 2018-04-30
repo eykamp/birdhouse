@@ -9,6 +9,31 @@
 class ParameterManager
 {
 
+public:
+
+// Don't remove items from here -- we store values in the eeprom by enum value/number, and removing an unused entry will shift all higher values, causing mayhem.
+// Rather than delete, mark an item as unused and ignore it.
+//
+// If we change any of the values in the second column, we need to modify configurator.py
+#define LED_STYLE_TABLE \
+  LED_STYLE(RYG,                    "RYG",          "3 LEDs")                                     \
+  LED_STYLE(RYG_REVERSED,           "RYG_REVERSED", "3 LEDs, reverse wired")                      \
+  LED_STYLE(DOTSTAR,                "DOTSTAR",      "Dotstar multicolor LED")                     \
+  LED_STYLE(FOUR_PIN_COMMON_ANNODE, "4PIN",         "4-pin multicolor LED with common annode")    \
+
+
+
+// Procuces an enum of LED styles
+enum LedStyle {  
+
+#define LED_STYLE(enumval, b, c)  enumval,
+  LED_STYLE_TABLE
+#undef LED_STYLE
+
+  STYLE_COUNT,
+  UNKNOWN_STYLE
+};
+
 
 private:
 
@@ -41,12 +66,11 @@ ParameterManager() {
 
 
 int setParam(const String &key, const String &val) {
-  if(key.equalsIgnoreCase("ledsInstalledBackwards")) {
-    Eeprom.setLedsInstalledBackwards((val[0] == 't' || val[0] == 'T') ? "1" : "0");
+  if(key.equalsIgnoreCase("ledStyle")) {
+    LedStyle style = getLedStyleFromName(val);
+    if(style != UNKNOWN_STYLE)
+      Eeprom.setLedStyle(String(style).c_str());
   }
-
-  else if(key.equalsIgnoreCase("traditionalLeds"))
-    Eeprom.setTraditionalLeds((val[0] == 't' || val[0] == 'T') ? "1" : "0");
 
   else if(key.equalsIgnoreCase("localSsid"))
   {
@@ -196,10 +220,70 @@ static void parse(const String &params, std::vector<std::pair<String,String>> &k
 
   std::pair<String, String> kv;
   for(int i = 0; i < tokens.size(); i++) {
-    if(split(tokens[i], "=", kv))
+    if(split(tokens[i], "=", kv)) {
       kvPairs.push_back(kv);
+    }
   }
 }
+
+
+static const char *getLedStyleName(LedStyle style) {
+  // Use dummy statement to let us use "else if" on all items below
+  if(false)
+    return "";
+
+  // Creates a block of else if statements that look like this:
+  // else if(style == RYG)
+  //    return "RYG";
+  #define LED_STYLE(enumval, styleName, c)    \
+    else if(style == enumval)                 \
+      return styleName;
+    LED_STYLE_TABLE
+  #undef LED_STYLE
+
+  else
+    return "Unknown";
+}
+
+
+static const char *getLedStyleDescription(LedStyle style) {
+  // Use dummy statement to let us use "else if" on all items below
+  if(false)
+    return "";
+
+  // Creates a block of else if statements that look like this:
+  // else if(style == RYG)
+  //    return "RYG";
+  #define LED_STYLE(enumval, b, descr)        \
+    else if(style == enumval)                 \
+      return descr;
+    LED_STYLE_TABLE
+  #undef LED_STYLE
+
+  else
+    return "No description";
+}
+
+
+static LedStyle getLedStyleFromName(const String &name) {
+  // Use dummy statement to let us use "else if" on all items below
+  if(false)
+    return UNKNOWN_STYLE;
+
+  // Creates a block of else if statements that look like this:
+  // else if(name.equalsIgnoreCase("RYG"))
+  //    return RYG;
+  #define LED_STYLE(enumval, styleName, c)        \
+    else if(name.equalsIgnoreCase(styleName))     \
+      return enumval;
+    LED_STYLE_TABLE
+  #undef LED_STYLE
+
+  else
+    return UNKNOWN_STYLE;
+}
+
+
 
 
 
