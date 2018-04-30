@@ -184,6 +184,11 @@ void publishResetReason(const String &reason) {
 }
 
 
+void publishCalibrationFactors(const String &calibrationFactors) {
+  mqttPublishAttribute(String("{\"calibrationFactors\":\"") + calibrationFactors + "\"}");
+}
+
+
 void publishPmData(F64 pm1, F64 pm25, F64 pm10, U16 sampleCount) {
 
   String json = String("{") +
