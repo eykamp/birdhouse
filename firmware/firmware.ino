@@ -87,7 +87,7 @@ Adafruit_DotStar strip(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);  // We'll n
 #define REST_LISTEN_PORT 80
 
 aREST Rest = aREST();
-WiFiServer server(REST_LISTEN_PORT);
+WiFiServer server(REST_LISTEN_PORT);    // Set up a webserver listening on port 80
 
 #define PLANTOWER_SERIAL_BAUD_RATE 9600
 
@@ -105,9 +105,6 @@ PMS::DATA PmsData;
 // Create a new exponential filter with a weight of 5 and an initial value of 0. 
 // Bigger numbers hew truer to the unfiltered data
 ExponentialFilter<F32> TemperatureSmoothingFilter(30, 0);
-
-
-
 
 
 enum Leds {
@@ -152,13 +149,14 @@ const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
 const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
 const char *localGatewayAddress = "192.168.1.2";
 
-void connectToWiFi(bool); // Forward declare
+void handleWifiConnection(); // Forward declare
 void activateLed(U32 ledMask);
 
 
 BlinkPattern blinkPattern = STARTUP;
 
 void messageReceivedFromMothership(char* topic, byte* payload, unsigned int length) {
+  return;
   // See https://github.com/bblanchon/ArduinoJson for usage
   StaticJsonBuffer<MQTT_MAX_PACKET_SIZE> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(payload);
@@ -204,15 +202,15 @@ bool reportedResetReason = false;
 
 
 void setupPubSubClient() {
-  if(mqttServerConfigured || mqttServerLookupError )
+  if(mqttServerConfigured || mqttServerLookupError)    // If we're already configured, or we've failed at attempting to do so, don't try again
     return;
 
   if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
     return;
 
-  IPAddress serverIp;
+  IPAddress serverIp(162,212,157,80);   // 162.212.157.80
 
-  if(WiFi.hostByName(Eeprom.getMqttUrl(), serverIp)) {
+  if(true || WiFi.hostByName(Eeprom.getMqttUrl(), serverIp)) {  //{P{P}}
     mqtt.mqttSetServer(serverIp, Eeprom.getMqttPort());
     mqttServerConfigured = true;
   } else {
@@ -234,9 +232,9 @@ void loopPubSub() {
 
   // Ensure constant contact with the mother ship
   if(!mqtt.mqttConnected()) {
-    if (now_millis - lastPubSubConnectAttempt > 5 * SECONDS) {
+    if(millis() - lastPubSubConnectAttempt > 5 * SECONDS) {
       reconnectToPubSubServer();      // Attempt to reconnect
-      lastPubSubConnectAttempt = now_millis;
+      lastPubSubConnectAttempt = millis();
       return;
     }
   }
@@ -260,8 +258,6 @@ void reconnectToPubSubServer() {
 }
 
 
-
-
 void onConnectedToPubSubServer() {
   mqtt.mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
@@ -273,8 +269,10 @@ void onConnectedToPubSubServer() {
 
   reportPlantowerSensorStatus();
   reportResetReason();
+  reportCalibrationFactors();
 
   resetDataCollection();      // Now we can start our data collection efforts
+  setBlinkPattern(SOLID_GREEN);
 }
 
 
@@ -289,7 +287,6 @@ U8 blinkColor[BLINK_STATES] = { NONE, NONE };
 U8 blinkTime = 24 * HOURS;
 U32 blinkTimer = 0;
 U8 blinkState = 0;
-U8 blinkMode = 2;
 
 U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
@@ -312,6 +309,13 @@ int setParamsHandler(String params) {   // Can't be const ref because of aREST d
   return paramManager.setParamsHandler(params);
 }
 
+
+bool disablePlantower = false;
+
+int serialHandler(String params) {
+  if(!serialSwapped)
+    disablePlantower = true;
+}
 
 
 const U32 MAX_COMMAND_LENGTH = 128;
@@ -336,8 +340,6 @@ void setup() {
   Serial.println("");
 
 
-
-
   pinMode(LED_BUILTIN, OUTPUT);
 
   pinMode(LED_RED, OUTPUT);
@@ -349,39 +351,42 @@ void setup() {
 
 
   activateLed(RED);
-  delay(500);
+  delay(300);
   activateLed(YELLOW);
-  delay(500);
+  delay(300);
   activateLed(GREEN);
-  delay(500);
+  delay(300);
   activateLed(NONE);
 
   handleUpgrade();
 
-  Rest.variable("uptime", &millis);
-  Rest.variable("ledparams", &getLedParams, false);   // We'll handle quoting ourselves
-  Rest.variable("sensorsDetected", &getSensorsDetected, false);
+  Rest.variable("uptime",             &millis);
+  Rest.variable("mqttServerConfigured",             &mqttServerConfigured);
+  Rest.variable("mqttServerLookupError",            &mqttServerLookupError);
+  Rest.variable("ledStyle",           &getLedStyle);
+  Rest.variable("sensorsDetected",    &getSensorsDetected,    false);      // false ==> We'll handle quoting ourselves
+  Rest.variable("plantowerDisabled",  &disablePlantower);      
   Rest.variable("calibrationFactors", &getCalibrationFactors, false);
 
-  Rest.variable("lastReportTime", &lastReportTime);
-  Rest.variable("samplingPeriodStartTime_micros", &samplingPeriodStartTime_micros);
-  Rest.variable("mqttStatus", &getMqttStatus);
-  Rest.variable("wifiStatus", &getWifiStatus);
+  Rest.variable("lastReportTime",     &lastReportTime);
+  Rest.variable("mqttStatus",         &getMqttStatus);
+  Rest.variable("wifiStatus",         &getWifiStatus);
 
-  Rest.variable("sampleCount",     &plantowerSampleCount);
-  Rest.variable("sampleDurations", &getSampleDuration);
-  Rest.variable("deviceToken",     &getDeviceToken);
-  Rest.variable("localSsid",       &getLocalSsid);
-  Rest.variable("localPass",       &getLocalPassword);
-  Rest.variable("wifiSsid",        &getWifiSsid);
-  Rest.variable("wifiPass",        &getWifiPassword);
-  Rest.variable("mqttUrl",         &getMqttUrl);
-  Rest.variable("mqttPort",        &getMqttPort);
-  Rest.variable("serialNumber",    &getBirdhouseNumber);
-  Rest.variable("firmwareVersion", &getFirmwareVersion);
+  Rest.variable("sampleCount",        &plantowerSampleCount);
+  Rest.variable("sampleDurations",    &getSampleDuration);
+  Rest.variable("deviceToken",        &getDeviceToken);
+  Rest.variable("localSsid",          &getLocalSsid);
+  Rest.variable("localPass",          &getLocalPassword);
+  Rest.variable("wifiSsid",           &getWifiSsid);
+  Rest.variable("wifiPass",           &getWifiPassword);
+  Rest.variable("mqttUrl",            &getMqttUrl);
+  Rest.variable("mqttPort",           &getMqttPort);
+  Rest.variable("serialNumber",       &getBirdhouseNumber);
+  Rest.variable("firmwareVersion",    &getFirmwareVersion);
 
   // These all take a single parameter specified on the cmd line
   Rest.function("setparams", setParamsHandler);
+  Rest.function("serial",    serialHandler);
 
   Rest.function("restart",      rebootHandler);
 
@@ -393,8 +398,9 @@ void setup() {
   WiFi.mode(WIFI_AP_STA);  
 
   WiFi.setAutoConnect(false);
-  WiFi.setAutoReconnect(true);
+  WiFi.setAutoReconnect(false);   // Disabling this allows us to connect via wifi AP without issue
 
+  WiFi.begin();
 
   setupPubSubClient();
   mqtt.mqttSetCallback(messageReceivedFromMothership);
@@ -408,124 +414,31 @@ void setup() {
   command.reserve(MAX_COMMAND_LENGTH);
 
   setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword());
-  connectToWiFi(changedWifiCredentials);
+
+  // Flash yellow until we've connected via wifi
+  setBlinkPattern(FAST_BLINK_YELLOW);
 
 
-  activateLed(NONE);
-
-  server.begin();
+  server.begin();   // Start the web server
 }
 
 
+// Gets run once, at startup
 void handleUpgrade() {
   // Did we just upgrade our firmware?  If so, is there anything we need to do?
 
   if(String(Eeprom.getFirmwareVersion()) == FIRMWARE_VERSION) {
-    Serial.println("Equal!");
     return;
   }
 
-  Serial.println("not");
-
-
-  // // 0.116 => 0.117
-  // Serial.println("Migrating firmware...");
-
-  // static const int SSID_LENGTH             = 32;
-  // static const int PASSWORD_LENGTH         = 63;
-  // static const int DEVICE_KEY_LENGTH       = 20;
-  // static const int URL_LENGTH              = 64;
-  // static const int SENTINEL_MARKER_LENGTH  = 64;
-  // static const int FIRMWARE_VERSION_LENGTH = 12;
-
-  // char xlocalSsid[SSID_LENGTH + 1];
-  // char xlocalPassword[PASSWORD_LENGTH + 1];
-  // char xwifiSsid[SSID_LENGTH + 1];
-  // char xwifiPassword[PASSWORD_LENGTH + 1];
-  // char xdeviceToken[DEVICE_KEY_LENGTH + 1];
-  // char xmqttUrl[URL_LENGTH + 1];
-
-  // // Old addresses
-  // int local_ssid_address      = 0;
-  // int local_password_address  = local_ssid_address      + sizeof(xlocalSsid);
-  // int wifi_ssid_address       = local_password_address  + sizeof(xlocalPassword);
-  // int wifi_password_address   = wifi_ssid_address       + sizeof(xwifiSsid);
-  // int device_key_address      = wifi_password_address   + sizeof(xwifiPassword);
-  // int mqtt_url_address        = device_key_address      + sizeof(xdeviceToken);
-  // int pub_sub_port_address    = mqtt_url_address        + sizeof(xmqttUrl);
-  // int sample_duration_address = pub_sub_port_address    + sizeof(U16);
-  // int sentinel_address        = sample_duration_address + sizeof(U16);
-
-  // // Read vals
-  // Eeprom.readStringFromEeprom(local_ssid_address,     sizeof(xlocalSsid)     - 1, xlocalSsid);
-  // Eeprom.readStringFromEeprom(device_key_address,     sizeof(xdeviceToken)   - 1, xdeviceToken);
-
-
-  // Eeprom.setDeviceToken(xdeviceToken);
-
-  // String ssid = String(xlocalSsid);
-  // String sn;
-
-  // if(ssid == "Birdhouse One")
-  // {
-  //   sn = "001";
-  //   ssid = "Birdhouse 001";
-  // }
-
-  // if(ssid == "Birdhouse Two")
-  // {
-  //   sn = "002";
-  //   ssid = "Birdhouse 002";
-  // }
-
-  // if(ssid == "Birdhouse Three")
-  // {
-  //   sn = "003";
-  //   ssid = "Birdhouse 003";
-  // }
-
-  // if(ssid == "Birdhouse Four")
-  // {
-  //   sn = "004";
-  //   ssid = "Birdhouse 004";
-  // }
-
-
-  // paramManager.setParam("localPassword",   "88888888");  
-  // paramManager.setParam("localSsid",       ssid);
-  // paramManager.setParam("wifiPassword",    "funkymonkey");  
-  // paramManager.setParam("wifiSsid",        "The Grand Duchy");  
-  // paramManager.setParam("mqttUrl",         "www.sensorbot.org");  
-  // paramManager.setParam("mqttPort",        "1883");  
-  // paramManager.setParam("deviceToken",     String(xdeviceToken));  
-  // paramManager.setParam("sampleDuration",  "30");  
-  // paramManager.setParam("serialNumber",    sn); 
-  
-  // paramManager.setParam("temperatureCalibrationFactor", "1.0");
-  // paramManager.setParam("temperatureCalibrationOffset", "0");
-  // paramManager.setParam("humidityCalibrationFactor",    "1.0");
-  // paramManager.setParam("humidityCalibrationOffset",    "0");
-  // paramManager.setParam("pressureCalibrationFactor",    "1.0");
-  // paramManager.setParam("pressureCalibrationOffset",    "0");
-  // paramManager.setParam("pM10CalibrationFactor",        "1.0");
-  // paramManager.setParam("pM10CalibrationOffset",        "0");
-  // paramManager.setParam("pM25CalibrationFactor",        "1.0");
-  // paramManager.setParam("pM25CalibrationOffset",        "0");
-  // paramManager.setParam("pM1CalibrationFactor",         "1.0");
-  // paramManager.setParam("pM1CalibrationOffset",         "0");
-
-  // Eeprom.setLedsInstalledBackwards("false");
-  // Eeprom.setTraditionalLeds("true");
-
-
-  // Eeprom.setFirmwareVersion(FIRMWARE_VERSION);
+  Eeprom.setFirmwareVersion(FIRMWARE_VERSION);
 
   // ESP.restart();
 }
 
 
-String getLedParams() {
-  return String("{\"traditionalLeds\":") + (Eeprom.getTraditionalLeds() ? "true" : "false") + ",\"ledsInstalledBackwards\":" + (Eeprom.getLedsInstalledBackwards() ? "true" : "false") + "}";
+String getLedStyle() {
+  return ParameterManager::getLedStyleName((ParameterManager::LedStyle) Eeprom.getLedStyle());
 }
 
 
@@ -534,6 +447,7 @@ String getSensorsDetected() {
 }
 
 
+// Returns a JSON object listing all our calibration factors
 String getCalibrationFactors() {
   return String("{") + 
     "\"temperatureCalibrationFactor\":" + String(Eeprom.getTemperatureCalibrationFactor()) + "," +
@@ -582,54 +496,35 @@ void loop() {
   
   lastMillis = now_millis;
 
-  advanceBlinkPattern();
-  blink();
+  blink();    // Make the LEDs do their magic
 
   WiFiClient client = server.available();
-  if (client) {
+
+  if(client) 
+  {
+    if(!serialSwapped)
+      Serial.println("Handling incoming connection data");
     Rest.handle(client);
   }
 
-  if(!serialSwapped)
+  // Keep listening on the serial port until we switch it over to the PMS
+  if(!serialSwapped) {
     Rest.handle(Serial);
+    activatePlantower();  // This will have a little delay built in so that we can deactivate it if we're connected via serial
+  }
 
 
+  handleWifiConnection();
   loopPubSub();
 
   if(mqtt.mqttState() == MQTT_CONNECTED)
     loopSensors();
-
-
-  if(isConnectingToWifi) {
-    connectingToWifi();
-  }
-
-// needToReconnectToWifi is never set to true...
-  if(needToReconnectToWifi) {
-    connectToWiFi(changedWifiCredentials);
-    needToReconnectToWifi = false;
-  }
-
 }
 
 
 // For testing only
 U32 blinkPatternTimer = 0;
 int currPattern = 0;
-
-void advanceBlinkPattern() {
-
-  if(now_millis > blinkPatternTimer) {
-    blinkPatternTimer = now_millis + 5 * SECONDS;
-    currPattern++;
-
-    if(currPattern >= BLINK_PATTERN_COUNT)
-      currPattern = 0;
-
-    setBlinkPattern(BlinkPattern(currPattern));
-  }
-}
-
 
 void setBlinkPattern(BlinkPattern blinkPattern) {
   switch(blinkPattern) {
@@ -638,8 +533,10 @@ void setBlinkPattern(BlinkPattern blinkPattern) {
       blinkColor[1] = NONE;
       break;
 
+    // Should do something different here!!!
     case STARTUP:
-
+      blinkColor[0] = NONE;
+      blinkColor[1] = NONE;
       break;
 
     case SOLID_RED:
@@ -807,8 +704,6 @@ const char *getTemperatureSensorName() {
 // Read sensors each loop tick
 void loopSensors() {
 
-  // Serial1.print(now_millis);
-
   if(now_micros - samplingPeriodStartTime_micros > Eeprom.getSampleDuration() * SECONDS_TO_MICROS) {
 
     reportMeasurements();
@@ -893,10 +788,14 @@ void reportResetReason() {
 }
 
 
+void reportCalibrationFactors() {
+  mqtt.publishCalibrationFactors(getCalibrationFactors());
+}
+
+
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
-
     lastReportTime = millis();
 
     mqtt.publishDeviceData(millis(), ESP.getFreeHeap());
@@ -911,7 +810,6 @@ void reportMeasurements() {
   }
 
   if(BME_ok) {
-
     F32 pres, temp, hum;
 
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
@@ -1084,7 +982,6 @@ const char *getWifiStatusName(wl_status_t status) {
 }
 
 
-
 // Get a list of wifi hotspots the device can see
 void printScanResult(U32 duration) {
   int networksFound = WiFi.scanComplete();
@@ -1123,7 +1020,8 @@ void printScanResult(U32 duration) {
 
 
 void ping(const char *target) {
-  connectToWiFi(false);
+  if(WiFi.status() != WL_CONNECTED)
+    return;
 
   U8 pingCount = 5;
   while(pingCount > 0)
@@ -1162,71 +1060,114 @@ void setupLocalAccessPoint(const char *ssid, const char *password)
 }
 
 
-void connectToWiFi(bool disconnectIfConnected) {
+U32 wifiConnectCooldownTimer = 0;
 
-  mqttServerLookupError = false;
-  changedWifiCredentials = false;
+// Called from startup and loop
+void handleWifiConnection() {
 
-  if(WiFi.status() == WL_CONNECTED) {   // Already connected
-    if(!disconnectIfConnected)          // Don't disconnect, so nothing to do
+  // If our connection fails, let's take a brief break before trying again
+  // Don't do anything during the cooldown period
+  static const U32 WIFI_CONNECT_COOLDOWN_PERIOD = 5 * SECONDS;
+
+  if(millis() - wifiConnectCooldownTimer < WIFI_CONNECT_COOLDOWN_PERIOD)
+    return;
+
+  // Handle a connection that is already underway:
+  if(isConnectingToWifi) {
+    if(WiFi.status() == WL_CONNECTED) {   // We just connected!  :-)
+
+      onConnectedToWifi();
+      isConnectingToWifi = false;
       return;
+    }
 
-    WiFi.disconnect();
-  }
+    // Still working at it  :-(
+    if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
+      isConnectingToWifi = false;
+      wifiConnectCooldownTimer = millis();
+      if(!serialSwapped)
+        Serial.printf("Failed to connect to wifi with credentials %s/%s at %d\n", Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), millis());
+    }
 
-  initiateConnectionToWifi();
-}
-
-
-void initiateConnectionToWifi()
-{
-  int status = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());
-
-  if (status != WL_CONNECT_FAILED) { 
-    isConnectingToWifi = true;
-    wifiConnectStartTime = millis();    
-  }
-}
-
-
-
-// Will be run every loop cycle if isConnectingToWifi is true
-void connectingToWifi()
-{
-  if(WiFi.status() == WL_CONNECTED) {   // We just connected!  :-)
-
-    onConnectedToWifi();
-    isConnectingToWifi = false;
     return;
   }
 
-  // Still not connected  :-(
+  
+  if(WiFi.status() == WL_CONNECTED) {   // Already connected
+    if(!changedWifiCredentials)         // Don't disconnect, so nothing to do
+      return;
 
-  if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
+    // Our credentials changed, so we need to disconnect
+    WiFi.disconnect();
     isConnectingToWifi = false;
+    changedWifiCredentials = false;
+    delay(500);
+  }
+
+
+  // If we get here, we aren't connected, and we're ready to start things up
+
+  // Clear some error statuses
+  mqttServerLookupError = false;
+
+  int status = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());
+
+  if(status != WL_CONNECT_FAILED) {   // OK
+    isConnectingToWifi = true;
+    wifiConnectStartTime = millis();    
+  }
+  else {                              // PROBLEM!
+    wifiConnectCooldownTimer = millis();
+    if(!serialSwapped)
+      Serial.println("Attempt to connect to wifi failed with status WL_CONNECT_FAILED");
   }
 }
+
+
+U32 serialSwapTimer = 0;
 
 
 // We just connected (or reconnected) to wifi
 void onConnectedToWifi() {
-  server.begin();
+  if(!serialSwapped)
+    Serial.println("Connected to WiFi!");
+
+  setBlinkPattern(FAST_BLINK_GREEN);   // Stop flashing yellow now that we've connected to wifi
 
   mqtt.publishLocalIp(WiFi.localIP());
 
-  // Switch over to Plantower
-  Serial.println("Turning over the serial port to the Plantower... no more messages here.");
-  Serial.flush();   // Get any last bits out of there before switching the serial pins
+  if(serialSwapTimer == 0)
+    serialSwapTimer = millis();
+}
 
+
+
+
+void activatePlantower()
+{
+  if(serialSwapped)
+    return;
+
+  if(serialSwapTimer == 0)
+    return;
+
+  if(millis() - serialSwapTimer < 3 * SECONDS)
+    return;
+
+  if(disablePlantower)
+    return;
 
   if(!serialSwapped) {  
+    // Switch over to Plantower
+    Serial.println("Turning over the serial port to the Plantower... no more messages here.");
+    Serial.flush();   // Get any last bits out of there before switching the serial pins
+
     Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
     Serial.swap();    // D8 is now TX, D7 RX
     // Serial1.begin(115200);
     serialSwapped = true;
   }
 }
-
 
 
 // enum rst_reason {
