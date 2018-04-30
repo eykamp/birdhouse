@@ -22,6 +22,7 @@ static const int URL_LENGTH              = 64;
 static const int FIRMWARE_VERSION_LENGTH = 12;
 
 
+
   // XMacro!
 #define NUMERIC_FIELD_LIST \
   FIELD(temperatureCalibrationFactor, F32,  atof, TEMPERATURE_CALIBRATION_FACTOR_ADDRESS, getTemperatureCalibrationFactor, setTemperatureCalibrationFactor) \
@@ -41,6 +42,7 @@ static const int FIRMWARE_VERSION_LENGTH = 12;
   FIELD(sampleDuration,               U16,  atoi, SAMPLE_DURATION_ADDRESS,                getSampleDuration,               setSampleDuration)               \
   FIELD(ledsInstalledBackwards,       bool, atoi, LEDS_INSTALLED_BACKWARDS_ADDRESS,       getLedsInstalledBackwards,       setLedsInstalledBackwards)       \
   FIELD(traditionalLeds,              bool, atoi, TRADITIONAL_LEDS_ADDRESS,               getTraditionalLeds,              setTraditionalLeds)              \
+  FIELD(ledStyle,                     U8,   atoi, LED_STYLE_ADDRESS,                      getLedStyle,                     setLedStyle)                     \
 
 #define STRING_FIELD_LIST \
   FIELD(0, localSsid,       LOCAL_SSID_ADDRESS,       SSID_LENGTH,             getLocalSsid,       setLocalSsid)       \
@@ -122,6 +124,8 @@ private:
   const int PM25_CALIBRATION_OFFSET_ADDRESS        = PM25_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM25CalibrationFactor); 
   const int PM1_CALIBRATION_FACTOR_ADDRESS         = PM25_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM25CalibrationOffset);
   const int PM1_CALIBRATION_OFFSET_ADDRESS         = PM1_CALIBRATION_FACTOR_ADDRESS         + sizeof(PM1CalibrationFactor);
+
+  const int LED_STYLE_ADDRESS                      = LEDS_INSTALLED_BACKWARDS_ADDRESS;
 
   const int NEXT_ADDRESS            = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(PM1CalibrationOffset); 
   const int EEPROM_SIZE = NEXT_ADDRESS;
