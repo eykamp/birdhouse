@@ -76,10 +76,6 @@
 #define LED_CLOCK_PIN D0
 
 
-bool ledsInstalledBackwards = true;   // TODO --> Store in flash
-bool traditionalLeds = false;         // TODO --> Store in flash
-
-
 Adafruit_DotStar strip(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);  // We'll never acutally use this when traditional LEDs are installed, but we don't know that at compile time, and instantiation isn't terribly harmful
 
 
@@ -716,23 +712,24 @@ void blink() {
 
 
 bool getLowState() {
-  return ledsInstalledBackwards ? HIGH : LOW;
+  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? HIGH : LOW;
 }
 
 bool getHighState() {
-  return ledsInstalledBackwards ? LOW : HIGH;
+  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? LOW : HIGH;
 }
 
 
 void activateLed(U32 ledMask) {
 
-  if(traditionalLeds) {
+  if(Eeprom.getLedStyle() == ParameterManager::RYG || Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) {
 
     digitalWrite(LED_RED,     (ledMask & RED)     ? getHighState() : getLowState());
     digitalWrite(LED_YELLOW,  (ledMask & YELLOW)  ? getHighState() : getLowState());
     digitalWrite(LED_GREEN,   (ledMask & GREEN)   ? getHighState() : getLowState());
     digitalWrite(LED_BUILTIN, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
-  } else {
+  } 
+  else if(Eeprom.getLedStyle() == ParameterManager::DOTSTAR) {
 
     int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
     int green = (ledMask & (YELLOW | GREEN )) ? 255 : 0;
@@ -741,6 +738,10 @@ void activateLed(U32 ledMask) {
     strip.setPixelColor(0, red, green, blue);
     strip.show(); 
   }
+  else if(Eeprom.getLedStyle() == ParameterManager::FOUR_PIN_COMMON_ANNODE) {
+    // Do something!
+  }
+
 }
 
 
@@ -826,9 +827,7 @@ void loopSensors() {
   else {
 
     if(serialSwapped && pms.read(PmsData)) {
-      blinkMode = 3;
       blinkTimer = now_millis + 1000;
-      activateLed(GREEN);
       plantowerPm1Sum  += PmsData.PM_AE_UG_1_0;
       plantowerPm25Sum += PmsData.PM_AE_UG_2_5;
       plantowerPm10Sum += PmsData.PM_AE_UG_10_0;
@@ -897,7 +896,6 @@ void reportResetReason() {
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
-    activateLed(YELLOW);
 
     lastReportTime = millis();
 
@@ -921,11 +919,6 @@ void reportMeasurements() {
 
     mqtt.publishWeatherData(temp, TemperatureSmoothingFilter.Current(), hum, pres);
   }
-
-  delay(500);
-  activateLed(GREEN | RED);
-  delay(200);
-  activateLed(NONE);
 }
 
 
