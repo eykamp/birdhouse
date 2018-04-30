@@ -187,9 +187,6 @@ U32 blinkTimer = 0;
 U8 blinkState = 0;
 U8 blinkMode = 2;
 U8 blinkStates = 1;
-bool allLedsOn = false;
-
-bool initialConfigMode = false;
 
 
 const char *defaultPingTargetHostName = "www.google.com";
@@ -374,9 +371,6 @@ void intitialConfig() {
   paramManager.setParam("pM25CalibrationOffset",        "0");
   paramManager.setParam("pM1CalibrationFactor",         "1.0");
   paramManager.setParam("pM1CalibrationOffset",         "0");
-
-
-  initialConfigMode = true;
 }
 
 
