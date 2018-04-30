@@ -228,7 +228,7 @@ void setup() {
   Serial.println("");
   Serial.println("");
 
-
+  intitialConfig();
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -375,7 +375,6 @@ void intitialConfig() {
   paramManager.setParam("pM1CalibrationFactor",         "1.0");
   paramManager.setParam("pM1CalibrationOffset",         "0");
 
-  // Eeprom.writeSentinelMarker();
 
   initialConfigMode = true;
 }
