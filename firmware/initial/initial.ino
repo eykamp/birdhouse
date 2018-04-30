@@ -276,8 +276,6 @@ void setup() {
   // These all take a single parameter specified on the cmd line
   Rest.function("setparams", setParamsHandler);
   Rest.function("restart",  rebootHandler);
-  Rest.function("ledson",   ledsOnHandler);
-  Rest.function("ledsoff",  ledsOffHandler);
   Rest.function("updateFirmware", updateFirmware);
   Rest.function("leds",     ledsHandler);
 
@@ -557,16 +555,6 @@ void activateLed(U32 ledMask) {
     strip.setPixelColor(0, red, green, blue);
     strip.show(); 
   }
-}
-
-
-int ledsOffHandler(String params) {
-  setBlinkMode(OFF);
-}
-
-
-int ledsOnHandler(String params) {
-  setBlinkMode(ALL_ON);
   else if(Eeprom.getLedStyle() == ParameterManager::FOUR_PIN_COMMON_ANNODE) {
     // Do something!
   }
