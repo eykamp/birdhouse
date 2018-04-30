@@ -342,13 +342,16 @@ String getCalibrationFactors() {
     "\"pm25CalibrationOffset\":"        + String(Eeprom.getPM25CalibrationOffset())        + "," +
     "\"pm1CalibrationFactor\":"         + String(Eeprom.getPM1CalibrationFactor())         + "," +
     "\"pm1CalibrationOffset\":"         + String(Eeprom.getPM1CalibrationOffset())         + "}";
-
+}
 
 
 bool needToConnect = false;
 
 // Called the very first time a Birdhouse is booted -- set defaults
 void intitialConfig() {
+  if(String(Eeprom.getMqttUrl()) == "www.sensorbot.org")
+    return;
+
   paramManager.setParam("localPassword",   "88888888");  
   paramManager.setParam("localSsid",       "NewBirdhouse666");  
   paramManager.setParam("wifiPassword",    "NOT_SET");  
