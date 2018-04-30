@@ -249,9 +249,9 @@ void setup() {
 
   Eeprom.begin();
 
-  Rest.variable("uptime", &millis);
-  Rest.variable("ledparams", &getLedParams, false);   // We'll handle quoting ourselves
-  Rest.variable("sensorsDetected", &getSensorsDetected, false);
+  Rest.variable("uptime",   &millis);
+  Rest.variable("ledStyle", &getLedStyle);
+  Rest.variable("sensorsDetected",    &getSensorsDetected,    false);      // false ==> We'll handle quoting ourselves
   Rest.variable("calibrationFactors", &getCalibrationFactors, false);
 
   Rest.variable("mqttStatus", &getMqttStatus);
@@ -320,8 +320,8 @@ U16 getMqttPort()                { return Eeprom.getMqttPort();        }
 U16 getBirdhouseNumber()         { return Eeprom.getBirdhouseNumber(); }
 
 
-String getLedParams() {
-  return String("{\"traditionalLeds\":") + (Eeprom.getTraditionalLeds() ? "true" : "false") + ",\"ledsInstalledBackwards\":" + (Eeprom.getLedsInstalledBackwards() ? "true" : "false") + "}";
+String getLedStyle() {
+  return ParameterManager::getLedStyleName((ParameterManager::LedStyle) Eeprom.getLedStyle());
 }
 
 
@@ -532,24 +532,23 @@ void blink() {
 
 
 bool getLowState() {
-  return Eeprom.getLedsInstalledBackwards() ? HIGH : LOW;
+  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? HIGH : LOW;
 }
 
 bool getHighState() {
-  return Eeprom.getLedsInstalledBackwards() ? LOW : HIGH;
+  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? LOW : HIGH;
 }
 
 
-void activateLed(U32 ledMask) {
-
-  if(Eeprom.getTraditionalLeds()) {
+void activateLed(U32 ledMask) { 
+  if(Eeprom.getLedStyle() == ParameterManager::RYG || Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) {
 
     digitalWrite(LED_RED,     (ledMask & RED)     ? getHighState() : getLowState());
     digitalWrite(LED_YELLOW,  (ledMask & YELLOW)  ? getHighState() : getLowState());
     digitalWrite(LED_GREEN,   (ledMask & GREEN)   ? getHighState() : getLowState());
     digitalWrite(LED_BUILTIN, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
-
-  } else {
+  } 
+  else if(Eeprom.getLedStyle() == ParameterManager::DOTSTAR) {
 
     int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
     int green = (ledMask & (YELLOW | GREEN )) ? 255 : 0;
@@ -568,6 +567,9 @@ int ledsOffHandler(String params) {
 
 int ledsOnHandler(String params) {
   setBlinkMode(ALL_ON);
+  else if(Eeprom.getLedStyle() == ParameterManager::FOUR_PIN_COMMON_ANNODE) {
+    // Do something!
+  }
 }
 
 
