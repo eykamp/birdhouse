@@ -569,6 +569,18 @@ void loopSensors() {
   }
 }
 
+void resetDataCollection() {
+
+  // Start the cycle anew
+  samplingPeriodStartTime_micros = micros();
+    
+  // Reset Plantower data
+  plantowerPm1Sum = 0;
+  plantowerPm25Sum = 0;
+  plantowerPm10Sum = 0;
+  plantowerSampleCount = 0;
+}
+
 
 void checkForFirmwareUpdates() {
 
@@ -587,18 +599,6 @@ void checkForFirmwareUpdates() {
   }
 }
 
-
-void resetDataCollection() {
-
-  // Start the cycle anew
-  samplingPeriodStartTime_micros = micros();
-    
-  // Reset Plantower data
-  plantowerPm1Sum = 0;
-  plantowerPm25Sum = 0;
-  plantowerPm10Sum = 0;
-  plantowerSampleCount = 0;
-}
 
 
 void reportPlantowerSensorStatus() {
