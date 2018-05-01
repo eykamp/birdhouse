@@ -22,6 +22,7 @@
 #include "C:/dev/birdhouse/firmware/ESP8266Ping.h"        // For ping, of course
 #include "C:/dev/birdhouse/firmware/MqttUtils.h"
 #include "C:/dev/birdhouse/firmware/ParameterManager.h"
+#include "C:/dev/birdhouse/firmware/LedUtils.h"
 
 using namespace std;
 
@@ -44,10 +45,6 @@ using namespace std;
 #define LED_CLOCK_PIN D0
 
 
-// We'll never acutally use this when traditional LEDs are installed, but we don't know that at compile time, and instantiation isn't terribly harmful
-Adafruit_DotStar strip(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);
-
-
 ParameterManager paramManager;
 
 //////////////////////
@@ -66,34 +63,7 @@ PMS::DATA PmsData;
 
 bool plantowerSensorDetected = false;
 
-enum Leds {
-  NONE = 0,
-  RED = 1,
-  YELLOW = 2,
-  GREEN = 4,
-  BUILTIN = 8
-};
 
-enum BlinkPattern {
-  OFF,
-  STARTUP,
-  SOLID_RED,
-  ALL_ON,
-  SOLID_YELLOW,
-  SOLID_GREEN,
-  FAST_BLINK_RED,
-  FAST_BLINK_YELLOW,
-  FAST_BLINK_GREEN,
-  SLOW_BLINK_RED,
-  SLOW_BLINK_YELLOW,
-  SLOW_BLINK_GREEN,
-  ERROR_STATE,
-  BLINK_PATTERN_COUNT
-};
-
-
-void activateLed(U32 ledMask);
-BlinkPattern blinkPattern = STARTUP;
 
 
 // U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
@@ -180,15 +150,6 @@ void onConnectedToPubSubServer() {
 
 
 
-#define MAX_BLINK_STATES 3
-U8 blinkColor[MAX_BLINK_STATES] = { NONE, NONE, NONE };
-U8 blinkTime = 24 * HOURS;
-U32 blinkTimer = 0;
-U8 blinkState = 0;
-U8 blinkMode = 2;
-U8 blinkStates = 1;
-
-
 const char *defaultPingTargetHostName = "www.google.com";
 
 
@@ -226,25 +187,12 @@ void setup() {
   Serial.println("");
 
   intitialConfig();
-
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_YELLOW, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-
-  strip.begin();
-
-
-  activateLed(RED);
-  delay(500);
-  activateLed(YELLOW);
-  delay(500);
-  activateLed(GREEN);
-  delay(500);
-  activateLed(NONE);
-
   Eeprom.begin();
+
+  ledUtils.begin(LED_RED, LED_YELLOW, LED_GREEN, LED_BUILTIN, LED_DATA_PIN, LED_CLOCK_PIN);
+  updateLedStyle();
+  ledUtils.playStartupSequence();
+
 
   Rest.variable("uptime",   &millis);
   Rest.variable("ledStyle", &getLedStyle);
@@ -281,13 +229,13 @@ void setup() {
   Rest.set_name(Eeprom.getLocalSsid());
 
   WiFi.mode(WIFI_AP_STA);  
-
   WiFi.setAutoConnect(false);
-  WiFi.setAutoReconnect(true);
+  WiFi.setAutoReconnect(false);
 
 
   paramManager.setWifiCredentialsChangedCallback([]() { changedWifiCredentials = true; });
   paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
+  paramManager.setLedStyleChangedCallback(updateLedStyle());
 
   setupPubSubClient();
 
@@ -297,8 +245,11 @@ void setup() {
 
   setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword());
   connectToWiFi(false);
+}
 
-  activateLed(NONE);
+
+void updateLedStyle() {
+  ledUtils.setLedStyle(static_cast<ParameterManager::LedStyle>(Eeprom.getLedStyle()));
 }
 
 
@@ -390,7 +341,7 @@ void loop() {
 
   now_millis = millis();
 
-  blink();
+  ledUtils.loop();
 
   if(!serialSwapped)
     Rest.handle(Serial);
@@ -438,125 +389,6 @@ void loop() {
 }
 
 
-void setBlinkMode(BlinkPattern blinkPattern) {
-  switch(blinkPattern) {
-    case OFF:
-      blinkColor[0] = NONE;
-      blinkStates = 1;
-      break;
-
-    case STARTUP:
-    case ALL_ON:
-      blinkColor[0] = RED;
-      blinkColor[1] = YELLOW;
-      blinkColor[2] = GREEN;
-      blinkStates = 3;
-      break;
-
-    case SOLID_RED:
-    case SLOW_BLINK_RED:
-    case FAST_BLINK_RED:
-      blinkColor[0] = RED;
-      blinkStates = 1;
-      break;
-
-    case SOLID_YELLOW:
-    case SLOW_BLINK_YELLOW:
-    case FAST_BLINK_YELLOW:
-      blinkColor[0] = YELLOW;
-      blinkStates = 1;
-      break;
-
-    case SOLID_GREEN:
-    case SLOW_BLINK_GREEN:
-    case FAST_BLINK_GREEN:
-      blinkColor[0] = GREEN;
-      blinkStates = 1;
-      break;
-
-    case ERROR_STATE:
-      blinkColor[0] = RED;
-      blinkColor[1] = YELLOW;
-      blinkStates = 2;
-      break;
-  }
-
-
-  switch(blinkPattern) {
-    case STARTUP:
-    case ALL_ON:
-      blinkTime = 750 * MILLIS;
-      break;
-
-    case OFF:
-    case SOLID_RED:
-    case SOLID_YELLOW:
-    case SOLID_GREEN:
-      blinkTime = 24 * HOURS;
-      break;
-
-    case SLOW_BLINK_RED:
-    case SLOW_BLINK_YELLOW:
-    case SLOW_BLINK_GREEN:
-      blinkTime = 1 * SECONDS;
-      break;
-
-    case FAST_BLINK_RED:
-    case FAST_BLINK_YELLOW:
-    case FAST_BLINK_GREEN:
-    case ERROR_STATE:
-      blinkTime = 400 * MILLIS;
-      break;
-  }
-}
-
-
-void blink() {
-
-  if(now_millis - blinkTimer < blinkTime)
-    return;
-
-  blinkTimer = now_millis;
-  blinkState++;
-  if(blinkState >= blinkStates)
-    blinkState = 0;
-
-  activateLed(blinkColor[blinkState]);
-}
-
-
-bool getLowState() {
-  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? HIGH : LOW;
-}
-
-bool getHighState() {
-  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? LOW : HIGH;
-}
-
-
-void activateLed(U32 ledMask) { 
-  if(Eeprom.getLedStyle() == ParameterManager::RYG || Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) {
-
-    digitalWrite(LED_RED,     (ledMask & RED)     ? getHighState() : getLowState());
-    digitalWrite(LED_YELLOW,  (ledMask & YELLOW)  ? getHighState() : getLowState());
-    digitalWrite(LED_GREEN,   (ledMask & GREEN)   ? getHighState() : getLowState());
-    digitalWrite(LED_BUILTIN, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
-  } 
-  else if(Eeprom.getLedStyle() == ParameterManager::DOTSTAR) {
-
-    int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
-    int green = (ledMask & (YELLOW | GREEN )) ? 255 : 0;
-    int blue  = (ledMask & (0         )) ? 255 : 0;
-
-    strip.setPixelColor(0, red, green, blue);
-    strip.show(); 
-  }
-  else if(Eeprom.getLedStyle() == ParameterManager::FOUR_PIN_COMMON_ANNODE) {
-    // Do something!
-  }
-}
-
-
 int ledsHandler(String params) {
 
   vector<pair<String,String>> kvPairs;
@@ -567,19 +399,19 @@ int ledsHandler(String params) {
 
     if(kvPairs[i].first.equalsIgnoreCase("color")) {
       if(kvPairs[i].second.equalsIgnoreCase("red"))
-        setBlinkMode(SOLID_RED);
+        ledUtils.setBlinkPattern(LedUtils::SOLID_RED);
 
       if(kvPairs[i].second.equalsIgnoreCase("yellow"))
-        setBlinkMode(SOLID_YELLOW);
+        ledUtils.setBlinkPattern(LedUtils::SOLID_YELLOW);
 
       if(kvPairs[i].second.equalsIgnoreCase("green"))
-        setBlinkMode(SOLID_GREEN);
+        ledUtils.setBlinkPattern(LedUtils::SOLID_GREEN);
 
       if(kvPairs[i].second.equalsIgnoreCase("all"))
-        setBlinkMode(ALL_ON);
+        ledUtils.setBlinkPattern(LedUtils::ALL_ON);
 
       if(kvPairs[i].second.equalsIgnoreCase("off"))
-        setBlinkMode(OFF);
+        ledUtils.setBlinkPattern(LedUtils::OFF);
     }
   }
 

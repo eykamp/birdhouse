@@ -40,6 +40,7 @@ private:
 std::function<void()> localCredentialsChangedCallback;
 std::function<void()> wifiCredentialsChangedCallback;
 std::function<void()> mqttCredentialsChangedCallback;
+std::function<void()> ledStyleChangedCallback;
 
 
 public:
@@ -57,19 +58,29 @@ void setMqttCredentialsChangedCallback(std::function<void()> callback) {
   mqttCredentialsChangedCallback = callback;
 }
 
+void setLedStyleChangedCallback(std::function<void()> callback) {
+  ledStyleChangedCallback = callback;
+}
+
 
 ParameterManager() {
   localCredentialsChangedCallback = NULL;
   wifiCredentialsChangedCallback = NULL;
   mqttCredentialsChangedCallback = NULL;
+  ledStyleChangedCallback = NULL;
 }
 
 
 int setParam(const String &key, const String &val) {
   if(key.equalsIgnoreCase("ledStyle")) {
     LedStyle style = getLedStyleFromName(val);
-    if(style != UNKNOWN_STYLE)
+
+    if(style != UNKNOWN_STYLE) {
       Eeprom.setLedStyle(String(style).c_str());
+
+      if(ledStyleChangedCallback)
+        ledStyleChangedCallback();
+    }
   }
 
   else if(key.equalsIgnoreCase("localSsid"))

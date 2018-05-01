@@ -19,9 +19,7 @@
 #include "BirdhouseEeprom.h"
 #include "MqttUtils.h"
 #include "ParameterManager.h"
-
-
-#include <Adafruit_DotStar.h>
+#include "LedUtils.h"
 
 
 #include <PMS.h>                // Plantower
@@ -76,8 +74,6 @@
 #define LED_CLOCK_PIN D0
 
 
-Adafruit_DotStar strip(1, LED_DATA_PIN, LED_CLOCK_PIN, DOTSTAR_BGR);  // We'll never acutally use this when traditional LEDs are installed, but we don't know that at compile time, and instantiation isn't terribly harmful
-
 
 //////////////////////
 // WiFi Definitions //
@@ -107,31 +103,6 @@ PMS::DATA PmsData;
 ExponentialFilter<F32> TemperatureSmoothingFilter(30, 0);
 
 
-enum Leds {
-  NONE = 0,
-  RED = 1,
-  YELLOW = 2,
-  GREEN = 4,
-  BUILTIN = 8
-};
-
-enum BlinkPattern {
-  OFF,
-  STARTUP,
-  ALL_ON,
-  SOLID_RED,
-  SOLID_YELLOW,
-  SOLID_GREEN,
-  FAST_BLINK_RED,
-  FAST_BLINK_YELLOW,
-  FAST_BLINK_GREEN,
-  SLOW_BLINK_RED,
-  SLOW_BLINK_YELLOW,
-  SLOW_BLINK_GREEN,
-  ERROR_STATE,
-  BLINK_PATTERN_COUNT
-};
-
 
 bool plantowerSensorDetected = false;
 bool plantowerSensorDetectReported = false;
@@ -150,10 +121,7 @@ const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected 
 const char *localGatewayAddress = "192.168.1.2";
 
 void handleWifiConnection(); // Forward declare
-void activateLed(U32 ledMask);
 
-
-BlinkPattern blinkPattern = STARTUP;
 
 void messageReceivedFromMothership(char* topic, byte* payload, unsigned int length) {
   return;
@@ -164,31 +132,31 @@ void messageReceivedFromMothership(char* topic, byte* payload, unsigned int leng
   const char *mode = root["LED"];
 
   if(     strcmp(mode, "OFF")               == 0)
-    setBlinkPattern(OFF);
+    ledUtils.setBlinkPattern(LedUtils::OFF);
   else if(strcmp(mode, "STARTUP")           == 0)
-    setBlinkPattern(STARTUP);
+    ledUtils.setBlinkPattern(LedUtils::STARTUP);
   else if(strcmp(mode, "ALL_ON")            == 0)
-    setBlinkPattern(ALL_ON);
+    ledUtils.setBlinkPattern(LedUtils::ALL_ON);
   else if(strcmp(mode, "SOLID_RED")         == 0)
-    setBlinkPattern(SOLID_RED);
+    ledUtils.setBlinkPattern(LedUtils::SOLID_RED);
   else if(strcmp(mode, "SOLID_YELLOW")      == 0)
-    setBlinkPattern(SOLID_YELLOW);
+    ledUtils.setBlinkPattern(LedUtils::SOLID_YELLOW);
   else if(strcmp(mode, "SOLID_GREEN")       == 0)
-    setBlinkPattern(SOLID_GREEN);
+    ledUtils.setBlinkPattern(LedUtils::SOLID_GREEN);
   else if(strcmp(mode, "FAST_BLINK_RED")    == 0)
-    setBlinkPattern(FAST_BLINK_RED);
+    ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_RED);
   else if(strcmp(mode, "FAST_BLINK_YELLOW") == 0)
-    setBlinkPattern(FAST_BLINK_YELLOW);
+    ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_YELLOW);
   else if(strcmp(mode, "FAST_BLINK_GREEN")  == 0)
-    setBlinkPattern(FAST_BLINK_GREEN);
+    ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_GREEN);
   else if(strcmp(mode, "SLOW_BLINK_RED")    == 0)
-    setBlinkPattern(SLOW_BLINK_RED);
+    ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_RED);
   else if(strcmp(mode, "SLOW_BLINK_YELLOW") == 0)
-    setBlinkPattern(SLOW_BLINK_YELLOW);
+    ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_YELLOW);
   else if(strcmp(mode, "SLOW_BLINK_GREEN")  == 0)
-    setBlinkPattern(SLOW_BLINK_GREEN);
+    ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_GREEN);
   else if(strcmp(mode, "ERROR_STATE")       == 0)
-    setBlinkPattern(ERROR_STATE);
+    ledUtils.setBlinkPattern(LedUtils::ERROR_STATE);
 }
 
 U32 lastMillis = 0;
@@ -272,7 +240,7 @@ void onConnectedToPubSubServer() {
   reportCalibrationFactors();
 
   resetDataCollection();      // Now we can start our data collection efforts
-  setBlinkPattern(SOLID_GREEN);
+  ledUtils.setBlinkPattern(LedUtils::SOLID_GREEN);
 }
 
 
@@ -282,11 +250,6 @@ U32 plantowerPm25Sum = 0;
 U32 plantowerPm10Sum = 0;
 U16 plantowerSampleCount = 0;
 
-#define BLINK_STATES 2
-U8 blinkColor[BLINK_STATES] = { NONE, NONE };
-U8 blinkTime = 24 * HOURS;
-U32 blinkTimer = 0;
-U8 blinkState = 0;
 
 U32 lastReportTime = 0;
 U32 samplingPeriodStartTime_micros;
@@ -339,24 +302,11 @@ void setup() {
   Serial.printf("Firmware Version %s\n", FIRMWARE_VERSION);
   Serial.println("");
 
-
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_YELLOW, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-
-  strip.begin();
   Eeprom.begin();
 
-
-  activateLed(RED);
-  delay(300);
-  activateLed(YELLOW);
-  delay(300);
-  activateLed(GREEN);
-  delay(300);
-  activateLed(NONE);
+  ledUtils.begin(LED_RED, LED_YELLOW, LED_GREEN, LED_BUILTIN, LED_DATA_PIN, LED_CLOCK_PIN);
+  updateLedStyle();
+  ledUtils.playStartupSequence();
 
   handleUpgrade();
 
@@ -408,6 +358,7 @@ void setup() {
   paramManager.setLocalCredentialsChangedCallback([]()    { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
   paramManager.setWifiCredentialsChangedCallback([]()     { changedWifiCredentials = true; });
   paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
+  paramManager.setLedStyleChangedCallback(updateLedStyle);
 
   setupSensors();
  
@@ -416,10 +367,15 @@ void setup() {
   setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword());
 
   // Flash yellow until we've connected via wifi
-  setBlinkPattern(FAST_BLINK_YELLOW);
+  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_YELLOW);
 
 
   server.begin();   // Start the web server
+}
+
+
+void updateLedStyle() {
+  ledUtils.setLedStyle(static_cast<ParameterManager::LedStyle>(Eeprom.getLedStyle()));
 }
 
 
@@ -496,7 +452,7 @@ void loop() {
   
   lastMillis = now_millis;
 
-  blink();    // Make the LEDs do their magic
+  ledUtils.loop();    // Make the LEDs do their magic
 
   WiFiClient client = server.available();
 
@@ -522,124 +478,6 @@ void loop() {
 }
 
 
-// For testing only
-U32 blinkPatternTimer = 0;
-int currPattern = 0;
-
-void setBlinkPattern(BlinkPattern blinkPattern) {
-  switch(blinkPattern) {
-    case OFF:
-      blinkColor[0] = NONE;
-      blinkColor[1] = NONE;
-      break;
-
-    // Should do something different here!!!
-    case STARTUP:
-      blinkColor[0] = NONE;
-      blinkColor[1] = NONE;
-      break;
-
-    case SOLID_RED:
-    case SLOW_BLINK_RED:
-    case FAST_BLINK_RED:
-      blinkColor[0] = RED;
-      blinkColor[1] = NONE;
-      break;
-
-    case SOLID_YELLOW:
-    case SLOW_BLINK_YELLOW:
-    case FAST_BLINK_YELLOW:
-      blinkColor[0] = YELLOW;
-      blinkColor[1] = NONE;
-      break;
-
-    case SOLID_GREEN:
-    case SLOW_BLINK_GREEN:
-    case FAST_BLINK_GREEN:
-      blinkColor[0] = GREEN;
-      blinkColor[1] = NONE;
-      break;
-
-    case ERROR_STATE:
-      blinkColor[0] = RED;
-      blinkColor[1] = YELLOW;
-      break;
-  }
-
-
-  switch(blinkPattern) {
-    case STARTUP:
-
-      break;
-
-    case OFF:
-    case SOLID_RED:
-    case SOLID_YELLOW:
-    case SOLID_GREEN:
-      blinkTime = 24 * HOURS;
-      break;
-
-    case SLOW_BLINK_RED:
-    case SLOW_BLINK_YELLOW:
-    case SLOW_BLINK_GREEN:
-      blinkTime = 1 * SECONDS;
-      break;
-
-    case FAST_BLINK_RED:
-    case FAST_BLINK_YELLOW:
-    case FAST_BLINK_GREEN:
-    case ERROR_STATE:
-      blinkTime = 400 * MILLIS;
-      break;
-  }
-}
-
-
-void blink() {
-  if(now_millis - blinkTimer < blinkTime)
-    return;
-
-  blinkTimer = now_millis;
-  blinkState++;
-  if(blinkState >= BLINK_STATES)
-    blinkState = 0;
-
-  activateLed(blinkColor[blinkState]);
-}
-
-
-bool getLowState() {
-  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? HIGH : LOW;
-}
-
-bool getHighState() {
-  return (Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) ? LOW : HIGH;
-}
-
-
-void activateLed(U32 ledMask) {
-
-  if(Eeprom.getLedStyle() == ParameterManager::RYG || Eeprom.getLedStyle() == ParameterManager::RYG_REVERSED) {
-
-    digitalWrite(LED_RED,     (ledMask & RED)     ? getHighState() : getLowState());
-    digitalWrite(LED_YELLOW,  (ledMask & YELLOW)  ? getHighState() : getLowState());
-    digitalWrite(LED_GREEN,   (ledMask & GREEN)   ? getHighState() : getLowState());
-    digitalWrite(LED_BUILTIN, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
-  } 
-  else if(Eeprom.getLedStyle() == ParameterManager::DOTSTAR) {
-
-    int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
-    int green = (ledMask & (YELLOW | GREEN )) ? 255 : 0;
-    int blue  = (ledMask & (0         )) ? 255 : 0;
-
-    strip.setPixelColor(0, red, green, blue);
-    strip.show(); 
-  }
-  else if(Eeprom.getLedStyle() == ParameterManager::FOUR_PIN_COMMON_ANNODE) {
-    // Do something!
-  }
-
-}
 
 
 
@@ -722,7 +560,6 @@ void loopSensors() {
   else {
 
     if(serialSwapped && pms.read(PmsData)) {
-      blinkTimer = now_millis + 1000;
       plantowerPm1Sum  += PmsData.PM_AE_UG_1_0;
       plantowerPm25Sum += PmsData.PM_AE_UG_2_5;
       plantowerPm10Sum += PmsData.PM_AE_UG_10_0;
@@ -1132,7 +969,7 @@ void onConnectedToWifi() {
   if(!serialSwapped)
     Serial.println("Connected to WiFi!");
 
-  setBlinkPattern(FAST_BLINK_GREEN);   // Stop flashing yellow now that we've connected to wifi
+  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_GREEN);   // Stop flashing yellow now that we've connected to wifi
 
   mqtt.publishLocalIp(WiFi.localIP());
 
