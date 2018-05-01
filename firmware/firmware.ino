@@ -766,7 +766,6 @@ void scanVisibleNetworks() {
   printScanResult(millis() - scanStartTime);
 
   lastScanTime = millis();
-  resetDataCollection();
 }
 
 
