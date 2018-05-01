@@ -557,15 +557,13 @@ void loopSensors() {
     resetDataCollection();
   }
 
-  else {
 
-    if(serialSwapped && pms.read(PmsData)) {
-      plantowerPm1Sum  += PmsData.PM_AE_UG_1_0;
-      plantowerPm25Sum += PmsData.PM_AE_UG_2_5;
-      plantowerPm10Sum += PmsData.PM_AE_UG_10_0;
-      plantowerSampleCount++;
-      plantowerSensorDetected = true;
-    }
+  if(serialSwapped && pms.read(PmsData)) {
+    plantowerPm1Sum  += PmsData.PM_AE_UG_1_0;
+    plantowerPm25Sum += PmsData.PM_AE_UG_2_5;
+    plantowerPm10Sum += PmsData.PM_AE_UG_10_0;
+    plantowerSampleCount++;
+    plantowerSensorDetected = true;
   }
 }
 
