@@ -153,6 +153,36 @@ void setBlinkPattern(BlinkPattern blinkPattern) {
 }
 
 
+void setBlinkPatternByName(const char *mode) {
+  if(     strcmp(mode, "OFF")               == 0)
+    setBlinkPattern(OFF);
+  else if(strcmp(mode, "STARTUP")           == 0)
+    setBlinkPattern(STARTUP);
+  else if(strcmp(mode, "ALL_ON")            == 0)
+    setBlinkPattern(ALL_ON);
+  else if(strcmp(mode, "SOLID_RED")         == 0)
+    setBlinkPattern(SOLID_RED);
+  else if(strcmp(mode, "SOLID_YELLOW")      == 0)
+    setBlinkPattern(SOLID_YELLOW);
+  else if(strcmp(mode, "SOLID_GREEN")       == 0)
+    setBlinkPattern(SOLID_GREEN);
+  else if(strcmp(mode, "FAST_BLINK_RED")    == 0)
+    setBlinkPattern(FAST_BLINK_RED);
+  else if(strcmp(mode, "FAST_BLINK_YELLOW") == 0)
+    setBlinkPattern(FAST_BLINK_YELLOW);
+  else if(strcmp(mode, "FAST_BLINK_GREEN")  == 0)
+    setBlinkPattern(FAST_BLINK_GREEN);
+  else if(strcmp(mode, "SLOW_BLINK_RED")    == 0)
+    setBlinkPattern(SLOW_BLINK_RED);
+  else if(strcmp(mode, "SLOW_BLINK_YELLOW") == 0)
+    setBlinkPattern(SLOW_BLINK_YELLOW);
+  else if(strcmp(mode, "SLOW_BLINK_GREEN")  == 0)
+    setBlinkPattern(SLOW_BLINK_GREEN);
+  else if(strcmp(mode, "ERROR_STATE")       == 0)
+    setBlinkPattern(ERROR_STATE);
+}
+
+
 void loop() {
   if(millis() - blinkTimer < blinkTime)
     return;

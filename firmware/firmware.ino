@@ -1,15 +1,12 @@
 // TODO: No AQ readings for 1 min after turned on (as per specs)
 // TODO: No AQ measurements when humidity > 95% (as per specs)
 
-#define AREST_NUMBER_VARIABLES 30
+#define AREST_NUMBER_VARIABLES 40
 #define AREST_NUMBER_FUNCTIONS 20
 #define AREST_PARAMS_MODE 1
 #define AREST_BUFFER_SIZE 4000
 
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>   // Include the WebServer library
-#include <Dns.h>
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
@@ -20,6 +17,7 @@
 #include "MqttUtils.h"
 #include "ParameterManager.h"
 #include "LedUtils.h"
+#include "WifiUtils.h"
 
 
 #include <PMS.h>                // Plantower
@@ -28,7 +26,6 @@
 #include <ESP8266httpUpdate.h>
 
 #include "c:/dev/aREST/aREST.h"              // Our REST server for provisioning
-// #include "aREST2.h"
 
 #include "ESP8266Ping.h"        // For ping, of course
 #include "Filter.h"
@@ -36,7 +33,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.120" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.122" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
@@ -113,14 +110,9 @@ ParameterManager paramManager;
 
 U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
 
-U32 millisOveflows = 0;
-
-const U32 WIFI_CONNECT_TIMEOUT = 20 * SECONDS;
-
 const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
-const char *localGatewayAddress = "192.168.1.2";
 
-void handleWifiConnection(); // Forward declare
+void handlesetWifiConnection(); // Forward declare
 
 
 void messageReceivedFromMothership(char* topic, byte* payload, unsigned int length) {
@@ -129,51 +121,28 @@ void messageReceivedFromMothership(char* topic, byte* payload, unsigned int leng
   StaticJsonBuffer<MQTT_MAX_PACKET_SIZE> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(payload);
 
-  const char *mode = root["LED"];
-
-  if(     strcmp(mode, "OFF")               == 0)
-    ledUtils.setBlinkPattern(LedUtils::OFF);
-  else if(strcmp(mode, "STARTUP")           == 0)
-    ledUtils.setBlinkPattern(LedUtils::STARTUP);
-  else if(strcmp(mode, "ALL_ON")            == 0)
-    ledUtils.setBlinkPattern(LedUtils::ALL_ON);
-  else if(strcmp(mode, "SOLID_RED")         == 0)
-    ledUtils.setBlinkPattern(LedUtils::SOLID_RED);
-  else if(strcmp(mode, "SOLID_YELLOW")      == 0)
-    ledUtils.setBlinkPattern(LedUtils::SOLID_YELLOW);
-  else if(strcmp(mode, "SOLID_GREEN")       == 0)
-    ledUtils.setBlinkPattern(LedUtils::SOLID_GREEN);
-  else if(strcmp(mode, "FAST_BLINK_RED")    == 0)
-    ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_RED);
-  else if(strcmp(mode, "FAST_BLINK_YELLOW") == 0)
-    ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_YELLOW);
-  else if(strcmp(mode, "FAST_BLINK_GREEN")  == 0)
-    ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_GREEN);
-  else if(strcmp(mode, "SLOW_BLINK_RED")    == 0)
-    ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_RED);
-  else if(strcmp(mode, "SLOW_BLINK_YELLOW") == 0)
-    ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_YELLOW);
-  else if(strcmp(mode, "SLOW_BLINK_GREEN")  == 0)
-    ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_GREEN);
-  else if(strcmp(mode, "ERROR_STATE")       == 0)
-    ledUtils.setBlinkPattern(LedUtils::ERROR_STATE);
+  ledUtils.setBlinkPatternByName(root["LED"]);
 }
 
 U32 lastMillis = 0;
 U32 lastScanTime = 0;
+U32 lastUpdateCheckTime = 0;
 
-U32 lastPubSubConnectAttempt = 0;
 bool mqttServerConfigured = false;
 bool mqttServerLookupError = false;
 
 bool reportedResetReason = false;
+U32 mqttServerLookupErrorTimer = 0;
 
 
 void setupPubSubClient() {
+  if(millis() - mqttServerLookupErrorTimer > 5 * SECONDS)
+    mqttServerLookupError = false;
+
   if(mqttServerConfigured || mqttServerLookupError)    // If we're already configured, or we've failed at attempting to do so, don't try again
     return;
 
-  if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
+  if(!wifiUtils.isConnected())          // No point in doing anything here if we don't have internet access
     return;
 
   IPAddress serverIp(162,212,157,80);   // 162.212.157.80
@@ -182,15 +151,16 @@ void setupPubSubClient() {
     mqtt.mqttSetServer(serverIp, Eeprom.getMqttPort());
     mqttServerConfigured = true;
   } else {
-    mqttServerLookupError = true;   // TODO: Try again in a few minutes
+    mqttServerLookupError = true;
+    mqttServerLookupErrorTimer = millis();
   }
 }
 
 
-U32 now_micros, now_millis;
-
 bool serialSwapped = false;
 
+
+U32 lastPubSubConnectAttempt = 0;
 
 void loopPubSub() {
   setupPubSubClient();
@@ -211,13 +181,16 @@ void loopPubSub() {
 }
 
 
-// Gets run when we're not connected to the PubSub client
+// Gets run when we're not connected to the PubSub server
 void reconnectToPubSubServer() {
   if(!mqttServerConfigured)
     return;
 
-  if(WiFi.status() != WL_CONNECTED)   // No point in doing anything here if we don't have internet access
+  if(!wifiUtils.isConnected())   // No point in doing anything here if we don't have internet access
     return;
+
+  if(!serialSwapped)
+    Serial.println("Reconnecting to mqtt server");
 
   // Attempt to connect
   if(mqtt.mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
@@ -226,13 +199,14 @@ void reconnectToPubSubServer() {
 }
 
 
+// Gets run when we successfuly connect to PubSub server
 void onConnectedToPubSubServer() {
   mqtt.mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Announce ourselves to the server
   mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress);
   mqtt.publishSampleDuration(getSampleDuration());
-  mqtt.publishTempSensorNameAndSoftwareVersion(getTemperatureSensorName(), FIRMWARE_VERSION);
+  mqtt.publishTempSensorNameAndSoftwareVersion(getTemperatureSensorName(), FIRMWARE_VERSION, WiFi.macAddress());
   mqtt.publishStatusMessage("Connected");
 
   reportPlantowerSensorStatus();
@@ -251,8 +225,7 @@ U32 plantowerPm10Sum = 0;
 U16 plantowerSampleCount = 0;
 
 
-U32 lastReportTime = 0;
-U32 samplingPeriodStartTime_micros;
+U32 samplingPeriodStartTime;
 
 bool initialConfigMode = false;
 
@@ -261,7 +234,7 @@ const char *defaultPingTargetHostName = "www.google.com";
 
 
 const char *getWifiStatus() {
-  return getWifiStatusName(WiFi.status());
+  return wifiUtils.getWifiStatusName();
 }
 
 const char *getMqttStatus() {
@@ -280,11 +253,12 @@ int serialHandler(String params) {
     disablePlantower = true;
 }
 
+String msgxxx = "Nothing yet";
+
 
 const U32 MAX_COMMAND_LENGTH = 128;
 String command;     // The command the user is composing during command mode
 
-bool changedWifiCredentials = false;    // Track if we've changed wifi connection params during command mode
 
 void setup() {
 
@@ -311,16 +285,17 @@ void setup() {
   handleUpgrade();
 
   Rest.variable("uptime",             &millis);
+  Rest.variable("mqttStatus",         &getMqttStatus);
+  Rest.variable("wifiStatus",         &getWifiStatus);
+  Rest.variable("msgxxx",         &msgxxx);
+
+
   Rest.variable("mqttServerConfigured",             &mqttServerConfigured);
   Rest.variable("mqttServerLookupError",            &mqttServerLookupError);
   Rest.variable("ledStyle",           &getLedStyle);
   Rest.variable("sensorsDetected",    &getSensorsDetected,    false);      // false ==> We'll handle quoting ourselves
   Rest.variable("plantowerDisabled",  &disablePlantower);      
   Rest.variable("calibrationFactors", &getCalibrationFactors, false);
-
-  Rest.variable("lastReportTime",     &lastReportTime);
-  Rest.variable("mqttStatus",         &getMqttStatus);
-  Rest.variable("wifiStatus",         &getWifiStatus);
 
   Rest.variable("sampleCount",        &plantowerSampleCount);
   Rest.variable("sampleDurations",    &getSampleDuration);
@@ -337,26 +312,24 @@ void setup() {
   // These all take a single parameter specified on the cmd line
   Rest.function("setparams", setParamsHandler);
   Rest.function("serial",    serialHandler);
-
-  Rest.function("restart",      rebootHandler);
+  Rest.function("restart",   rebootHandler);
 
 
 
   Rest.set_id("brdhse");  // Should be 9 chars or less
   Rest.set_name(Eeprom.getLocalSsid());
 
-  WiFi.mode(WIFI_AP_STA);  
+  wifiUtils.begin();
+  wifiUtils.setOnConnectedToWifiCallback(onConnectedToWifi);
+  wifiUtils.setOnConnectedToWifiTimedOutCallback(onConnectedToWifiTimedOutCallback);
+  wifiUtils.setOnConnectedToWifiCallback(onConnectedToWifiFailedCallback);
 
-  WiFi.setAutoConnect(false);
-  WiFi.setAutoReconnect(false);   // Disabling this allows us to connect via wifi AP without issue
-
-  WiFi.begin();
 
   setupPubSubClient();
   mqtt.mqttSetCallback(messageReceivedFromMothership);
 
   paramManager.setLocalCredentialsChangedCallback([]()    { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
-  paramManager.setWifiCredentialsChangedCallback([]()     { changedWifiCredentials = true; });
+  paramManager.setWifiCredentialsChangedCallback([]()     { wifiUtils.setChangedWifiCredentials(); });
   paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
   paramManager.setLedStyleChangedCallback(updateLedStyle);
 
@@ -364,7 +337,7 @@ void setup() {
  
   command.reserve(MAX_COMMAND_LENGTH);
 
-  setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword());
+  wifiUtils.setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress);
 
   // Flash yellow until we've connected via wifi
   ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_YELLOW);
@@ -434,30 +407,20 @@ U16 getMqttPort()                { return Eeprom.getMqttPort();        }
 U16 getBirdhouseNumber()         { return Eeprom.getBirdhouseNumber(); }
 
 
-bool needToReconnectToWifi = false;
-bool needToConnect = false;
-
-bool isConnectingToWifi = false;    // True while a connection is in process
-
-U32 wifiConnectStartTime;
-
-
+U32 millisOveflows = 0;
 
 void loop() {
-  now_micros = micros();
-  now_millis = millis();
 
-  if(now_millis < lastMillis)
+  if(millis() < lastMillis)
     millisOveflows++;
   
-  lastMillis = now_millis;
+  lastMillis = millis();
 
   ledUtils.loop();    // Make the LEDs do their magic
 
   WiFiClient client = server.available();
 
-  if(client) 
-  {
+  if(client) {
     if(!serialSwapped)
       Serial.println("Handling incoming connection data");
     Rest.handle(client);
@@ -470,7 +433,7 @@ void loop() {
   }
 
 
-  handleWifiConnection();
+  wifiUtils.loop();
   loopPubSub();
 
   if(mqtt.mqttState() == MQTT_CONNECTED)
@@ -542,16 +505,26 @@ const char *getTemperatureSensorName() {
 // Read sensors each loop tick
 void loopSensors() {
 
-  if(now_micros - samplingPeriodStartTime_micros > Eeprom.getSampleDuration() * SECONDS_TO_MICROS) {
+  if(millis() - samplingPeriodStartTime > Eeprom.getSampleDuration() * SECONDS) {
+
+    if(!serialSwapped)
+      Serial.printf("Reporting... %d/%d/%d\n", samplingPeriodStartTime, millis(), lastScanTime);
 
     reportMeasurements();
 
-    if(now_millis - lastScanTime > 30 * MINUTES) {
-      scanVisibleNetworks();
+    if(millis() - lastScanTime > 30 * MINUTES) {  
+      mqtt.publishStatusMessage("Scanning");
+      
+      String results = wifiUtils.scanVisibleNetworks();
+      if(results != "")
+        mqtt.publishWifiScanResults(results);
+
+      lastScanTime = millis();
     }
 
-    if(now_millis - lastScanTime > 25 * SECONDS) {
+    if(millis() - lastUpdateCheckTime > 25 * SECONDS) {
       checkForFirmwareUpdates();
+      lastUpdateCheckTime = millis();
     }
 
     resetDataCollection();
@@ -565,12 +538,13 @@ void loopSensors() {
     plantowerSampleCount++;
     plantowerSensorDetected = true;
   }
+  else msgxxx = String("No PMS ") + String(millis());
 }
 
 void resetDataCollection() {
 
   // Start the cycle anew
-  samplingPeriodStartTime_micros = micros();
+  samplingPeriodStartTime = millis();
     
   // Reset Plantower data
   plantowerPm1Sum = 0;
@@ -582,7 +556,7 @@ void resetDataCollection() {
 
 void checkForFirmwareUpdates() {
 
-  if(WiFi.status() != WL_CONNECTED)
+  if(!wifiUtils.isConnected())
     return;
 
   t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, "/update/", FIRMWARE_VERSION);
@@ -624,16 +598,17 @@ void reportResetReason() {
 
 
 void reportCalibrationFactors() {
-  mqtt.publishCalibrationFactors(getCalibrationFactors());
+  // mqtt.publishCalibrationFactors(getCalibrationFactors());//xyzzy
+  if(!serialSwapped)
+    Serial.println(getCalibrationFactors());
 }
 
 
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
-    lastReportTime = millis();
 
-    mqtt.publishDeviceData(millis(), ESP.getFreeHeap());
+  mqtt.publishDeviceData(millis(), ESP.getFreeHeap());
 
   if(plantowerSampleCount > 0) {
     F64 pm1  = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
@@ -656,31 +631,6 @@ void reportMeasurements() {
 
 
 
-void printScanResult(U32 duration);     // Forward declare
-
-void scanVisibleNetworks() {
-  mqtt.publishStatusMessage("scanning");
-
-  WiFi.scanNetworks(false, true);    // Include hidden access points
-
-
-  U32 scanStartTime = millis();
-
-  // Wait for scan to complete with max 30 seconds
-  static const int MAX_SCAN_TIME = 30 * SECONDS;
-  while(!WiFi.scanComplete()) { 
-    if(millis() - scanStartTime > MAX_SCAN_TIME) {
-      lastScanTime = millis();
-      return;
-    }
-  }
-
-  printScanResult(millis() - scanStartTime);
-
-  lastScanTime = millis();
-}
-
-
 void onMqttPortUpdated() {
   if(Eeprom.getMqttPort() == 0)
     return;
@@ -696,77 +646,28 @@ void onMqttPortUpdated() {
 }
 
 
-void setWifiSsidFromScanResults(int index) {
-  if(WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
-    return;
-  }
+// void setWifiSsidFromScanResults(int index) {
+//   if(WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
+//     return;
+//   }
 
-  if(WiFi.scanComplete() == WIFI_SCAN_FAILED) {
-    return;
-  }
+//   if(WiFi.scanComplete() == WIFI_SCAN_FAILED) {
+//     return;
+//   }
 
-  // Networks are 0-indexed, but user will be selecting a network based on 1-indexed display
-  if(index < 1 || index > WiFi.scanComplete()) {
-    return;
-  }
+//   // Networks are 0-indexed, but user will be selecting a network based on 1-indexed display
+//   if(index < 1 || index > WiFi.scanComplete()) {
+//     return;
+//   }
   
-  paramManager.setParam("wifiSsid", WiFi.SSID(index - 1));  
-}
+//   paramManager.setParam("wifiSsid", WiFi.SSID(index - 1));  
+// }
 
 
-const char *getWifiStatusName(wl_status_t status) {
-  return
-    status == WL_NO_SHIELD        ? "NO_SHIELD" :
-    status == WL_IDLE_STATUS      ? "IDLE_STATUS" :
-    status == WL_NO_SSID_AVAIL    ? "NO_SSID_AVAIL" :
-    status == WL_SCAN_COMPLETED   ? "SCAN_COMPLETED" :
-    status == WL_CONNECTED        ? "CONNECTED" :
-    status == WL_CONNECT_FAILED   ? "CONNECT_FAILED" :
-    status == WL_CONNECTION_LOST  ? "CONNECTION_LOST" :
-    status == WL_DISCONNECTED     ? "DISCONNECTED" :
-                                    "UNKNOWN";
-}
-
-
-// Get a list of wifi hotspots the device can see
-void printScanResult(U32 duration) {
-  int networksFound = WiFi.scanComplete();
-
-  mqtt.publishStatusMessage("scan results: " + String(networksFound) + " hotspots found in " + String(duration) + "ms");
-
-  if(networksFound <= 0) {
-    return;
-  }
-
-  for (int i = 0; i < networksFound; i++) {
-    //xx Serial.printf("%d: %s <<%s>>, Ch:%d (%ddBm) %s\n", i + 1, WiFi.SSID(i) == "" ? "[Hidden network]" : WiFi.SSID(i).c_str(), WiFi.BSSIDstr(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), WiFi.encryptionType(i) == ENC_TYPE_NONE ? "open" : "");
-  }
-
-  // This is the format the Google Location services uses.  We'll create a list of these packets here so they can be passed through by the microservice
-  // {
-  //   "macAddress": "00:25:9c:cf:1c:ac",
-  //   "signalStrength": -43,
-  //   "age": 0,
-  //   "channel": 11,
-  //   "signalToNoiseRatio": 0
-  // }
-
-// TODO: Convert to arduinoJson
-  String json = "{\"visibleHotspots\":\"["; 
-
-  for (int i = 0; i < networksFound; i++) {
-    json += "{\\\"macAddress\\\":\\\"" + WiFi.BSSIDstr(i) + "\\\",\\\"signalStrength\\\":" + String(WiFi.RSSI(i)) + 
-                ", \\\"age\\\": 0, \\\"channel\\\":" + String(WiFi.channel(i)) + ",\\\"signalToNoiseRatio\\\": 0 }";
-    if(i < networksFound - 1)
-      json += ",";
-  }
-  json += "]\"}";
-
-}
 
 
 void ping(const char *target) {
-  if(WiFi.status() != WL_CONNECTED)
+  if(!wifiUtils.isConnected())
     return;
 
   U8 pingCount = 5;
@@ -783,95 +684,7 @@ void ping(const char *target) {
 }
 
 
-// Called from setup
-void setupLocalAccessPoint(const char *ssid, const char *password)
-{
-  // Resolve addresses
-  IPAddress ip, gateway;
-  WiFi.hostByName(localAccessPointAddress, ip);
-  WiFi.hostByName(localGatewayAddress, gateway);
-
-  IPAddress subnetMask(255,255,255,0);
- 
-  bool ok = WiFi.softAPConfig(ip, gateway, subnetMask) && WiFi.softAP(ssid, password); //, wifiChannel, false);  // name, pw, channel, hidden
-
-  const char *dnsName = "birdhouse";      // Connect with birdhouse.local
-
-  if (MDNS.begin(dnsName)) {              // Start the mDNS responder for birdhouse.local
-    //xx Serial.printf("mDNS responder started: %s.local\n", dnsName);
-  }
-  else {
-    //xx Serial.println("Error setting up MDNS responder!");
-  }
-}
-
-
-U32 wifiConnectCooldownTimer = 0;
-
-// Called from startup and loop
-void handleWifiConnection() {
-
-  // If our connection fails, let's take a brief break before trying again
-  // Don't do anything during the cooldown period
-  static const U32 WIFI_CONNECT_COOLDOWN_PERIOD = 5 * SECONDS;
-
-  if(millis() - wifiConnectCooldownTimer < WIFI_CONNECT_COOLDOWN_PERIOD)
-    return;
-
-  // Handle a connection that is already underway:
-  if(isConnectingToWifi) {
-    if(WiFi.status() == WL_CONNECTED) {   // We just connected!  :-)
-
-      onConnectedToWifi();
-      isConnectingToWifi = false;
-      return;
-    }
-
-    // Still working at it  :-(
-    if(millis() - wifiConnectStartTime > WIFI_CONNECT_TIMEOUT) {
-      isConnectingToWifi = false;
-      wifiConnectCooldownTimer = millis();
-      if(!serialSwapped)
-        Serial.printf("Failed to connect to wifi with credentials %s/%s at %d\n", Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), millis());
-    }
-
-    return;
-  }
-
-  
-  if(WiFi.status() == WL_CONNECTED) {   // Already connected
-    if(!changedWifiCredentials)         // Don't disconnect, so nothing to do
-      return;
-
-    // Our credentials changed, so we need to disconnect
-    WiFi.disconnect();
-    isConnectingToWifi = false;
-    changedWifiCredentials = false;
-    delay(500);
-  }
-
-
-  // If we get here, we aren't connected, and we're ready to start things up
-
-  // Clear some error statuses
-  mqttServerLookupError = false;
-
-  int status = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());
-
-  if(status != WL_CONNECT_FAILED) {   // OK
-    isConnectingToWifi = true;
-    wifiConnectStartTime = millis();    
-  }
-  else {                              // PROBLEM!
-    wifiConnectCooldownTimer = millis();
-    if(!serialSwapped)
-      Serial.println("Attempt to connect to wifi failed with status WL_CONNECT_FAILED");
-  }
-}
-
-
 U32 serialSwapTimer = 0;
-
 
 // We just connected (or reconnected) to wifi
 void onConnectedToWifi() {
@@ -887,21 +700,37 @@ void onConnectedToWifi() {
 }
 
 
+void onConnectedToWifiTimedOutCallback() {
+  if(!serialSwapped)
+    Serial.printf("Failed to connect to wifi with credentials %s/%s at %d\n", Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), millis());
+
+  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_RED);  
+}
+
+
+void onConnectedToWifiFailedCallback() {
+  if(!serialSwapped)
+    Serial.println("Attempt to connect to wifi failed with status WL_CONNECT_FAILED"); 
+
+  ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_RED);  
+}
+
+
 
 
 void activatePlantower()
 {
-  if(serialSwapped)
-    return;
+  if(serialSwapped)   // Only do this once!
+    return;   
 
-  if(serialSwapTimer == 0)
-    return;
+  // if(serialSwapTimer == 0)
+  //   return;
 
-  if(millis() - serialSwapTimer < 3 * SECONDS)
-    return;
+  // if(millis() - serialSwapTimer < 3 * SECONDS)
+  //   return;
 
-  if(disablePlantower)
-    return;
+  // if(disablePlantower)
+  //   return;
 
   if(!serialSwapped) {  
     // Switch over to Plantower

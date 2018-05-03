@@ -122,11 +122,12 @@ void publishLocalCredentials(const char *ssid, const char *password, const char 
 }
 
 
-void publishTempSensorNameAndSoftwareVersion(const char *tempSensorName, const char *firmwareVersion) {
+void publishTempSensorNameAndSoftwareVersion(const char *tempSensorName, const char *firmwareVersion, const String &macAddr) {
   StaticJsonBuffer<128> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["temperatureSensor"] = tempSensorName;
   root["firmwareVersion"] = firmwareVersion;
+  root["macAddress"] = macAddr;
 
   String json;
   root.printTo(json);
@@ -181,6 +182,11 @@ void publishStatusMessage(const String &msg) {
 
 void publishResetReason(const String &reason) {
   mqttPublishAttribute(String("{\"lastResetReason\":\"") + reason + "\"}");
+}
+
+
+void publishWifiScanResults(const String &results) {
+  mqttPublishAttribute(String("{\"visibleHotspots\":\"") + results + "\"}");
 }
 
 
