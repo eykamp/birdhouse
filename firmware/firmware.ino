@@ -33,7 +33,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.124" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.125" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
@@ -253,8 +253,6 @@ int serialHandler(String params) {
     disablePlantower = true;
 }
 
-String msgxxx = "Nothing yet";
-
 
 const U32 MAX_COMMAND_LENGTH = 128;
 String command;     // The command the user is composing during command mode
@@ -287,7 +285,6 @@ void setup() {
   Rest.variable("uptime",             &millis);
   Rest.variable("mqttStatus",         &getMqttStatus);
   Rest.variable("wifiStatus",         &getWifiStatus);
-  Rest.variable("msgxxx",         &msgxxx);
 
 
   Rest.variable("mqttServerConfigured",             &mqttServerConfigured);
@@ -538,7 +535,6 @@ void loopSensors() {
     plantowerSampleCount++;
     plantowerSensorDetected = true;
   }
-  else msgxxx = String("No PMS ") + String(millis());
 }
 
 void resetDataCollection() {
