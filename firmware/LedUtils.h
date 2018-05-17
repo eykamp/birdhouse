@@ -184,7 +184,8 @@ void setBlinkPatternByName(const char *mode) {
 
 
 void loop() {
-  if(millis() - blinkTimer < blinkTime)
+
+  if(millis() - blinkTimer < blinkTime)     // Time to advance to the next blinkstate?
     return;
 
   blinkTimer = millis();
