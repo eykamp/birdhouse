@@ -82,6 +82,7 @@
 aREST Rest = aREST();
 WiFiServer server(REST_LISTEN_PORT);    // Set up a webserver listening on port 80
 
+#define SERIAL_BAUD_RATE 115200
 #define PLANTOWER_SERIAL_BAUD_RATE 9600
 
 // Plantower config
@@ -260,7 +261,7 @@ String command;     // The command the user is composing during command mode
 
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD_RATE);
 
   Serial.println("");
   Serial.println("");
