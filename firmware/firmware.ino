@@ -598,9 +598,7 @@ void reportResetReason() {
 
 
 void reportCalibrationFactors() {
-  // mqtt.publishCalibrationFactors(getCalibrationFactors());//xyzzy
-  if(!serialSwapped)
-    Serial.println(getCalibrationFactors());
+  mqtt.publishCalibrationFactors(getCalibrationFactors());
 }
 
 
