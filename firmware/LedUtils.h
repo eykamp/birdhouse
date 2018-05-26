@@ -38,11 +38,15 @@ enum BlinkPattern {
 private:
 
 #define BLINK_STATES 2
+
 U8 blinkColor[BLINK_STATES] = { NONE, NONE };
 
 U8 blinkTime = 24 * HOURS;
 U8 blinkState = 0;
+U8 maxBlinkState = 0;
 U32 blinkTimer = 0;
+S16 fadeIncrement = 3000;    // % per second; there are 100 units between off and full bore
+bool fading = false;
 
 U8 redLedPin;
 U8 yellowLedPin;
@@ -127,7 +131,7 @@ void setBlinkPattern(BlinkPattern blinkPattern) {
 
   switch(blinkPattern) {
     case STARTUP:
-
+      fading = false;
       break;
 
     case OFF:
@@ -135,12 +139,16 @@ void setBlinkPattern(BlinkPattern blinkPattern) {
     case SOLID_YELLOW:
     case SOLID_GREEN:
       blinkTime = 24 * HOURS;
+      fading = true;
+      maxBlinkState = 0;
       break;
 
     case SLOW_BLINK_RED:
     case SLOW_BLINK_YELLOW:
     case SLOW_BLINK_GREEN:
       blinkTime = 1 * SECONDS;
+      fading = false;
+      maxBlinkState = 1;
       break;
 
     case FAST_BLINK_RED:
@@ -148,6 +156,8 @@ void setBlinkPattern(BlinkPattern blinkPattern) {
     case FAST_BLINK_GREEN:
     case ERROR_STATE:
       blinkTime = 400 * MILLIS;
+      fading = false;
+      maxBlinkState = 1;
       break;
   }
 }
@@ -185,17 +195,29 @@ void setBlinkPatternByName(const char *mode) {
 
 void loop() {
 
-  if(millis() - blinkTimer < blinkTime)     // Time to advance to the next blinkstate?
-    return;
-
-  blinkTimer = millis();
-  blinkState++;
-  if(blinkState >= BLINK_STATES)
-    blinkState = 0;
+  if(millis() - blinkTimer > blinkTime) {     // Time to advance to the next blinkstate?
+    blinkTimer = millis();
+    blinkState++;
+   
+    if(blinkState >= maxBlinkState)
+      blinkState = 0;
+  }
 
   activateLed(blinkColor[blinkState]);
 }
 
+
+// Adapted from https://www.instructables.com/topics/linear-PWM-LED-fade-with-arduino/
+int linearPWM(int percentage) {
+  // coefficients
+  double a = 9.7758463166360387E-01;
+  double b = 5.5498961535023345E-02;
+
+  // When input ranges from 0 to 100, this computes a value between 1 and 1001 that provides smooth pwm values
+  F32 amt = floor(((a * exp(b * percentage) + .5)) - 1)  * 4 + 1;   
+
+  return amt;   
+}
 
 void playStartupSequence() {
   activateLed(RED);
@@ -222,11 +244,21 @@ bool getHighState() {
 void activateLed(U32 ledMask) {
   if(ledStyle == ParameterManager::RYG || ledStyle == ParameterManager::RYG_REVERSED) {
 
-    digitalWrite(redLedPin,     (ledMask & RED)     ? getHighState() : getLowState());
-    digitalWrite(yellowLedPin,  (ledMask & YELLOW)  ? getHighState() : getLowState());
-    digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
-    digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
-  } 
+    if(!fading) {
+      digitalWrite(redLedPin,     (ledMask & RED)     ? getHighState() : getLowState());
+      digitalWrite(yellowLedPin,  (ledMask & YELLOW)  ? getHighState() : getLowState());
+      digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
+      digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
+    } else {
+      int val = triangle(100, 1.3 * SECONDS);
+      int pwm = linearPWM(val);
+
+      analogWrite(redLedPin,     ( (ledMask & RED))     ? pwm : 0);
+      analogWrite(yellowLedPin,  ( (ledMask & YELLOW))  ? pwm : 0);
+      analogWrite(greenLedPin,   ((ledMask & GREEN))   ? pwm : 0);
+      analogWrite(builtinLedPin, ( (ledMask & BUILTIN)) ? pwm : 0);
+    }
+  }
   else if(ledStyle == ParameterManager::DOTSTAR) {
 
     int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
@@ -240,6 +272,14 @@ void activateLed(U32 ledMask) {
     // Do something!
   }
 }
+
+
+// Generates triangle wave between 0 and range, with specified period
+// Adapted from // https://stackoverflow.com/questions/1073606/is-there-a-one-line-function-that-generates-a-triangle-wave
+int triangle(int range, int period) {
+    U32 x = millis();
+    return (F32(range) / F32(period)) * (period - abs(x % (2 * period) - period));     
+  }
 
 };
 
