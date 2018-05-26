@@ -190,8 +190,17 @@ void publishWifiScanResults(const String &results) {
 }
 
 
+String quote(const String &str) {
+  String quoted = str;
+
+  quoted.replace("\"", "\\\"");
+
+  return quoted;
+}
+
+
 void publishCalibrationFactors(const String &calibrationFactors) {
-  mqttPublishAttribute(String("{\"calibrationFactors\":\"") + calibrationFactors + "\"}");
+  mqttPublishAttribute(String("{\"calibrationFactors\":\"") + quote(calibrationFactors) + "\"}");
 }
 
 
