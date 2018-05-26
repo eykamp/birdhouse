@@ -47,7 +47,7 @@ def main():
     # Lookup missing fields, such as zip, lat, and lon
     birdhouse_utils.update_customer_data(cust_info)
 
-    if cust_lat is None or cust_lon is None:
+    if cust_info["lat"] is None or cust_info["lon"] is None:
         print("Must have valid lat/lon in order to add device!")
         exit(1)
 
@@ -79,7 +79,7 @@ def main():
 
     try:
         # Upate the dash def. to point at the device we just created (modifies dash_def)
-        update_dash_def(dash_def, cust_name, device_id)
+        update_dash_def(dash_def, cust_info["name"], device_id)
     except Exception as ex:
         print("Exception encountered: Cleaning up...")
         tbapi.delete_device(device_id)
@@ -88,7 +88,7 @@ def main():
 
 
     # Create a new dash with our definition, and assign it to the new customer    
-    dash = tbapi.create_dashboard_for_customer(cust_name + ' Dash', dash_def)
+    dash = tbapi.create_dashboard_for_customer(cust_info["name"] + ' Dash', dash_def)
     tbapi.assign_dash_to_user(tbapi.get_id(dash), tbapi.get_id(customer))
     
     print("Device token for Birdhouse " + birdhouse_number + " (set device token: setparams?deviceToken=" + device_token + ")")
