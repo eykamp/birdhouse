@@ -34,82 +34,94 @@ device_name = 'DEQ (SEL)'
 device_token = tbapi.get_device_token(tbapi.get_id(tbapi.get_device_by_name(device_name)))
 deq_tz_name = 'America/Los_Angeles'
 
-station_url = "https://oraqi.deq.state.or.us/report/RegionReportTable"
-data_url    = "https://oraqi.deq.state.or.us/report/stationReportTable"
 
 from_ts = "2018/05/03T00:00"        # ISO datetime format: YYYY/MM/SS/THH:MM
-to_ts   = "2018/05/09T23:59"
+to_ts   = "2019/05/09T23:59"
 station_id = 2              # 2 => SE Lafayette, 7 => Sauvie Island, 51 => Gresham Learning Center.  See bottom of this file more more stations.
 
-count = 99999               # This should be greater than the number of reporting periods in the data range specified above
-report_type = "Average"     # These will *probably* all work: Average, MinAverage, MaxAverage, RunningAverage, MinRunningAverage, MaxRunningAverage, RunningForword, MinRunningForword, MaxRunningForword
-resolution = 60             # 60 for hourly data, 1440 for daily averages.  Higher resolutions don't work, sorry, but lower-resolutions, such as 120, 180, 480, 720 will.
 
 
-# Get station data:
-# req = requests.get(station_url)
+def main():
 
-# station_data = json.loads(req.text)["Data"]
-# print(json_response)
-# sys.exit()
+    data = get_deq_data(station_id, from_ts, to_ts)
 
-params = "Sid=" + str(station_id) + "&FDate=" + from_ts + "&TDate=" + to_ts + "&TB=60&ToTB=" + str(resolution) + "&ReportType=" + report_type + "&period=Custom_Date&first=true&take="+ str(count) + "&skip=0&page=1&pageSize=" + str(count)
+    for d in data:
+        pm25 = data[d]["PM2.5 Est"]
+        temp = data[d]["Ambient Temperature"]
+        pres = data[d]["Barometric Pressure"]
+        outgoing_data = {"temperature" : temp, "pm25" : pm25, "pressure" : pres}
 
+        (month, day, year, hour, mins) = re.split('[/ :]', d)
+        if(hour == '24'):
+            hour = '0'
 
+        pst = pytz.timezone(deq_tz_name)
 
-req = requests.get(data_url + "?" + params)
-(status, reason) = (req.status_code, req.reason)
+        date_time = pst.localize(datetime.datetime(int(year), int(month), int(day), int(hour), int(mins)))
+        ts = int(time.mktime(date_time.timetuple()) * 1000)
 
-json_response = json.loads(req.text)
-
-response_data = json_response["Data"]
-field_descr = json_response["ListDicUnits"]
-
-titles = {}
-units = {}
-
-for d in field_descr:
-    name = d["field"]
-    words = re.split('<br/>', d["title"])       # d["title"] ==> Wind Direction <br/>Deg
-    titles[name] = words[0].strip()
-    if len(words) > 1:
-        units[name] = words[1].strip()
-    else:
-        units[name] = ""
+        try:
+            tbapi.send_telemetry(device_token, outgoing_data, ts)
+        except Exception as ex:
+            print("Error sending telemetry (%s)" % outgoing_data)
+            raise(ex)
 
 
-data = {}       # Restructured sensor data retrieved from DEQ
-
-for d in response_data:
-    dt = d["datetime"]
-    data[dt] = {}
-    # print(d)
-    for key, val in d.items():
-        if key != "datetime":
-            data[dt][titles[key]] = val
-
-for d in data:
-    pm25 = data[d]["PM2.5 Est"]
-    temp = data[d]["Ambient Temperature"]
-    pres = data[d]["Barometric Pressure"]
-    outgoing_data = {"temperature" : temp, "pm25" : pm25, "pressure" : pres}
-
-    (month, day, year, hour, mins) = re.split('[/ :]', d)
-    if(hour == '24'):
-        hour = '0'
-
-    pst = pytz.timezone(deq_tz_name)
-
-    date_time = pst.localize(datetime.datetime(int(year), int(month), int(day), int(hour), int(mins)))
-    ts = int(time.mktime(date_time.timetuple()) * 1000)
-
-    try:
-        tbapi.send_telemetry(device_token, outgoing_data, ts)
-    except Exception as ex:
-        print("Error sending telemetry (%s)" % outgoing_data)
-        raise(ex)
+    print("Done")
 
 
+''' 
+resolution: 60 for hourly data, 1440 for daily averages.  Higher resolutions don't work, sorry, but lower-resolutions, such as 120, 180, 480, 720 will.
+agg_method: These will *probably* all work: Average, MinAverage, MaxAverage, RunningAverage, MinRunningAverage, MaxRunningAverage, RunningForword, MinRunningForword, MaxRunningForword
+
+'''
+def get_deq_data(station_id, from_timestamp, to_timestamp, resolution=60, agg_method="Average"):
+    station_url = "https://oraqi.deq.state.or.us/report/RegionReportTable"
+    data_url    = "https://oraqi.deq.state.or.us/report/stationReportTable"
+    count = 99999               # This should be greater than the number of reporting periods in the data range specified above
+    # Get station data:
+    # req = requests.get(station_url)
+
+    # station_data = json.loads(req.text)["Data"]
+    # print(json_response)
+    # sys.exit()
+
+    params = "Sid=" + str(station_id) + "&FDate=" + from_timestamp + "&TDate=" + to_timestamp + "&TB=60&ToTB=" + str(resolution) + "&ReportType=" + agg_method + "&period=Custom_Date&first=true&take="+ str(count) + "&skip=0&page=1&pageSize=" + str(count)
+
+    req = requests.get(data_url + "?" + params)
+    (status, reason) = (req.status_code, req.reason)
+
+    json_response = json.loads(req.text)
+
+    response_data = json_response["Data"]
+    field_descr = json_response["ListDicUnits"]
+
+    titles = {}
+    units = {}
+
+    for d in field_descr:
+        name = d["field"]
+        words = re.split('<br/>', d["title"])       # d["title"] ==> Wind Direction <br/>Deg
+        titles[name] = words[0].strip()
+        if len(words) > 1:
+            units[name] = words[1].strip()
+        else:
+            units[name] = ""
+
+
+    data = {}       # Restructured sensor data retrieved from DEQ
+
+    for d in response_data:
+        dt = d["datetime"]
+        data[dt] = {}
+        # print(d)
+        for key, val in d.items():
+            if key != "datetime":
+                data[dt][titles[key]] = val
+
+    return data
+
+main()
 
 
 '''
