@@ -85,7 +85,7 @@ void loop() {
 
 
     // Still working at it  :-(
-    if(millis() - wifiConnectStartTime > 20 * SECONDS) {
+    if(millis() - wifiConnectStartTime > (connections == 0 ? 1 : 20) * SECONDS) {
       isConnectingToWifi = false;
       wifiConnectCooldownTimer = millis();
 
