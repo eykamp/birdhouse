@@ -199,7 +199,7 @@ void loop() {
     blinkTimer = millis();
     blinkState++;
    
-    if(blinkState >= maxBlinkState)
+    if(blinkState > maxBlinkState)
       blinkState = 0;
   }
 
