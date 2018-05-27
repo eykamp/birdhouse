@@ -60,6 +60,7 @@
 
 
 // Plantower Sensor pins are hardcoded below; they have to be on the serial pins
+// Plantower uses D7, D8
 
 // Output LEDs
 #define LED_BUILTIN D4
