@@ -67,6 +67,7 @@
 #define LED_GREEN D0
 #define LED_YELLOW D1
 #define LED_RED D2
+
 ///// OR /////
 #define LED_DATA_PIN D1
 #define LED_CLOCK_PIN D0
@@ -606,7 +607,6 @@ void reportCalibrationFactors() {
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
-
   mqtt.publishDeviceData(millis(), ESP.getFreeHeap());
 
   if(plantowerSampleCount > 0) {
