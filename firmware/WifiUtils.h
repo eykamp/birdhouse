@@ -82,12 +82,12 @@ void loop() {
   isConnectedToWifi = (wifiStatus == WL_CONNECTED);
 
 
-  // There was a change in status
+  // There was a change in status -- either we just connected or disconnected
   if(isConnectedToWifi != wasConnectedToWiFi) {
     prevWifiStatus = wifiStatus;
     wasConnectedToWiFi = isConnectedToWifi;
 
-    if(wifiStatus == WL_CONNECTED) {      // We just became connected
+    if(wifiStatus == WL_CONNECTED) {      // We just connected
       isConnectingToWifi = false;
       connections++;
 
