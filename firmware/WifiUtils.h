@@ -169,18 +169,20 @@ U32 getConnectionCount() {
 // Called from setup
 void setupLocalAccessPoint(const char *ssid, const char *password, const char *localAccessPointAddress)
 {
-  static const char *localGatewayAddress = "192.168.1.2";
-
+  // static const char *localGatewayAddress = "192.168.1.2";
 
   // Resolve addresses
-  IPAddress ip, gateway;
+  IPAddress ip;
   WiFi.hostByName(localAccessPointAddress, ip);
-  WiFi.hostByName(localGatewayAddress, gateway);
+  // WiFi.hostByName(localGatewayAddress, gateway);
 
+  IPAddress gateway(192,168,1,2);
   IPAddress subnetMask(255,255,255,0);
 
 
   bool ok = WiFi.softAPConfig(ip, gateway, subnetMask) && WiFi.softAP(ssid, password);
+
+
   const char *dnsName = "birdhouse";      // Connect with birdhouse.local
 
   if (MDNS.begin(dnsName)) {              // Start the mDNS responder for birdhouse.local
