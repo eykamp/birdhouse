@@ -76,8 +76,35 @@ def main():
             sys.exit(1)
     # else we'll try to get it from the birdhouse itself
     # sys.exit()
+
+
     runUi()
 
+
+class ServerSetupModel(object):
+    def __init__(self):
+
+
+        # Current contact when editing.
+        self.current_id = None
+
+    def add(self, contact):
+        pass
+
+    def get_summary(self):
+        pass
+
+    def get_contact(self, contact_id):
+        pass
+
+    def get_current_contact(self):
+        pass
+
+    def update_current_contact(self, details):
+        pass
+
+    def delete_contact(self, contact_id):
+        pass
 
 
 def run_win_cmd(cmd, args, echo_to_console=True):
@@ -170,8 +197,7 @@ parse_list = {
         'birdhouse_number'       : ('["serialNumber"]',                               'serialNumber',           'number'),
         'uptime'                 : ('["uptime"]',                                     None,                     None),
         'wifi_status'            : ('["wifiStatus"]',                                 None,                     None),
-        'traditionalLeds'        : ('["ledparams"]["traditionalLeds"]',               'traditionalLeds',        None),
-        'ledsInstalledBackwards' : ('["ledparams"]["ledsInstalledBackwards"]',        'ledsInstalledBackwards', None),
+        'led_style'              : ('["ledStyle"]',                                  'ledStyle',                'ledstyle'),
         'plantowerSensorDetected': ('["sensorsDetected"]["plantowerSensorDetected"]', None,                     None),
         'temperatureSensor'      : ('["sensorsDetected"]["temperatureSensor"]',       None,                     None),
         'mqtt_status'            : ('["mqttStatus"]',                                 None,                     None),
@@ -240,8 +266,7 @@ class Main(Frame):
         layout.add_widget(Text("MQTT Status:", "mqtt_status"))
         layout.find_widget("mqtt_status").disabled=True
 
-        layout.add_widget(RadioButtons([("Traditional (3 independent LEDs)", 'True'), ("Single/Multicolor", 'False')], "LED Style:", "traditionalLeds", on_change=self.input_changed))
-        layout.add_widget(RadioButtons([("Correctly", 'False'), ("Backwards", 'True')], "LEDs Installed:", "ledsInstalledBackwards", on_change=self.input_changed))
+        layout.add_widget(RadioButtons([("Traditional (R/Y/G)", 'RYG'), ("Traditional, wired backward", 'RYG_REVERSED'), ("Single square LED", 'DOTSTAR'), ("Single round LED", '4PIN')], "LED Style:", "led_style", on_change=self.on_led_style_changed))
 
         layout.add_widget(Text("Device Token:", "device_token", on_change=self.input_changed))
 
@@ -258,6 +283,7 @@ class Main(Frame):
         # Buttons
         layout2 = Layout([1, 1, 1, 1])
         self.add_layout(layout2)
+        layout2.add_widget(Button("Server", self.server_config), 0)
         layout2.add_widget(Button("Commit", self.write_values), 0)
         layout2.add_widget(Button("Refresh", self.reload_values), 1)
         # layout2.add_widget(Button("Rescan Ports", self.scan_ports), 1)
@@ -300,9 +326,6 @@ class Main(Frame):
 
         self.set_status_msg("")
         
-        # Enable/disable based on field values -- do this before we apply colors
-        self.layout.find_widget('ledsInstalledBackwards').disabled = self.layout.find_widget('traditionalLeds').value == 'False'
-        
         # Set dependent field values
         self.layout.find_widget('local_ssid').value = "Birdhouse " + self.layout.find_widget('birdhouse_number').value
         
@@ -322,6 +345,20 @@ class Main(Frame):
                     widget.custom_colour = "edit_text"
 
 
+
+    def on_led_style_changed(self):
+        if self.initializing:
+            return
+
+        if self.has_connection_to_birdhouse:
+            val = self.layout.find_widget("led_style").value
+            cmd = '/setparams?ledStyle=' + val + '\r\n'
+            print(cmd)
+            self.bhserial.write(bytes(cmd.encode("UTF-8")))
+            time.sleep(0.1)
+            line = self.bhserial.readline()   # We'll ignore the response
+            print(line)
+
     def on_test_leds_changed(self):
         if self.initializing:
             return
@@ -339,6 +376,10 @@ class Main(Frame):
                 self.set_status_msg('LEDS should be off')
             else:
                 self.set_status_msg(val + " LED should be on")
+
+
+    def server_config(self):
+        raise NextScene("Server Configuration")
 
 
     def query_birdhouse(self, port):
@@ -485,6 +526,9 @@ class Main(Frame):
 
     def finalize(self):
         self.set_status_msg("Finalizing")
+        self.bhserial.write(b'/updateFirmware\r\n')
+        time.sleep(3)    
+        self.query_birdhouse(self.port)     
 
 
     def make_device_name(self, base_name):
@@ -510,6 +554,71 @@ class Main(Frame):
         print("Bye!")
         print(self.data)
         raise StopApplication("User pressed quit")
+
+
+class ServerSetup(Frame):
+    def __init__(self, screen, model):
+        super(ServerSetup, self).__init__(screen,
+                                          screen.height * 2 // 3,
+                                          screen.width * 2 // 3,
+                                          hover_focus=True,
+                                          title="Contact Details",
+                                          reduce_cpu=True)
+        # Save off the model that accesses the contacts database.
+        self._model = model
+
+        # Create the form for displaying the list of contacts.
+        layout = Layout([4,2,1], fill_frame=True)
+        self.add_layout(layout)
+
+# This to be passed in
+# cust_name = "Hank Williams 3"
+# cust_address = "4000 SE 39th"
+# cust_address2 = None
+# cust_city = "Portland"
+# cust_state = "OR"
+# cust_zip = None     # Will be populated by geocoder if empty
+# cust_country = "USA"
+# cust_email = "hank@email.com"
+# cust_phone = "555-1212"
+# cust_lat = None     # Will be populated by geocoder if empty
+# cust_lon = None     # Will be populated by geocoder if empty
+
+
+        layout.add_widget(Text("Name:", "name"))
+        layout.add_widget(Text("Address:", "address"))
+        layout.add_widget(Text("Address 2:", "address2"))
+        layout.add_widget(Text("City:", "city"))
+        layout.add_widget(Text("State:", "state"))
+        layout.add_widget(Text("Zip:", "zip"))
+        layout.add_widget(Text("Country:", "country"))
+        layout.add_widget(Text("Email address:", "email"))
+        layout.add_widget(Text("Phone number:", "phone"))
+        layout.add_widget(Text("Lat:", "lat"))
+        layout.add_widget(Text("Lon:", "lon"), 1)
+        layout.add_widget(Button("From Address", self._ok), 2)
+        layout2 = Layout([1, 1, 1, 1])
+        self.add_layout(layout2)
+        layout2.add_widget(Button("OK", self._ok), 0)
+        layout2.add_widget(Button("Cancel", self._cancel), 3)
+        self.fix()
+
+    def reset(self):
+        # Do standard reset to clear out form, then populate with new data.
+        super(ServerSetup, self).reset()
+        self.data = self._model.get_current_contact()
+
+    def _ok(self):
+        self.save()
+        self._model.update_current_contact(self.data)
+        raise NextScene("Main")
+
+    @staticmethod
+    def _cancel():
+        raise NextScene("Main")
+
+
+
 
 
 
@@ -540,6 +649,7 @@ def get_best_guess_port():
 def singleton(screen, scene):
     scenes = [
         Scene([Main(screen)], -1, name="Main"),
+        Scene([ServerSetup(screen, server_config)], -1, name="Server Configuration")
     ]
 
     screen.play(scenes, stop_on_resize=False, start_scene=scene)
@@ -548,6 +658,8 @@ def singleton(screen, scene):
 # These are global
 tbapi = None
 args = None
+
+server_config = ServerSetupModel()
 
 main()
 
