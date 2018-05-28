@@ -740,14 +740,25 @@ void onConnectedToWifiFailedCallback() {
 }
 
 
+// We were connected and now we're not
+void onDisconnectedToWifiCallback() {
+  serialSwapped = false;
+  Serial.swap();    // Should be totally superflous
+  Serial.begin(SERIAL_BAUD_RATE);
+  Serial.println("Disconnected from WiFi");
+  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_YELLOW);  
+}
 
 
 void activatePlantower()
-{
-  if(serialSwapped)   // Only do this once!
+{  
+  if(serialSwapped)           // Already activated!
     return;   
 
-  // if(serialSwapTimer == 0)
+  if(!wifiUtils.isConnected()) 
+    return;
+
+  // if(serialSwapTimer == 0)    // This is only 0 if we've never connected to wifi
   //   return;
 
   // if(millis() - serialSwapTimer < 3 * SECONDS)
