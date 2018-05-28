@@ -709,11 +709,14 @@ void ping(const char *target) {
 
 
 U32 serialSwapTimer = 0;
+int connectionFailures = 0;
 
 // We just connected (or reconnected) to wifi
 void onConnectedToWifiCallback() {
   if(!serialSwapped)
     Serial.printf("Connected to WiFi! (this is connection #%d)\n", wifiUtils.getConnectionCount());
+
+  connectionFailures = 0;
 
   ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_GREEN);   // Stop flashing yellow now that we've connected to wifi
 
@@ -732,11 +735,17 @@ void onConnectedToWifiTimedOutCallback() {
 }
 
 
+// This is a serious fault... if we get it 5 times in a row, we'll restart to see if that fixes it
 void onConnectedToWifiFailedCallback() {
   if(!serialSwapped)
     Serial.println("Attempt to connect to wifi failed with status WL_CONNECT_FAILED"); 
 
-  ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_RED);  
+  ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_RED);
+
+  connectionFailures++;
+
+  if(connectionFailures >= 5)
+    ESP.restart()
 }
 
 
