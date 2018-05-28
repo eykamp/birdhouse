@@ -224,6 +224,8 @@ void onConnectedToPubSubServer() {
 
   // Announce ourselves to the server
   mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress);
+  mqtt.publishLocalIp(WiFi.localIP());
+  
   mqtt.publishSampleDuration(getSampleDuration());
   mqtt.publishTempSensorNameAndSoftwareVersion(getTemperatureSensorName(), FIRMWARE_VERSION, WiFi.macAddress());
   mqtt.publishStatusMessage("Connected");
@@ -721,8 +723,6 @@ void onConnectedToWifiCallback() {
   connectionFailures = 0;
 
   ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_GREEN);   // Stop flashing yellow now that we've connected to wifi
-
-  mqtt.publishLocalIp(WiFi.localIP());
 
   if(serialSwapTimer == 0)
     serialSwapTimer = millis();
