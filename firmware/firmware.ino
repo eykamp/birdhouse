@@ -479,8 +479,8 @@ int rebootHandler(String params) {
 
 
 void restart() {
-  digitialWrite(0, HIGH);   // Speculative fix for https://github.com/esp8266/Arduino/issues/793, https://github.com/esp8266/Arduino/issues/1017
-  digitialWrite(2, HIGH);   
+  digitalWrite(0, HIGH);   // Speculative fix for https://github.com/esp8266/Arduino/issues/793, https://github.com/esp8266/Arduino/issues/1017
+  digitalWrite(2, HIGH);   
   ESP.restart();
 }
 
