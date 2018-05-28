@@ -58,6 +58,7 @@
 #define BME_SCL D5  // SPI (Serial Clock)
 #define BME_SDA D6  // SDA (Serial Data) 
 
+#define UNUSED_PIN D3
 
 // Plantower Sensor pins are hardcoded below; they have to be on the serial pins
 // Plantower uses D7, D8
@@ -291,6 +292,14 @@ void setup() {
   Serial.println("");
   Serial.printf("Firmware Version %s\n", FIRMWARE_VERSION);
   Serial.println("");
+
+
+  // See https://github.com/esp8266/Arduino/issues/4321
+  pinMode(UNUSED_PIN, OUTPUT);
+  analogWrite(UNUSED_PIN, 0);
+  analogWrite(UNUSED_PIN, 10);
+
+
 
   Eeprom.begin();
 
