@@ -204,6 +204,9 @@ void reconnectToPubSubServer() {
 
 // Gets run when we successfuly connect to PubSub server
 void onConnectedToPubSubServer() {
+  if(!serialSwapped)
+    Serial.println("Connected to mqtt server!");
+
   mqtt.mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Announce ourselves to the server
