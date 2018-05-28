@@ -469,12 +469,7 @@ void loop() {
     checkForFirmwareUpdates();
     lastUpdateCheckTime = millis();
   }
-
-
 }
-
-
-
 
 
 int rebootHandler(String params) {
