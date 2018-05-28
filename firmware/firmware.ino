@@ -150,18 +150,19 @@ void setupPubSubClient() {
   if(!wifiUtils.isConnected())          // No point in doing anything here if we don't have internet access
     return;
 
-  IPAddress serverIp(162,212,157,80);   // 162.212.157.80
+  IPAddress serverIp; 
+  IPAddress fallbackServerIp(162,212,157,80);   // 162.212.157.80
 
-  if(true || WiFi.hostByName(Eeprom.getMqttUrl(), serverIp)) {  //{P{P}}
-    mqtt.mqttSetServer(serverIp, Eeprom.getMqttPort());
-    mqttServerConfigured = true;
-  } else {
-    mqttServerLookupError = true;
-    mqttServerLookupErrorTimer = millis();
+  bool dnsLookupOk = (WiFi.hostByName(Eeprom.getMqttUrl(), serverIp) == 1);
+
+  if(!dnsLookupOk) {
+    if(!serialSwapped)
+      Serial.println("DNS failed: using fallback IP address.");
   }
+
+  mqtt.mqttSetServer(dnsLookupOk ? serverIp : fallbackServerIp, Eeprom.getMqttPort());
+  mqttServerConfigured = true;
 }
-
-
 
 
 U32 lastPubSubConnectAttempt = 0;
