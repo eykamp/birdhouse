@@ -205,7 +205,7 @@ void reconnectToPubSubServer() {
     return;
 
   if(!serialSwapped)
-    Serial.println("Reconnecting to mqtt server");
+    Serial.println("Connecting to mqtt server");
 
   // Attempt to connect
   if(mqtt.mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
