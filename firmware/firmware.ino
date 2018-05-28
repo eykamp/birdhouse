@@ -689,7 +689,7 @@ U32 serialSwapTimer = 0;
 // We just connected (or reconnected) to wifi
 void onConnectedToWifiCallback() {
   if(!serialSwapped)
-    Serial.println("Connected to WiFi!");
+    Serial.printf("Connected to WiFi! (this is connection #%d)\n", wifiUtils.getConnectionCount());
 
   ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_GREEN);   // Stop flashing yellow now that we've connected to wifi
 
@@ -702,7 +702,7 @@ void onConnectedToWifiCallback() {
 
 void onConnectedToWifiTimedOutCallback() {
   if(!serialSwapped)
-    Serial.printf("Failed to connect to wifi with credentials %s/%s at %d\n", Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), millis());
+    Serial.printf("Attempt to connect to wifi timed out, using credentials %s/%s at %d\n", Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), millis());
 
   ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_RED);  
 }
