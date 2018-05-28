@@ -230,6 +230,7 @@ void onConnectedToPubSubServer() {
   mqtt.publishTempSensorNameAndSoftwareVersion(getTemperatureSensorName(), FIRMWARE_VERSION, WiFi.macAddress());
   mqtt.publishStatusMessage("Connected");
 
+
   reportPlantowerSensorStatus();
   reportResetReason();
   reportCalibrationFactors();
@@ -300,8 +301,6 @@ void setup() {
   pinMode(UNUSED_PIN, OUTPUT);
   analogWrite(UNUSED_PIN, 0);
   analogWrite(UNUSED_PIN, 10);
-
-
 
   Eeprom.begin();
 
