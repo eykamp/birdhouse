@@ -771,8 +771,8 @@ void activatePlantower()
   Serial.println("Turning over the serial port to the Plantower... no more messages here.");
   Serial.flush();   // Get any last bits out of there before switching the serial pins
 
-    Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
-    Serial.swap();    // D8 is now TX, D7 RX
+  Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
+  Serial.swap();    // D8 is now TX, D7 RX
   // Serial1.begin(115200);
   serialSwapped = true;
 }
