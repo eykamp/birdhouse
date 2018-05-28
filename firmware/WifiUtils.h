@@ -29,8 +29,7 @@ std::function<void()> onConnectedToWifiFailedCallback;
 std::function<void()> onConnectedToWifiTimedOutCallback;
 std::function<void()> onDisconnectedFromWifiCallback;
 
-wl_status_t wifiStatus     = WL_DISCONNECTED;
-wl_status_t prevWifiStatus = WL_DISCONNECTED;
+wl_status_t wifiStatus = WL_DISCONNECTED;
 
 public:
 
@@ -100,7 +99,6 @@ void loop() {
 
   // There was a change in status -- either we just connected or disconnected
   if(isConnectedToWifi != wasConnectedToWiFi) {
-    prevWifiStatus = wifiStatus;
     wasConnectedToWiFi = isConnectedToWifi;
 
     if(wifiStatus == WL_CONNECTED) {      // We just connected
@@ -154,25 +152,20 @@ void loop() {
         return;
 
       // Reconnect!
-      wl_status_t stat = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());    // Status is usually WL_DISCONNECTED when returning from this function
+      wl_status_t status = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());    // Status is usually WL_DISCONNECTED when returning from this function
 
-      isConnectingToWifi = true;
-      wifiConnectStartTime = millis();
+      if(status == WL_CONNECT_FAILED) {                       // This means something failed, probably unrecoverable
+        if(onConnectedToWifiFailedCallback)
+          onConnectedToWifiFailedCallback();
+
+        wifiConnectCooldownTimer = millis();
+      }
+      else {
+        isConnectingToWifi = true;
+        wifiConnectStartTime = millis();
+      }
     }
   }
-
-
-  // else if(status == WL_CONNECT_FAILED) {       // PROBLEM!  (possible, never seen this in practice)
-  //   isConnectingToWifi = false;
-  //   wifiConnectCooldownTimer = millis();
-
-  //   if(onConnectedToWifiFailedCallback)
-  //     onConnectedToWifiFailedCallback();
-  // }
-  // else {                                       // OK... we'll check back later
-  //   isConnectingToWifi = true;
-  //   wifiConnectStartTime = millis();    
-  // }
 }
 
 
