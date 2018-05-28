@@ -138,6 +138,7 @@ bool mqttServerLookupError = false;
 bool reportedResetReason = false;
 U32 mqttServerLookupErrorTimer = 0;
 
+bool serialSwapped = false;     // Track who is using the serial port
 
 void setupPubSubClient() {
   if(millis() - mqttServerLookupErrorTimer > 5 * SECONDS)
@@ -161,7 +162,6 @@ void setupPubSubClient() {
 }
 
 
-bool serialSwapped = false;
 
 
 U32 lastPubSubConnectAttempt = 0;
