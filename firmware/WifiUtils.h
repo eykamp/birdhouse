@@ -51,6 +51,24 @@ void begin() {
   WiFi.setAutoReconnect(false);   // Disabling this allows us to connect via wifi AP without issue
 
   WiFi.begin();
+
+
+
+  // Test name resolution... see if this works at DEQ
+  //  // Specify a DNS server (try to compensate for DNS failures at DEQ)
+//   IPAddress dns1(8,8,8,8);          // Google
+//   // IPAddress dns2(208,67,222,222);   // OpenDNS
+//   // WiFi.setDNS(dns1, dns2);
+
+//   DNSClient dnsClient;
+//   dnsClient.begin(dns1);
+
+//   IPAddress xxx;
+//   Serial.println("Looking up");
+//   dnsClient.getHostByName("google.com", xxx);
+//   Serial.println("Back");
+
+//   Serial.println(xxx);
 }
 
 
