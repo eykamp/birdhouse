@@ -14,9 +14,13 @@ private:
 
 U32 wifiConnectCooldownTimer = 0;
 U32 wifiConnectStartTime = 0;
+U32 connections = 0;                    // Keep track of how many times we've connected to wifi.  Possibly a measurement of stability?
+U32 lastConnections = 0;
 
 bool needToReconnectToWifi = false;
 bool needToConnect = false;
+bool isConnectedToWifi = false;
+bool wasConnectedToWiFi = false;
 
 bool isConnectingToWifi = false;        // True while a connection is in process
 bool changedWifiCredentials = false;    // Track if we've changed wifi connection params during command mode
@@ -27,6 +31,8 @@ std::function<void()> onConnectedToWifiFailedCallback;
 std::function<void()> onConnectedToWifiTimedOutCallback;
 std::function<void()> onDisconnectedToWifiCallback;
 
+wl_status_t wifiStatus     = WL_DISCONNECTED;
+wl_status_t prevWifiStatus = WL_DISCONNECTED;
 
 public:
 
@@ -67,68 +73,97 @@ void setOnDisconnectedToWifiCallback(std::function<void()> callback) {
   onDisconnectedToWifiCallback = callback;
 }
 
-// Called from startup and loop
+
+
+// Called from main firmware loop
 void loop() {
 
-  // If our connection fails, let's take a brief break before trying again
-  // Don't do anything during the cooldown period
-  static const U32 WIFI_CONNECT_COOLDOWN_PERIOD = 5 * SECONDS;
+  // We want to control this status to ensure that all status changes flow through here; this status will be cached and used elsewhere
+  wifiStatus = WiFi.status();
+  isConnectedToWifi = wifiStatus == WL_CONNECTED;
 
-  if(millis() - wifiConnectCooldownTimer < WIFI_CONNECT_COOLDOWN_PERIOD)
-    return;
 
-  // Handle a connection that is already underway:
-  if(isConnectingToWifi) {
-    if(WiFi.status() == WL_CONNECTED) {   // We just connected!  :-)
+  // There was a change in status
+  if(isConnectedToWifi != wasConnectedToWiFi) {
+    prevWifiStatus = wifiStatus;
+    wasConnectedToWiFi = isConnectedToWifi;
 
-      if(onConnectedToWifiCallback)
-        onConnectedToWifiCallback();
-
+    if(wifiStatus == WL_CONNECTED) {      // We just became connected
       isConnectingToWifi = false;
-      return;
+      connections++;
+
+      if(onConnectedToWifiCallback) 
+        onConnectedToWifiCallback();
     }
 
-
-    // Still working at it  :-(
-    if(millis() - wifiConnectStartTime > (connections == 0 ? 1 : 20) * SECONDS) {
+    else {                                // We just became disconnected
       isConnectingToWifi = false;
       wifiConnectCooldownTimer = millis();
+
+      if(onDisconnectedToWifiCallback)
+        onDisconnectedToWifiCallback();
+    }
+  }
+
+  else if(isConnectingToWifi) {
+    if(millis() - wifiConnectStartTime > 15 * SECONDS) {
+      // I'm tired of waiting!!!
+      wifiConnectCooldownTimer = millis();
+      isConnectingToWifi = false;
 
       if(onConnectedToWifiTimedOutCallback)
         onConnectedToWifiTimedOutCallback();
     }
-
-    return;
   }
 
-  
-  if(WiFi.status() == WL_CONNECTED) {   // Already connected
-    if(!changedWifiCredentials)         // Don't disconnect, so nothing to do
-      return;
+  // There was no change in status
+  else {
+    if(wifiStatus == WL_CONNECTED) {    // Already connected
+      if(!changedWifiCredentials)       // Credentials didn't change, so nothing more to do
+        return;
 
-    // Our credentials changed, so we need to disconnect
-    WiFi.disconnect();
-    isConnectingToWifi = false;
-    changedWifiCredentials = false;
-    delay(500);
+      // Credentials DID change, so we need to disconnect
+      WiFi.disconnect();
+      isConnectingToWifi = false;
+      changedWifiCredentials = false;
+      lastConnections = connections;    // Suppress call to onDisconnectedToWifi below
+      delay(500);
+      wifiConnectCooldownTimer = 0;
+    }
+    // If we're disconnected, let's reconnect!
+    else if(wifiStatus != WL_CONNECTED) {
+      if(isConnectingToWifi)                                  //  We've already initated a connection
+        return;
+
+      if(millis() - wifiConnectCooldownTimer < 5 * SECONDS)   // Don't do anything during the cooldown period
+        return;
+
+      // Reconnect!
+      wl_status_t stat = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());    // Status is usually WL_DISCONNECTED when returning from this function
+
+      isConnectingToWifi = true;
+      wifiConnectStartTime = millis();
+    }
   }
 
 
-  // If we get here, we aren't connected, and we're ready to start things up
+  // else if(status == WL_CONNECT_FAILED) {       // PROBLEM!  (possible, never seen this in practice)
+  //   isConnectingToWifi = false;
+  //   wifiConnectCooldownTimer = millis();
 
-  // Clear some error statuses
-  int status = WiFi.begin(Eeprom.getWifiSsid(), Eeprom.getWifiPassword());
+  //   if(onConnectedToWifiFailedCallback)
+  //     onConnectedToWifiFailedCallback();
+  // }
+  // else {                                       // OK... we'll check back later
+  //   isConnectingToWifi = true;
+  //   wifiConnectStartTime = millis();    
+  // }
+}
 
-  if(status != WL_CONNECT_FAILED) {   // OK
-    isConnectingToWifi = true;
-    wifiConnectStartTime = millis();    
-  }
-  else {                              // PROBLEM!
-    wifiConnectCooldownTimer = millis();
 
-    if(onConnectedToWifiFailedCallback)
-      onConnectedToWifiFailedCallback();
-  }
+
+U32 getConnectionCount() {
+  return connections;
 }
 
 
@@ -165,12 +200,12 @@ void setChangedWifiCredentials() {
 
 
 bool isConnected() {
-  return WiFi.status() == WL_CONNECTED;
+  return wifiStatus == WL_CONNECTED;
 }
 
 
 const char *getWifiStatusName() {
-  return getWifiStatusName(WiFi.status());
+  return getWifiStatusName(wifiStatus);
 }
 
 
