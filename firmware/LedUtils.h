@@ -68,6 +68,7 @@ LedUtils() :
 }
 
 
+
 void begin(U8 redPin, U8 yellowPin, U8 greenPin, U8 builtinPin, U8 dotStarDataPin, U8 dotStarClockPin) {
   redLedPin     = redPin;
   yellowLedPin  = yellowPin;
@@ -250,7 +251,7 @@ void activateLed(U32 ledMask) {
       digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
       digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
     } else {
-      int val = triangle(100, 1.3 * SECONDS);
+      int val = triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
       int pwm = linearPWM(val);
 
       analogWrite(redLedPin,     ( (ledMask & RED))     ? pwm : 0);
