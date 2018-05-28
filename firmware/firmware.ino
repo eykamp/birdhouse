@@ -164,6 +164,7 @@ bool serialSwapped = false;
 
 
 U32 lastPubSubConnectAttempt = 0;
+bool wasConnectedToPubSubServer = false;
 
 void loopPubSub() {
   setupPubSubClient();
@@ -173,6 +174,11 @@ void loopPubSub() {
 
   // Ensure constant contact with the mother ship
   if(!mqtt.mqttConnected()) {
+    if(wasConnectedToPubSubServer) {
+      onDisconnectedFromPubSubServer();
+      wasConnectedToPubSubServer = false;
+    }
+  
     if(millis() - lastPubSubConnectAttempt > 5 * SECONDS) {
       reconnectToPubSubServer();      // Attempt to reconnect
       lastPubSubConnectAttempt = millis();
@@ -181,6 +187,12 @@ void loopPubSub() {
   }
 
   mqtt.mqttLoop();
+}
+
+
+void onDisconnectedFromPubSubServer() {
+  if(!serialSwapped)
+    Serial.println("Disconnected from mqtt server... will try to reconnect.");
 }
 
 
