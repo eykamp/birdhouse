@@ -478,12 +478,12 @@ void loop() {
 
 
 int rebootHandler(String params) {
-  reboot();
+  restart();
   return 1;
 }
 
 
-void reboot() {
+void restart() {
   digitialWrite(0, HIGH);   // Speculative fix for https://github.com/esp8266/Arduino/issues/793
   ESP.restart();
 }
@@ -751,7 +751,7 @@ void onConnectedToWifiFailedCallback() {
   connectionFailures++;
 
   if(connectionFailures >= 5)
-    reboot();
+    restart();
 }
 
 
