@@ -13,7 +13,7 @@ class WifiUtils {
 private:
 
 U32 wifiConnectCooldownTimer = 0;
-U32 wifiConnectStartTime= 0;
+U32 wifiConnectStartTime = 0;
 
 bool needToReconnectToWifi = false;
 bool needToConnect = false;
