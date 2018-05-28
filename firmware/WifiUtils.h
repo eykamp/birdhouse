@@ -29,7 +29,7 @@ bool changedWifiCredentials = false;    // Track if we've changed wifi connectio
 std::function<void()> onConnectedToWifiCallback;
 std::function<void()> onConnectedToWifiFailedCallback;
 std::function<void()> onConnectedToWifiTimedOutCallback;
-std::function<void()> onDisconnectedToWifiCallback;
+std::function<void()> onDisconnectedFromWifiCallback;
 
 wl_status_t wifiStatus     = WL_DISCONNECTED;
 wl_status_t prevWifiStatus = WL_DISCONNECTED;
@@ -40,7 +40,7 @@ WifiUtils() {
   onConnectedToWifiCallback = NULL;
   onConnectedToWifiFailedCallback = NULL;
   onConnectedToWifiTimedOutCallback = NULL;
-  onDisconnectedToWifiCallback = NULL;
+  onDisconnectedFromWifiCallback = NULL;
 }
 
 
@@ -69,10 +69,9 @@ void setOnConnectedToWifiTimedOutCallback(std::function<void()> callback) {
 }
 
 
-void setOnDisconnectedToWifiCallback(std::function<void()> callback) {
-  onDisconnectedToWifiCallback = callback;
+void setOnDisconnectedFromWifiCallback(std::function<void()> callback) {
+  onDisconnectedFromWifiCallback = callback;
 }
-
 
 
 // Called from main firmware loop
@@ -100,8 +99,8 @@ void loop() {
       isConnectingToWifi = false;
       wifiConnectCooldownTimer = millis();
 
-      if(onDisconnectedToWifiCallback)
-        onDisconnectedToWifiCallback();
+      if(onDisconnectedFromWifiCallback)
+        onDisconnectedFromWifiCallback();
     }
   }
 
