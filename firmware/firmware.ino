@@ -323,6 +323,7 @@ void setup() {
   wifiUtils.setOnConnectedToWifiCallback(onConnectedToWifi);
   wifiUtils.setOnConnectedToWifiTimedOutCallback(onConnectedToWifiTimedOutCallback);
   wifiUtils.setOnConnectedToWifiFailedCallback(onConnectedToWifiFailedCallback);
+  wifiUtils.setOnDisconnectedToWifiCallback(onDisconnectedToWifiCallback);
 
 
   setupPubSubClient();

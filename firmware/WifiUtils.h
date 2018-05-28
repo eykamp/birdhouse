@@ -25,6 +25,7 @@ bool changedWifiCredentials = false;    // Track if we've changed wifi connectio
 std::function<void()> onConnectedToWifiCallback;
 std::function<void()> onConnectedToWifiFailedCallback;
 std::function<void()> onConnectedToWifiTimedOutCallback;
+std::function<void()> onDisconnectedToWifiCallback;
 
 
 public:
@@ -33,6 +34,7 @@ WifiUtils() {
   onConnectedToWifiCallback = NULL;
   onConnectedToWifiFailedCallback = NULL;
   onConnectedToWifiTimedOutCallback = NULL;
+  onDisconnectedToWifiCallback = NULL;
 }
 
 
@@ -61,6 +63,9 @@ void setOnConnectedToWifiTimedOutCallback(std::function<void()> callback) {
 }
 
 
+void setOnDisconnectedToWifiCallback(std::function<void()> callback) {
+  onDisconnectedToWifiCallback = callback;
+}
 
 // Called from startup and loop
 void loop() {
