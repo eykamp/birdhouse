@@ -95,7 +95,7 @@ void loop() {
         onConnectedToWifiCallback();
     }
 
-    else {                                // We just became disconnected
+    else {                                // We just disconnected
       isConnectingToWifi = false;
       wifiConnectCooldownTimer = millis();
 
