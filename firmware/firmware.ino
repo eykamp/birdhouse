@@ -347,7 +347,7 @@ void setup() {
   wifiUtils.setOnConnectedToWifiCallback(onConnectedToWifiCallback);
   wifiUtils.setOnConnectedToWifiTimedOutCallback(onConnectedToWifiTimedOutCallback);
   wifiUtils.setOnConnectedToWifiFailedCallback(onConnectedToWifiFailedCallback);
-  wifiUtils.setOnDisconnectedToWifiCallback(onDisconnectedToWifiCallback);
+  wifiUtils.setOnDisconnectedFromWifiCallback(onDisconnectedFromWifiCallback);
 
 
   setupPubSubClient();
@@ -750,7 +750,7 @@ void onConnectedToWifiFailedCallback() {
 
 
 // We were connected and now we're not
-void onDisconnectedToWifiCallback() {
+void onDisconnectedFromWifiCallback() {
   serialSwapped = false;
   Serial.swap();    // Should be totally superflous
   Serial.begin(SERIAL_BAUD_RATE);
