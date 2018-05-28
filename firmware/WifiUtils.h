@@ -80,7 +80,7 @@ void loop() {
 
   // We want to control this status to ensure that all status changes flow through here; this status will be cached and used elsewhere
   wifiStatus = WiFi.status();
-  isConnectedToWifi = wifiStatus == WL_CONNECTED;
+  isConnectedToWifi = (wifiStatus == WL_CONNECTED);
 
 
   // There was a change in status
