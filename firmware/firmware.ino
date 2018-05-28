@@ -320,7 +320,7 @@ void setup() {
   Rest.set_name(Eeprom.getLocalSsid());
 
   wifiUtils.begin();
-  wifiUtils.setOnConnectedToWifiCallback(onConnectedToWifi);
+  wifiUtils.setOnConnectedToWifiCallback(onConnectedToWifiCallback);
   wifiUtils.setOnConnectedToWifiTimedOutCallback(onConnectedToWifiTimedOutCallback);
   wifiUtils.setOnConnectedToWifiFailedCallback(onConnectedToWifiFailedCallback);
   wifiUtils.setOnDisconnectedToWifiCallback(onDisconnectedToWifiCallback);
@@ -687,7 +687,7 @@ void ping(const char *target) {
 U32 serialSwapTimer = 0;
 
 // We just connected (or reconnected) to wifi
-void onConnectedToWifi() {
+void onConnectedToWifiCallback() {
   if(!serialSwapped)
     Serial.println("Connected to WiFi!");
 
