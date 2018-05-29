@@ -29,6 +29,7 @@ app = web.application(urls, globals())
 
 class handle_purpleair:
     def POST(self, data):
+        web.debug("Handling purpleair")
         print("data: ", web.data())
         print("passed: ", data)
         print("ctx: ", web.ctx)
@@ -37,6 +38,7 @@ class handle_purpleair:
 
 class handle_hotspots:
     def POST(self):
+        web.debug("Handling hotspots")
         try:
             data = web.data()
             decoded = data.decode(data_encoding)
@@ -60,7 +62,10 @@ class handle_hotspots:
                     pos = decoded.find('$ss', pos + 1)
             return
 
-        results = gmaps.geolocate(wifi_access_points=incoming_data["hotspots"])
+        hotspots = str(incoming_data["hotspots"])
+        web.debug("Geolocating for data " + hotspots)
+
+        results = gmaps.geolocate(wifi_access_points=hotspots)
 
         web.debug("Geocoding results for " + device_token + ":", results)
 
@@ -118,17 +123,24 @@ class handle_update:
 
 
     def GET(self, status):
+        web.debug("Handling update request")
         web.debug(status)
         current_version = web.ctx.env.get('HTTP_X_ESP8266_VERSION')
+        mac = web.ctx.env.get('HTTP_X_ESP8266_STA_MAC')
+        web.debug("Mac %s" % mac)
         # Other available headers
-        # http.setUserAgent(F("ESP8266-http-Update"));
-        # http.addHeader(F("x-ESP8266-STA-MAC"), WiFi.macAddress());
-        # http.addHeader(F("x-ESP8266-AP-MAC"), WiFi.softAPmacAddress());
-        # http.addHeader(F("x-ESP8266-free-space"), String(ESP.getFreeSketchSpace()));
-        # http.addHeader(F("x-ESP8266-sketch-size"), String(ESP.getSketchSize()));
-        # http.addHeader(F("x-ESP8266-sketch-md5"), String(ESP.getSketchMD5()));
-        # http.addHeader(F("x-ESP8266-chip-size"), String(ESP.getFlashChipRealSize()));
-        # http.addHeader(F("x-ESP8266-sdk-version"), ESP.getSdkVersion());
+        # 'HTTP_CONNECTION': 'close',
+        # 'HTTP_HOST': 'www.sensorbot.org:8989',
+        # 'HTTP_USER_AGENT': 'ESP8266-http-Update',
+        # 'HTTP_X_ESP8266_AP_MAC': '2E:3A:E8:08:2C:38',
+        # 'HTTP_X_ESP8266_CHIP_SIZE': '4194304',
+        # 'HTTP_X_ESP8266_FREE_SPACE': '2818048',
+        # 'HTTP_X_ESP8266_MODE': 'sketch',
+        # 'HTTP_X_ESP8266_SDK_VERSION': '2.2.1(cfd48f3)',
+        # 'HTTP_X_ESP8266_SKETCH_MD5': '3f74331d79d8124c238361dcebbf3dc4',
+        # 'HTTP_X_ESP8266_SKETCH_SIZE': '324512',
+        # 'HTTP_X_ESP8266_STA_MAC': '2C:3A:E8:08:2C:38',
+        # 'HTTP_X_ESP8266_VERSION': '0.120',
 
 
         # Use passed url params to display a debugging payload -- all will be read as strings; specify defaults in web.input() call to avoid exceptions for missing values
@@ -137,8 +149,6 @@ class handle_update:
         # web.debug("MQTT status:", mqtt_status)
 
         newest_firmware = self.find_firmware(current_version)
-
-
 
         if newest_firmware:
             web.debug("Upgrading birdhouse to " + newest_firmware)
