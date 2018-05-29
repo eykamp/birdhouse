@@ -65,7 +65,12 @@ class handle_hotspots:
         hotspots = str(incoming_data["hotspots"])
         web.debug("Geolocating for data " + hotspots)
 
-        results = gmaps.geolocate(wifi_access_points=hotspots)
+        try:
+            results = gmaps.geolocate(wifi_access_points=hotspots)
+        except Exception as ex:
+            web.debug("Exception while geolocating", ex)
+            return
+
 
         web.debug("Geocoding results for " + device_token + ":", results)
 
