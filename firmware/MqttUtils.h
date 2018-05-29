@@ -8,6 +8,10 @@ WiFiClient wfclient;
 PubSubClient pubSubClient(wfclient);
 
 
+class MqttUtils {
+
+public:
+
 bool mqttLoop() {
   return pubSubClient.loop();
 }
@@ -29,7 +33,7 @@ const char *getSubPubStatusName(int status) {
 }
 
 
-auto mqttState() {
+int mqttState() {
   return pubSubClient.state();
 }
 
@@ -90,6 +94,138 @@ bool mqttPublishAttribute(const String &payload) {
 bool mqttPublishTelemetry(const String &payload) {
   return mqttPublish("v1/devices/me/telemetry", payload.c_str());
 }
+
+
+void publishSampleDuration(U16 sampleDuration) {
+  StaticJsonBuffer<128> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["sampleDuration"] = sampleDuration;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json);  
+}
+
+
+void publishLocalCredentials(const char *ssid, const char *password, const char *ipAddr) {
+  StaticJsonBuffer<256> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["localSsid"] = ssid;
+  root["localPassword"] = password;
+  root["localIpAddress"] = ipAddr;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json);
+}
+
+
+void publishTempSensorNameAndSoftwareVersion(const char *tempSensorName, const char *firmwareVersion, const String &macAddr) {
+  StaticJsonBuffer<128> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["temperatureSensor"] = tempSensorName;
+  root["firmwareVersion"] = firmwareVersion;
+  root["macAddress"] = macAddr;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json);
+}
+
+
+void publishDeviceData(U32 uptime, U32 freeHeap) {
+
+    String json = String("{") +
+      "\"uptime\":"              + String(uptime) + "," + 
+      "\"freeHeap\":"            + String(freeHeap) + "}"; 
+
+    mqttPublishTelemetry(json);
+
+}
+
+void reportPlantowerDetectNondetect(bool sensorFound) {
+  mqttPublishAttribute(String("{\"plantowerSensorDetected\":") + (sensorFound ? "True" : "False") + "}");
+}
+
+
+void publishLocalIp(const IPAddress &ipAddr) {
+  mqttPublishAttribute(String("{\"lanIpAddress\":\"") + ipAddr.toString() + "\"}");
+}
+
+
+void publishOtaStatusMessage(const String &msg) {
+  StaticJsonBuffer<128> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["otaUpdate"] = msg;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json);  
+}
+
+
+void publishStatusMessage(const String &msg) {
+  StaticJsonBuffer<128> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["status"] = msg;
+
+  String json;
+  root.printTo(json);
+
+  mqttPublishAttribute(json);  
+}
+
+
+void publishResetReason(const String &reason) {
+  mqttPublishAttribute(String("{\"lastResetReason\":\"") + reason + "\"}");
+}
+
+
+void publishWifiScanResults(const String &results) {
+  mqttPublishAttribute(String("{\"visibleHotspots\":\"") + results + "\"}");
+}
+
+
+String quote(const String &str) {
+  String quoted = str;
+
+  quoted.replace("\"", "\\\"");
+
+  return quoted;
+}
+
+
+void publishCalibrationFactors(const String &calibrationFactors) {
+  mqttPublishAttribute(String("{\"calibrationFactors\":\"") + quote(calibrationFactors) + "\"}");
+}
+
+
+void publishPmData(F64 pm1, F64 pm25, F64 pm10, U16 sampleCount) {
+
+  String json = String("{") +
+    "\"plantowerPM1conc\":"     + String(pm1)  + "," + 
+    "\"plantowerPM25conc\":"    + String(pm25) + "," + 
+    "\"plantowerPM10conc\":"    + String(pm10) + "," +
+    "\"plantowerSampleCount\":" + String(sampleCount) + "}";
+
+  mqttPublishTelemetry(json);
+
+}
+
+
+void publishWeatherData(F32 rawTemp, F32 smoothedTemp, F32 humidity, F32 pressure) {
+  String json = "{\"temperature\":" + String(rawTemp) + ",\"humidity\":" + String(humidity) + ",\"pressure\":" + String(pressure) + ",\"temperature_smoothed\":" + String(smoothedTemp) + "}";
+  mqttPublishTelemetry(json);
+}
+
+};
+
+
+MqttUtils mqtt;
 
 
 #endif

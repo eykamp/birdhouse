@@ -54,12 +54,12 @@ client.on_message = on_message
 
 
 client.connect(host_name, port)
-
+print("Connected!")
 
 
 client.loop_start()
 i = 0
-while i < 1:
+while i < 100:
 
     temp = random.randint(10,80)
     data = {
@@ -67,6 +67,7 @@ while i < 1:
     }
 
     client.publish("v1/devices/me/telemetry", json.dumps(data))
+    print("Publishing %s" %(json.dumps(data)))
 
 
     time.sleep(1)
