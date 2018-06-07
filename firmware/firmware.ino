@@ -109,6 +109,7 @@ bool plantowerSensorDetected = false;
 bool plantowerSensorDetectReported = false;
 bool plantowerSensorNondetectReported = false;
 
+U32 lastMqttConnectAttempt = 0;
 
 ParameterManager paramManager;
 
@@ -209,6 +210,7 @@ void reconnectToPubSubServer() {
     Serial.println("Connecting to mqtt server");
 
   // Attempt to connect
+  lastMqttConnectAttempt = millis();
   if(mqtt.mqttConnect("Birdhouse", Eeprom.getDeviceToken(), "")) {   // ClientID, username, password
     onConnectedToPubSubServer();
   }
@@ -312,6 +314,7 @@ void setup() {
 
   Rest.variable("uptime",             &millis);
   Rest.variable("mqttStatus",         &getMqttStatus);
+  Rest.variable("lastMqttConnectAttempt", &lastMqttConnectAttempt);
   Rest.variable("wifiStatus",         &getWifiStatus);
 
 
