@@ -112,7 +112,6 @@ bool plantowerSensorNondetectReported = false;
 
 ParameterManager paramManager;
 
-U16 wifiChannel = 11;   // TODO: Delete? EEPROM, 0 = default, 1-13 are valid values
 
 const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
 
