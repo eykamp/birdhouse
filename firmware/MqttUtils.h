@@ -136,13 +136,13 @@ void publishTempSensorNameAndSoftwareVersion(const char *tempSensorName, const c
 }
 
 
-void publishDeviceData(U32 uptime, U32 freeHeap) {
+bool publishDeviceData(U32 uptime, U32 freeHeap) {
 
     String json = String("{") +
       "\"uptime\":"              + String(uptime) + "," + 
       "\"freeHeap\":"            + String(freeHeap) + "}"; 
 
-    mqttPublishTelemetry(json);
+    return mqttPublishTelemetry(json);
 
 }
 

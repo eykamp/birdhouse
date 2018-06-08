@@ -33,7 +33,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.130" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.131" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
@@ -110,6 +110,7 @@ bool plantowerSensorDetectReported = false;
 bool plantowerSensorNondetectReported = false;
 
 U32 lastMqttConnectAttempt = 0;
+U32 timeOfLastContact = 0;
 
 ParameterManager paramManager;
 
@@ -452,8 +453,12 @@ void loop() {
 
   if(millis() < lastMillis)
     millisOveflows++;
-  
+
   lastMillis = millis();
+
+  // If we just can't make contact for a while... reboot!
+  if(timeOfLastContact - millis() > 10 * MINUTES)
+    restart();
 
   ledUtils.loop();    // Make the LEDs do their magic
 
@@ -648,7 +653,10 @@ void reportCalibrationFactors() {
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
 void reportMeasurements() {
-  mqtt.publishDeviceData(millis(), ESP.getFreeHeap());
+  if(!mqtt.publishDeviceData(millis(), ESP.getFreeHeap()))
+    return;
+
+  timeOfLastContact = millis();
 
   if(plantowerSampleCount > 0) {
     F64 pm1  = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
