@@ -33,7 +33,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.131" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.132" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
@@ -457,7 +457,7 @@ void loop() {
   lastMillis = millis();
 
   // If we just can't make contact for a while... reboot!
-  if(timeOfLastContact - millis() > 10 * MINUTES)
+  if(millis() - timeOfLastContact > 10 * MINUTES)
     restart();
 
   ledUtils.loop();    // Make the LEDs do their magic
