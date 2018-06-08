@@ -33,7 +33,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.129" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.130" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
@@ -315,6 +315,10 @@ void setup() {
   Rest.variable("uptime",             &millis);
   Rest.variable("mqttStatus",         &getMqttStatus);
   Rest.variable("lastMqttConnectAttempt", &lastMqttConnectAttempt);
+  Rest.variable("wasConnectedToPubSubServer", &wasConnectedToPubSubServer);
+  Rest.variable("mqttConnected", &getMqttConnected);
+
+
   Rest.variable("wifiStatus",         &getWifiStatus);
 
 
@@ -373,6 +377,12 @@ void setup() {
 
 
   server.begin();   // Start the web server
+}
+
+
+//xyzzy
+bool getMqttConnected() {
+  return mqtt.mqttConnected();
 }
 
 
