@@ -28,10 +28,10 @@ from provision_config import motherShipUrl, username, password
 
 tbapi = TbApi(motherShipUrl, username, password)
 device_name = 'DEQ (SEL)'
+deq_tz_name = 'America/Los_Angeles'
 
 
 device_token = tbapi.get_device_token(tbapi.get_id(tbapi.get_device_by_name(device_name)))
-deq_tz_name = 'America/Los_Angeles'
 
 
 from_ts = "2018/05/03T00:00"        # ISO datetime format: YYYY/MM/DDTHH:MM
