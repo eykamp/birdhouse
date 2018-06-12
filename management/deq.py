@@ -17,7 +17,6 @@
 
 import re
 import datetime, time, pytz
-import sys
 import deq_tools                                                    # pip install deq_tools
 
 from thingsboard_api_tools import TbApi                             # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -41,31 +40,33 @@ earliest_ts = "2018/04/28T00:00"        # DEQ uses ISO datetime format: YYYY/MM/
 station_id = 2              # 2 => SE Lafayette, 7 => Sauvie Island, 51 => Gresham Learning Center.  See bottom of this file more more stations.
 
 
+# Mapping of DEQ keys to the ones we'll use for the same data
+key_mapping = {
+    "PM2.5 Est": "pm25",
+    "Ambient Temperature": "temperature",
+    "Barometric Pressure": "pressure"
+}
 
 
 def main():
 
+    # Date rante for the data we're requesting from DEQ
+    now = int(time.time() * 1000)
     from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inogural run
-    to_ts   = make_deq_date_from_ts(int(time.time() * 1000))       # Now
+    to_ts   = make_deq_date_from_ts(now)    # No need to request future data yet!
 
-    print(from_ts, to_ts)
+    print("Requesting range",from_ts, to_ts)
 
-    exit()
-
+    # Fetch the data from DEQ
     data = deq_tools.get_data(station_id, from_ts, to_ts)
 
     for d in data:
 
         outgoing_data = {}
 
-        if "PM2.5 Est"           in data[d]:
-            outgoing_data["pm25"] = data[d]["PM2.5 Est"]          
-            
-        if "Ambient Temperature" in data[d]:
-            outgoing_data["temperature"] = data[d]["Ambient Temperature"]
-            
-        if "Barometric Pressure" in data[d]:
-            outgoing_data["pressure"] = data[d]["Barometric Pressure"]
+        for deq_key, our_key in key_mapping.items():
+            if deq_key in data[d]:
+                outgoing_data[our_key] = data[d][deq_key]          
 
         if len(outgoing_data) == 0:
             continue
@@ -80,12 +81,11 @@ def main():
         ts = int(time.mktime(date_time.timetuple()) * 1000)
 
         try:
-            print("Sending", outgoing_data)
+            # print("Sending", outgoing_data)
             tbapi.send_telemetry(device_token, outgoing_data, ts)
         except Exception as ex:
             print("Error sending telemetry (%s)" % outgoing_data)
             raise(ex)
-
 
     print("Done")
 
