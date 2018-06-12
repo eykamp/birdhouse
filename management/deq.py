@@ -99,7 +99,7 @@ def get_from_ts(device):
     key = "pm25"
     telemetry = tbapi.get_latest_telemetry(device, key)
 
-    if telemetry[key][0]["value"] is None:
+    if telemetry[key][0]["value"] is None:      # We haven't stored any telemetry yet
         ts = earliest_ts
     else:
         ts = make_deq_date_from_ts(telemetry[key][0]["ts"])
