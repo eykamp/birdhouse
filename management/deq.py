@@ -29,16 +29,32 @@ device_name = 'DEQ (SEL)'
 deq_tz_name = 'America/Los_Angeles'
 
 
-device_token = tbapi.get_device_token(tbapi.get_id(tbapi.get_device_by_name(device_name)))
+# Data is stored as if it were coming from one of our devices
+device = tbapi.get_device_by_name(device_name)
+device_token = tbapi.get_device_token(tbapi.get_id(device))
 
 
-from_ts = "2018/05/03T00:00"        # ISO datetime format: YYYY/MM/DDTHH:MM
-to_ts   = "2019/05/09T23:59"
+# This is the earliest timestamp we're interested in.  The first time we run this script, all data since this date will be imported. 
+# Making the date unnecessarily early will make this script run very slowly.
+earliest_ts = "2018/04/28T00:00"        # DEQ uses ISO datetime format: YYYY/MM/DDTHH:MM
+
 station_id = 2              # 2 => SE Lafayette, 7 => Sauvie Island, 51 => Gresham Learning Center.  See bottom of this file more more stations.
+
+
+# ts is in milliseconds
+def make_deq_date_from_ts(ts):
+    return datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y/%m/%dT%H:%M')
 
 
 
 def main():
+
+    from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inogural run
+    to_ts   = make_deq_date_from_ts(int(time.time() * 1000))       # Now
+
+    print(from_ts, to_ts)
+
+    exit()
 
     data = deq_tools.get_data(station_id, from_ts, to_ts)
 
@@ -76,6 +92,19 @@ def main():
 
 
     print("Done")
+
+
+def get_from_ts(device):
+
+    key = "pm25"
+    telemetry = tbapi.get_latest_telemetry(device, key)
+
+    if telemetry[key][0]["value"] is None:
+        ts = earliest_ts
+    else:
+        ts = make_deq_date_from_ts(telemetry[key][0]["ts"])
+
+    return ts
 
 
 main()
