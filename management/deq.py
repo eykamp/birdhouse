@@ -41,10 +41,6 @@ earliest_ts = "2018/04/28T00:00"        # DEQ uses ISO datetime format: YYYY/MM/
 station_id = 2              # 2 => SE Lafayette, 7 => Sauvie Island, 51 => Gresham Learning Center.  See bottom of this file more more stations.
 
 
-# ts is in milliseconds
-def make_deq_date_from_ts(ts):
-    return datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y/%m/%dT%H:%M')
-
 
 
 def main():
@@ -94,9 +90,18 @@ def main():
     print("Done")
 
 
-def get_from_ts(device):
+# ts is in milliseconds
+def make_deq_date_from_ts(ts):
+    return datetime.datetime.fromtimestamp(ts / 1000).strftime('%Y/%m/%dT%H:%M')
 
-    key = "pm25"
+
+# This function returns the ts to use as the beginning of the data range in our data request to DEQ.  It will return the
+# ts for the most recently inserted DEQ data, or if data hasn't yet been inserted, it will return the value we set in 
+# earliest_ts at the top of this file.
+def get_from_ts(device):
+    # Key used to determine last available telemetry -- this convoluted statement extracts the first value in our key_mapping dict
+    # This is a somewhat arbitrary choice, but it will ensure we don't miss any data
+    key = key_mapping[list(key_mapping.keys())[0]]        
     telemetry = tbapi.get_latest_telemetry(device, key)
 
     if telemetry[key][0]["value"] is None:      # We haven't stored any telemetry yet
