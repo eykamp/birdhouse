@@ -50,7 +50,7 @@ key_mapping = {
 
 def main():
 
-    # Date rante for the data we're requesting from DEQ
+    # Date range for the data we're requesting from DEQ
     now = int(time.time() * 1000)
     from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inogural run
     to_ts   = make_deq_date_from_ts(now)    # No need to request future data yet!
