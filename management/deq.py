@@ -17,6 +17,7 @@
 
 import re
 import datetime, time, pytz
+import logging
 import deq_tools                                                    # pip install deq_tools
 
 from thingsboard_api_tools import TbApi                             # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -26,6 +27,8 @@ tbapi = TbApi(motherShipUrl, username, password)
 
 device_name = 'DEQ (SEL)'
 deq_tz_name = 'America/Los_Angeles'
+
+logging.basicConfig(filename="deq.log", format='%(asctime)s %(message)s', level=logging.INFO)    # WARN, INFO, DEBUG
 
 
 # Data is stored as if it were coming from one of our devices
@@ -50,15 +53,19 @@ key_mapping = {
 
 def main():
 
+    start = time.time()
+    now_ts = make_deq_date_from_ts(int(time.time() * 1000))    
+    
     # Date range for the data we're requesting from DEQ
-    now = int(time.time() * 1000)
     from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inogural run
-    to_ts   = make_deq_date_from_ts(now)    # No need to request future data yet!
+    to_ts   = now_ts
 
     # Fetch the data from DEQ
     data = deq_tools.get_data(station_id, from_ts, to_ts)
+    records = 0
 
     for d in data:
+        records += 1
 
         outgoing_data = {}
 
@@ -79,13 +86,16 @@ def main():
         ts = int(time.mktime(date_time.timetuple()) * 1000)
 
         try:
-            # print("Sending", outgoing_data)
             tbapi.send_telemetry(device_token, outgoing_data, ts)
+            time.sleep(1)  # Throttle
         except Exception as ex:
-            print("Error sending telemetry (%s)" % outgoing_data)
-            raise
+            logging.warning("Error sending telemetry (%s)" % outgoing_data)
+            logging.warning(ex)
 
-    print("Done")
+    # Note that the DEQ now seems to be ignoring the time part of the requested timestamps, and is returning the entire day's worth of data.
+    # This is not really a problem, because when inserting records with the same datestamp, the new data will overwrite the old, and no
+    # duplicate records will be created.  It's just ugly.
+    logging.info("Uploaded %s records in %s seconds" % (records, round(time.time() - start, 1)))
 
 
 # ts is in milliseconds
@@ -103,6 +113,7 @@ def get_from_ts(device):
     telemetry = tbapi.get_latest_telemetry(device, key)
 
     if telemetry[key][0]["value"] is None:      # We haven't stored any telemetry yet
+        logging.info("First run!")
         ts = earliest_ts
     else:
         ts = make_deq_date_from_ts(telemetry[key][0]["ts"])
