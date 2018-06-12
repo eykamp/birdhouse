@@ -48,10 +48,10 @@ class handle_hotspots:
             known_lat = incoming_data["latitude"]
             known_lng = incoming_data["longitude"]
             device_token = incoming_data["device_token"]
-        except:
-            web.debug("Cannot parse incoming packet:", web.data())
+        except Exception as ex:
+            web.debug("Cannot parse incoming packet:", web.data(), ex)
 
-            # Diagnose common configuration problems
+            # Diagnose common configuration problem
             if '$ss' in decoded:
                 pos = decoded.find('$ss')
                 while(pos > -1):
@@ -62,7 +62,7 @@ class handle_hotspots:
                     pos = decoded.find('$ss', pos + 1)
             return
 
-        hotspots = str(incoming_data["hotspots"])
+        hotspots = str(incoming_data["visibleHotspots"])
         web.debug("Geolocating for data " + hotspots)
 
         try:
@@ -93,7 +93,7 @@ class handle_hotspots:
             web.debug("Error calculating!")
             return
 
-        outgoing_data = {"wifi_distance" : dist, "wifi_distance_accuracy" : wifi_acc}
+        outgoing_data = {"wifiDistance" : dist, "wifiDistanceAccuracy" : wifi_acc}
 
         web.debug("Sending ", outgoing_data)
         try:
