@@ -236,9 +236,9 @@ void onConnectedToPubSubServer() {
 
   reportPlantowerSensorStatus();
   reportResetReason();
-  reportCalibrationFactors();
+  mqtt.publishCalibrationFactors(getCalibrationFactors());    // report calibration factors
 
-  resetDataCollection();      // Now we can start our data collection efforts
+  resetDataCollection();                                      // Now we can start our data collection efforts
   ledUtils.setBlinkPattern(LedUtils::SOLID_GREEN);
 }
 
@@ -644,12 +644,6 @@ void reportResetReason() {
   mqtt.publishResetReason(ESP.getResetReason());
   reportedResetReason = true;
 }
-
-
-void reportCalibrationFactors() {
-  mqtt.publishCalibrationFactors(getCalibrationFactors());
-}
-
 
 
 // Take any measurements we only do once per reporting period, and send all our data to the mothership
