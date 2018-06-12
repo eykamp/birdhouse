@@ -55,8 +55,6 @@ def main():
     from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inogural run
     to_ts   = make_deq_date_from_ts(now)    # No need to request future data yet!
 
-    print("Requesting range",from_ts, to_ts)
-
     # Fetch the data from DEQ
     data = deq_tools.get_data(station_id, from_ts, to_ts)
 
