@@ -7,6 +7,14 @@ from geopy.geocoders import GoogleV3
 
 from provision_config import google_geocoder_api_key, bing_geocoder_api_key
 
+import serial
+import serial.tools.list_ports
+
+
+ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
+ESPTOOL_EXE_LOCATION = r'C:\Users\Chris\AppData\Local\Arduino15\packages\esp8266\tools\esptool\0.4.13/esptool.exe'
+
+
 
 def make_device_name(birdhouse_number):
     return 'Birdhouse ' + str(birdhouse_number).zfill(3)
@@ -129,5 +137,43 @@ def get_zip_from_google_location(location):
     #     return postal_code + "-" + postal_code_suffix 
 
     return postal_code
+
+
+
+
+# Build a list of ports we can use
+
+def get_ports():
+    return list(serial.tools.list_ports.comports())
+
+
+def get_port_hwids():
+    hwids = []
+    for port in get_ports():
+        hwids.append(port.hwid)
+
+    return hwids
+
+
+def get_port_names():
+    # for port in list(serial.tools.list_ports.comports()):
+    #     print(port.name or port.device, port.hwid)
+
+    # sys.exit()
+
+    ports = []
+    for port in get_ports():
+        ports.append((port.name or port.device, port.name or port.device))
+    
+    return ports
+
+
+def get_best_guess_port():
+    for port in get_ports():
+        for vid in ESP8266_VID_PIDS:
+            if "VID:PID=" + vid in port.hwid:
+                return port.name or port.device
+    return None
+    
 
 
