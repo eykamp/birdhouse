@@ -9,7 +9,11 @@ from provision_config import google_geocoder_api_key, bing_geocoder_api_key
 
 
 def make_device_name(birdhouse_number):
-    return 'Birdhouse ' + birdhouse_number.zfill(3)
+    return 'Birdhouse ' + str(birdhouse_number).zfill(3)
+
+
+def make_dash_name(birdhouse_number):
+    return make_device_name(birdhouse_number) + " Dash"
 
 
 def one_line_address(cust_info):
