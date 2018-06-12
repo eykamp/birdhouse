@@ -85,7 +85,7 @@ def main():
             tbapi.send_telemetry(device_token, outgoing_data, ts)
         except Exception as ex:
             print("Error sending telemetry (%s)" % outgoing_data)
-            raise(ex)
+            raise
 
     print("Done")
 
