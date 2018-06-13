@@ -12,3 +12,7 @@ telemetry_manager/telemetry_manager_config\.py
 firmware/b\.bat
 
 firmware/configurator_config\.py
+
+management/deq\.log
+
+management/config\.py
