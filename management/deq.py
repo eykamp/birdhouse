@@ -16,12 +16,12 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import re
-import datetime, time, pytz                                         # pip install pytz
+import datetime, time, pytz
 import logging
-import deq_tools                                                    # pip install deq_tools
+import deq_tools                                            # pip install deq_tools
 
-from thingsboard_api_tools import TbApi                             # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-from provision_config import motherShipUrl, username, password      # You'll need to create this!
+from thingsboard_api_tools import TbApi                     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+from config import motherShipUrl, username, password        # You'll need to create this... Be sure to gitignore it!
 
 tbapi = TbApi(motherShipUrl, username, password)
 
