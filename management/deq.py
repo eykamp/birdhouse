@@ -18,17 +18,17 @@
 import re
 import datetime, time, pytz
 import logging
-import deq_tools                                            # pip install deq_tools
+import deq_tools                                                    # pip install deq_tools
 
-from thingsboard_api_tools import TbApi                     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-from config import motherShipUrl, username, password        # You'll need to create this... Be sure to gitignore it!
+from thingsboard_api_tools import TbApi                             # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+from config import motherShipUrl, username, password, deq_logfile   # You'll need to create this... Be sure to gitignore it!
 
 tbapi = TbApi(motherShipUrl, username, password)
 
 device_name = 'DEQ (SEL)'
 deq_tz_name = 'America/Los_Angeles'
 
-logging.basicConfig(filename="deq.log", format='%(asctime)s %(message)s', level=logging.INFO)    # WARN, INFO, DEBUG
+logging.basicConfig(filename=deq_logfile, format='%(asctime)s %(message)s', level=logging.INFO)    # WARN, INFO, DEBUG
 
 
 # Data is stored as if it were coming from one of our devices
