@@ -26,7 +26,7 @@ from config import motherShipUrl, username, password, deq_logfile   # You'll nee
 tbapi = TbApi(motherShipUrl, username, password)
 
 device_name = 'DEQ (SEL)'
-deq_tz_name = 'America/Los_Angeles'
+deq_tz_name = 'US/Pacific'
 
 logging.basicConfig(filename=deq_logfile, format='%(asctime)s %(message)s', level=logging.INFO)    # WARN, INFO, DEBUG
 
@@ -81,9 +81,8 @@ def main():
             hour = '0'
 
         pst = pytz.timezone(deq_tz_name)
-
-        date_time = pst.localize(datetime.datetime(int(year), int(month), int(day), int(hour), int(mins)))
-        ts = int(time.mktime(date_time.timetuple()) * 1000)
+        date_time = pst.localize(datetime.datetime(int(year), int(month), int(day), 1, 0))
+        ts = int((date_time - datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds() * 1000)
 
         try:
             tbapi.send_telemetry(device_token, outgoing_data, ts)
