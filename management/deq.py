@@ -54,11 +54,11 @@ key_mapping = {
 def main():
 
     start = time.time()
-    now_ts = make_deq_date_from_ts(int(time.time() * 1000))    
+    now_ts = make_deq_date_from_ts(int(time.time() * 1000) + 1000 * 60 * 60 * 24)    # Add 24 hours to protect against running in other timezones
     
     # Date range for the data we're requesting from DEQ
-    from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inogural run
-    to_ts   = now_ts + 1000 * 60 * 60 * 24  # 24 hours in the future to protect against running in other timezones
+    from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inaugural run
+    to_ts   = now_ts
 
     # Fetch the data from DEQ
     data = deq_tools.get_data(station_id, from_ts, to_ts)
