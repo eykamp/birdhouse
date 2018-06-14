@@ -58,7 +58,7 @@ def main():
     
     # Date range for the data we're requesting from DEQ
     from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inogural run
-    to_ts   = now_ts
+    to_ts   = now_ts + 1000 * 60 * 60 * 24  # 24 hours in the future to protect against running in other timezones
 
     # Fetch the data from DEQ
     data = deq_tools.get_data(station_id, from_ts, to_ts)
