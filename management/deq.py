@@ -81,7 +81,7 @@ def main():
             hour = '0'
 
         pst = pytz.timezone(deq_tz_name)
-        date_time = pst.localize(datetime.datetime(int(year), int(month), int(day), 1, 0))
+        date_time = pst.localize(datetime.datetime(int(year), int(month), int(day), int(hour), int(mins)))
         ts = int((date_time - datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds() * 1000)
 
         try:
