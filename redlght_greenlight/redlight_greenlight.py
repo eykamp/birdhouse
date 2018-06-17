@@ -13,7 +13,7 @@ import hashlib          # for md5
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 from thingsboard_api_tools import TbApi # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
-from redlight_greenlight_config import motherShipUrl, username, password, data_encoding, google_geolocation_key
+from redlight_greenlight_config import motherShipUrl, username, password, data_encoding, google_geolocation_key, firmware_images_folder
 
 tbapi = TbApi(motherShipUrl, username, password)
 gmaps = googlemaps.Client(key=google_geolocation_key)
@@ -105,15 +105,12 @@ class handle_hotspots:
 class handle_update:
     # Returns the full file/path of the latest firmware, or None if we are already running the latest
     def find_firmware(self, current_version):
-        updates_folder = "/tmp"
-        
         v = re.search("(\d+)\.(\d+)", current_version)
         newest_major = int(v.group(1))
         newest_minor = int(v.group(2))
         newest_firmware = None
 
-
-        for file in os.listdir(updates_folder):
+        for file in os.listdir(firmware_images_folder):
             candidate = re.search("(\d+)\.(\d+).bin", file)
             if candidate:
                 c_major = int(candidate.group(1))
@@ -122,7 +119,7 @@ class handle_update:
                 if c_major > newest_major or (c_major == newest_major and c_minor > newest_minor):
                     newest_major = c_major
                     newest_minor = c_minor
-                    newest_firmware = os.path.join(updates_folder, file)
+                    newest_firmware = os.path.join(firmware_images_folder, file)
 
         return newest_firmware
 
