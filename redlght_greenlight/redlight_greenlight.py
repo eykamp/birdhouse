@@ -119,7 +119,7 @@ class handle_update:
                 c_major = int(candidate.group(1))
                 c_minor = int(candidate.group(2))
 
-                if c_major > newest_major or c_minor > newest_minor:
+                if c_major > newest_major or (c_major == newest_major and c_minor > newest_minor):
                     newest_major = c_major
                     newest_minor = c_minor
                     newest_firmware = os.path.join(updates_folder, file)
