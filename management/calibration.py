@@ -2,7 +2,7 @@ from thingsboard_api_tools import TbApi         # pip install git+git://github.c
 
 import birdhouse_utils
 
-from provision_config import motherShipUrl, username, password, dashboard_template_name, sensor_type
+from config import motherShipUrl, username, password, dashboard_template_name, sensor_type
 
 birdhouse_number = "002"
 
@@ -12,7 +12,7 @@ tbapi = TbApi(motherShipUrl, username, password)
 
 
 print(birdhouse_utils.geocode("2101 SE TIbbetts", None, "Portland", "OR", "97202", "USA"))
-exit()
+    exit()
 
 
 def main():
