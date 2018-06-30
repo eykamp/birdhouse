@@ -204,12 +204,15 @@ void publishCalibrationFactors(const String &calibrationFactors) {
 }
 
 
-void publishPmData(F64 pm1, F64 pm25, F64 pm10, U16 sampleCount) {
+void publishPmData(F64 pm1, F64 pm25, F64 pm10, F64 rawPm1, F64 rawPm25, F64 rawPm10, U16 sampleCount) {
 
   String json = String("{") +
     "\"plantowerPM1conc\":"     + String(pm1)  + "," + 
     "\"plantowerPM25conc\":"    + String(pm25) + "," + 
     "\"plantowerPM10conc\":"    + String(pm10) + "," +
+    "\"plantowerPM1concRaw\":"  + String(rawPm1)  + "," + 
+    "\"plantowerPM25concRaw\":" + String(rawPm25) + "," + 
+    "\"plantowerPM10concRaw\":" + String(rawPm10) + "," +
     "\"plantowerSampleCount\":" + String(sampleCount) + "}";
 
   mqttPublishTelemetry(json);

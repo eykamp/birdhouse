@@ -654,11 +654,16 @@ void reportMeasurements() {
   timeOfLastContact = millis();
 
   if(plantowerSampleCount > 0) {
-    F64 pm1  = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
-    F64 pm25 = (F64(plantowerPm25Sum) / (F64)plantowerSampleCount);
-    F64 pm10 = (F64(plantowerPm10Sum) / (F64)plantowerSampleCount);
+    F64 rawPm1  = (F64(plantowerPm1Sum) / (F64)plantowerSampleCount);
+    F64 rawPm25 = (F64(plantowerPm25Sum) / (F64)plantowerSampleCount);
+    F64 rawPm10 = (F64(plantowerPm10Sum) / (F64)plantowerSampleCount);
+
+    // Apply calibration factors
+    F64 pm1  = rawPm1  * Eeprom.getPM1CalibrationFactor()  + Eeprom.getPM1CalibrationOffset();
+    F64 pm25 = rawPm25 * Eeprom.getPM25CalibrationFactor() + Eeprom.getPM25CalibrationOffset();
+    F64 pm10 = rawPm10 * Eeprom.getPM10CalibrationFactor() + Eeprom.getPM10CalibrationOffset();
   
-    mqtt.publishPmData(pm1, pm25, pm10, plantowerSampleCount);
+    mqtt.publishPmData(pm1, pm25, pm10, rawPm1, rawPm25, rawPm10, plantowerSampleCount);
     reportPlantowerSensorStatus();
   }
 
@@ -667,6 +672,11 @@ void reportMeasurements() {
 
     bme.read(pres, temp, hum, TEMPERATURE_UNIT, PRESSURE_UNIT);
     TemperatureSmoothingFilter.Filter(temp);
+
+    // Apply calibration factors
+    temp = temp * Eeprom.getTemperatureCalibrationFactor() + Eeprom.getTemperatureCalibrationOffset();
+    pres = pres * Eeprom.getHumidityCalibrationFactor()    + Eeprom.getHumidityCalibrationOffset();
+    hum  = hum  * Eeprom.getPressureCalibrationFactor()    + Eeprom.getPressureCalibrationOffset();
 
     mqtt.publishWeatherData(temp, TemperatureSmoothingFilter.Current(), hum, pres);
   }
