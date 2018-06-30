@@ -16,3 +16,5 @@ firmware/configurator_config\.py
 management/deq\.log
 
 management/config\.py
+
+firmware/config\.py
