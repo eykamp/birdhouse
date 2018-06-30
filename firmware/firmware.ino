@@ -279,10 +279,6 @@ int serialHandler(String params) {
 }
 
 
-const U32 MAX_COMMAND_LENGTH = 128;
-String command;     // The command the user is composing during command mode
-
-
 void setup() {
 
   Serial.begin(SERIAL_BAUD_RATE);
@@ -370,8 +366,6 @@ void setup() {
 
   setupSensors();
  
-  command.reserve(MAX_COMMAND_LENGTH);
-
   wifiUtils.setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress);
 
   // Flash yellow until we've connected via wifi
