@@ -95,16 +95,8 @@ def prepare(build_target):
 def build(source_file, build_target):
     print("Building " + build_target)
 
-    for output_line in execute([arduino_build_exe_location, "--verify", "--pref", "build.path=" + build_folder, source_file]):
-        # Sketch uses 318064 bytes (30%) of program storage space. Maximum is 1044464 bytes.
-        search = re.search('^Sketch uses \d+ bytes \((\d+)%\) of program storage space. Maximum', output_line)
-        if search:
-            storage_used = search.group(1)
-        print(output_line, end="")
-
-    if int(storage_used) > 49:
-        print("Too much space used -- device will not be able to recieve OTA updates if this firmware is uploaded!")
-        exit()
+    output = execute([arduino_build_exe_location, "--verify", "--pref", "build.path=" + build_folder, source_file])
+    check_binary_size(output)
 
     built_file = source_file + ".bin"
 
@@ -114,6 +106,20 @@ def build(source_file, build_target):
 
     # Rename build file
     os.rename(os.path.join(build_folder, built_file), os.path.join(build_folder, build_target_file))
+
+
+''' Ensure our binary doesn't grow too large for OTA updates '''
+def check_binary_size(output):
+    for output_line in output:
+        # Sketch uses 318064 bytes (30%) of program storage space. Maximum is 1044464 bytes.
+        search = re.search('^Sketch uses \d+ bytes \((\d+)%\) of program storage space. Maximum', output_line)
+        if search:
+            storage_used = search.group(1)
+        print(output_line, end="")
+
+    if int(storage_used) > 49:
+        print("Too much space used -- device will not be able to recieve OTA updates if this firmware is uploaded!")
+        exit()
 
 
 def upload(source_file, build_target, remote_dir, devices):
