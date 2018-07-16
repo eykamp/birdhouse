@@ -96,7 +96,11 @@ def build(source_file, build_target):
     print("Building " + build_target)
 
     output = execute([arduino_build_exe_location, "--verify", "--pref", "build.path=" + build_folder, source_file])
-    check_binary_size(output)
+
+    if binary_too_big(output):
+        print("Too much space used -- device will not be able to recieve OTA updates if this firmware is uploaded!")
+        exit()
+
 
     built_file = source_file + ".bin"
 
@@ -109,7 +113,7 @@ def build(source_file, build_target):
 
 
 ''' Ensure our binary doesn't grow too large for OTA updates '''
-def check_binary_size(output):
+def binary_too_big(output):
     for output_line in output:
         # Sketch uses 318064 bytes (30%) of program storage space. Maximum is 1044464 bytes.
         search = re.search('^Sketch uses \d+ bytes \((\d+)%\) of program storage space. Maximum', output_line)
@@ -117,9 +121,7 @@ def check_binary_size(output):
             storage_used = search.group(1)
         print(output_line, end="")
 
-    if int(storage_used) > 49:
-        print("Too much space used -- device will not be able to recieve OTA updates if this firmware is uploaded!")
-        exit()
+    return int(storage_used) > 48     # Why 48?  Why not?
 
 
 def upload(source_file, build_target, remote_dir, devices):
@@ -153,7 +155,7 @@ def upload(source_file, build_target, remote_dir, devices):
 
         print("Uploading " + build_target + " for device " + device_name + " (MAC addr " + mac_address + ")")
 
-        sanitized_device_name = device_name.replace(" ", "_")
+        sanitized_device_name = device_name.replace(" ", "_")   # Strip spaces; makes life easier
         device_specific_remote_dir = remote_dir + "/" + sanitized_device_name + "_" + mac_address
         mkdir_command = 'call mkdir -p ' + device_specific_remote_dir
 
