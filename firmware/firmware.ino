@@ -315,7 +315,7 @@ void setup() {
   Rest.variable("mqttStatus",         &getMqttStatus);
   Rest.variable("lastMqttConnectAttempt", &lastMqttConnectAttempt);
   Rest.variable("wasConnectedToPubSubServer", &wasConnectedToPubSubServer);
-  Rest.variable("mqttConnected", &getMqttConnected);
+  Rest.variable("mqttConnected",       &getMqttConnected);
   Rest.variable("lastUpdateCheckTime", &lastUpdateCheckTime);
 
 
