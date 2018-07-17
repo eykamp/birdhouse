@@ -46,8 +46,7 @@ arduino_build_exe_location = r"c:\Program Files (x86)\Arduino\arduino_debug.exe"
 source_name = "firmware"
 source_file = source_name + ".ino"
 build_folder = r"C:\Temp\BirdhouseFirmwareBuildFolder"      # Where we store the firmware image we're building
-# remote_dir = "/sensorbot/firmware_images"                   # Where we store the firmware images on the update server
-remote_dir = "/tmp"                   # Where we store the firmware images on the update server
+remote_dir = "/sensorbot/firmware_images"                   # Where we store the firmware images on the update server
 
 
 def main():
@@ -58,15 +57,15 @@ def main():
     # Important: Use the .com version here, not the .exe
     build_target = os.path.join(build_folder, build_target_file)
 
-    # prepare(build_target)
+    prepare(build_target)
 
-    # build(source_file, build_target)
+    build(source_file, build_target, build_target_file)
 
     text = input("Proceed with upload? [Y/N]")
     if text.lower() != "y":
         exit()
 
-    upload(source_file, build_target, remote_dir, devices)
+    upload(source_file, build_target_file, build_target, remote_dir, devices)
 
 
 def prepare(build_target):
@@ -92,7 +91,7 @@ def prepare(build_target):
 
 
 # Use the Arduino IDE to build our sketch
-def build(source_file, build_target):
+def build(source_file, build_target, build_target_file):
     print("Building " + build_target)
 
     output = execute([arduino_build_exe_location, "--verify", "--pref", "build.path=" + build_folder, source_file])
@@ -124,7 +123,7 @@ def binary_too_big(output):
     return int(storage_used) > 48     # Why 48?  Why not?
 
 
-def upload(source_file, build_target, remote_dir, devices):
+def upload(source_file, source_file_with_version, build_target, remote_dir, devices):
 
     if devices == "all":
         print("Uploading " + build_target + " for all devices")
@@ -134,12 +133,10 @@ def upload(source_file, build_target, remote_dir, devices):
         
     print("Uploading " + build_target + " for devices: " + devices)
 
-
     first = True
 
     device_list = devices.split(",")
     for num in device_list:
-        print("HHHHH",num)
         mac_address = None
         device_name = birdhouse_utils.make_device_name(num)
         device = tbapi.get_device_by_name(device_name)
@@ -159,7 +156,7 @@ def upload(source_file, build_target, remote_dir, devices):
         device_specific_remote_dir = remote_dir + "/" + sanitized_device_name + "_" + mac_address
         mkdir_command = 'call mkdir -p ' + device_specific_remote_dir
 
-        if first:
+        if first:       # Upload a new file
             remote_source_dir = device_specific_remote_dir
 
             for output_line in execute('"' + winscp_program_location + '" "' + winscp_profile + '" /command "' + mkdir_command + '" "cd ' + device_specific_remote_dir + '" "put ' + build_target + '" "exit"'):
