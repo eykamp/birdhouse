@@ -7,7 +7,6 @@ import re
 import os
 import base64
 import time
-from pprint import pprint
 import hashlib          # for md5 
 
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -26,6 +25,12 @@ urls = (
 )
 
 app = web.application(urls, globals())
+
+
+def get_immediate_subdirectories(a_dir):
+    return [name for name in os.listdir(a_dir)
+        if os.path.isdir(os.path.join(a_dir, name))]
+
 
 class handle_purpleair:
     def POST(self, data):
@@ -104,13 +109,39 @@ class handle_hotspots:
 
 class handle_update:
     # Returns the full file/path of the latest firmware, or None if we are already running the latest
-    def find_firmware(self, current_version):
+    def find_firmware(self, current_version, mac_address):
         v = re.search("(\d+)\.(\d+)", current_version)
         newest_major = int(v.group(1))
         newest_minor = int(v.group(2))
+
+        device_specific_subfolder = None
         newest_firmware = None
 
-        for file in os.listdir(firmware_images_folder):
+        # If there is a dedicated folder for this device, search there; if not, use the default firmware_images_folder
+        subdirs = get_immediate_subdirectories(firmware_images_folder)
+
+        for subdir in subdirs:
+            print(subdir)
+            # Folders will have a name matching the pattern SOME_READABLE_PREFIX + underscore + MAC_ADDRESS
+            if re.match(".*_" + mac_address.upper(), subdir):
+                if device_specific_subfolder is not None:
+                    web.debug("Error: found multiple folders for mac address " + mac_address)
+                    return None
+                device_specific_subfolder = subdir
+
+
+        if device_specific_subfolder is None:
+            folder = firmware_images_folder
+        else:
+            folder = os.path.join(firmware_images_folder, device_specific_subfolder)
+
+        print("Using firmware folder " + folder)
+
+        if not os.path.isdir(folder):
+            print("Error>>> " + folder + " is not a folder!")
+            return
+
+        for file in os.listdir(folder):
             candidate = re.search("(\d+)\.(\d+).bin", file)
             if candidate:
                 c_major = int(candidate.group(1))
@@ -119,7 +150,7 @@ class handle_update:
                 if c_major > newest_major or (c_major == newest_major and c_minor > newest_minor):
                     newest_major = c_major
                     newest_minor = c_minor
-                    newest_firmware = os.path.join(firmware_images_folder, file)
+                    newest_firmware = os.path.join(folder, file)
 
         return newest_firmware
 
@@ -150,7 +181,7 @@ class handle_update:
         # mqtt_status = params.mqtt_status
         # web.debug("MQTT status:", mqtt_status)
 
-        newest_firmware = self.find_firmware(current_version)
+        newest_firmware = self.find_firmware(current_version, mac)
 
         if newest_firmware:
             web.debug("Upgrading birdhouse to " + newest_firmware)
