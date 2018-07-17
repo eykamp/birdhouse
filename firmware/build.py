@@ -167,8 +167,8 @@ def upload(source_file, build_target, remote_dir, devices):
 
             first = False
 
-        else:
-            for output_line in execute('"' + winscp_program_location + '" "' + winscp_profile + '" /command "cp ' + remote_source_dir + '/' + source_file + ' ' + device_specific_remote_dir + '" "exit"'):
+        else:           # Copy file we just uploaded, to reduce bandwidth and go faster
+            for output_line in execute('"' + winscp_program_location + '" "' + winscp_profile + '" /command "call cp ' + remote_source_dir + '/' + source_file_with_version + ' ' + device_specific_remote_dir + '/" "exit"'):
                 print(output_line, end="")
 
 
