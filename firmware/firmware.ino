@@ -494,7 +494,7 @@ void loop() {
 
 // If memory is running down, reboot!
 void checkFreeHeap() {
-  U32 = freeHeap = ESP.getFreeHeap();
+  U32 freeHeap = ESP.getFreeHeap();
 
   // If we've lost 10K, or down under 10K... these limits are set arbitrarily, and, based on observed behavior, will rarely be hit
   if(freeHeap < initialFreeHeap - 10000 || freeHeap < 10000)

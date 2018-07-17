@@ -181,7 +181,7 @@ void publishStatusMessage(const String &msg) {
 
 
 void publishResetReason(const String &reason) {
-  mqttPublishAttribute(String("{\"lastResetReason\":\"") + reason + "\"}");
+  mqttPublishTelemetry(String("{\"resetReason\":\"") + reason + "\"}");
 }
 
 
