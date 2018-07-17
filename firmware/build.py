@@ -165,7 +165,9 @@ def upload(source_file, source_file_with_version, build_target, remote_dir, devi
             first = False
 
         else:           # Copy file we just uploaded, to reduce bandwidth and go faster
-            for output_line in execute('"' + winscp_program_location + '" "' + winscp_profile + '" /command "call cp ' + remote_source_dir + '/' + source_file_with_version + ' ' + device_specific_remote_dir + '/" "exit"'):
+            cp_command    = 'call cp ' + remote_source_dir + '/' + source_file_with_version + ' ' + device_specific_remote_dir + '/'
+            
+            for output_line in execute('"' + winscp_program_location + '" "' + winscp_profile + '" /command "' + mkdir_command + '" "' + cp_command + '" "exit"'):
                 print(output_line, end="")
 
 
