@@ -172,26 +172,6 @@ def upload(source_file, build_target, remote_dir, devices):
                 print(output_line, end="")
 
 
-# set REMOTE_PATH=/home/user/test.txt
-# winscp.com /command ^
-#     "open mysession" ^
-#     "stat %REMOTE_PATH%" ^
-#     "exit"
- 
-# if %ERRORLEVEL% neq 0 goto error
- 
-# echo File %REMOTE_PATH% exists
-# rem Do something
-# exit /b 0
- 
-# :error
-# echo Error or file %REMOTE_PATH% not exists
-# exit /b 1
-
-
-    # tbapi.get_client_attributes(device)
-
-
 def extract_version(source_file):
     # Extract our version from the source
     version = None
