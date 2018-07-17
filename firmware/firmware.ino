@@ -133,6 +133,8 @@ U32 lastMillis = 0;
 U32 lastScanTime = 0;
 U32 lastUpdateCheckTime = 0;
 
+U32 initialFreeHeap;
+
 bool mqttServerConfigured = false;
 bool mqttServerLookupError = false;
 
@@ -373,10 +375,11 @@ void setup() {
 
 
   server.begin();   // Start the web server
+
+  initialFreeHeap = ESP.getFreeHeap();
 }
 
 
-//xyzzy
 bool getMqttConnected() {
   return mqtt.mqttConnected();
 }
@@ -483,6 +486,20 @@ void loop() {
     checkForFirmwareUpdates();
     lastUpdateCheckTime = millis();
   }
+
+  checkFreeHeap();
+}
+
+
+
+// If memory is running down, reboot!
+void checkFreeHeap() {
+  U32 = freeHeap = ESP.getFreeHeap();
+
+  // If we've lost 10K, or down under 10K... these limits are set arbitrarily, and, based on observed behavior, will rarely be hit
+  if(freeHeap < initialFreeHeap - 10000 || freeHeap < 10000)
+    restart();
+
 }
 
 
