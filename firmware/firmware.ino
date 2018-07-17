@@ -602,16 +602,9 @@ void checkForFirmwareUpdates() {
   if(!wifiUtils.isConnected())
     return;
 
-  t_httpUpdate_return ret = ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, "/update/", FIRMWARE_VERSION);
+  ESPhttpUpdate.update(FIRMWARE_UPDATE_SERVER, FIRMWARE_UPDATE_PORT, "/update/", FIRMWARE_VERSION);
 
-  switch(ret) {
-    case HTTP_UPDATE_FAILED:
-        break;
-    case HTTP_UPDATE_NO_UPDATES:
-        break;
-    case HTTP_UPDATE_OK:    // Never get here because if there is an update, the update() function will take over and we'll reboot
-        break;
-  }
+  // If we're updating, the update command will reset the device, so if we get here, no update ocurred
 }
 
 
