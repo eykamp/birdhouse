@@ -20,14 +20,11 @@
 #include "WifiUtils.h"
 
 
-#include <PMS.h>                // Plantower
+#include <PMS.h>                  // Plantower
+#include <ESP8266httpUpdate.h>    // OTA Updates
+#include "c:/dev/aREST/aREST.h"   // Our REST server for provisioning
 
-// OTA Updates
-#include <ESP8266httpUpdate.h>
-
-#include "c:/dev/aREST/aREST.h"              // Our REST server for provisioning
-
-#include "ESP8266Ping.h"        // For ping, of course
+#include "ESP8266Ping.h"          // For ping, of course
 #include "Filter.h"
 
 
@@ -336,10 +333,10 @@ void setup() {
   Rest.set_name(Eeprom.getLocalSsid());
 
   wifiUtils.begin();
-  wifiUtils.setOnConnectedToWifiCallback(onConnectedToWifiCallback);
+  wifiUtils.setOnConnectedToWifiCallback        (onConnectedToWifiCallback);
   wifiUtils.setOnConnectedToWifiTimedOutCallback(onConnectedToWifiTimedOutCallback);
-  wifiUtils.setOnConnectedToWifiFailedCallback(onConnectedToWifiFailedCallback);
-  wifiUtils.setOnDisconnectedFromWifiCallback(onDisconnectedFromWifiCallback);
+  wifiUtils.setOnConnectedToWifiFailedCallback  (onConnectedToWifiFailedCallback);
+  wifiUtils.setOnDisconnectedFromWifiCallback   (onDisconnectedFromWifiCallback);
 
 
   setupPubSubClient();
