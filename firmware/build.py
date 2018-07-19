@@ -3,7 +3,8 @@ Build: The birdhouse firmware builder and uploader
 
 Usage:
     build.py <winscpprofile> (all | <devices>) [--clean] 
-    build.py build [--clean]
+    build.py build --clean
+    build.py build --help
 
 
 Arguments:
