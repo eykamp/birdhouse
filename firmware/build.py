@@ -8,7 +8,7 @@ Usage:
 
 Arguments:
     winscpprofile   Profile used to connect to server in WinSCP
-    devicelist      List of devices to upload to: e.g. 1-5;7 or all
+    devicelist      List of devices to upload to: e.g. 2,3,4,5 | 2-6 | 4,6-8,13 | all
 
 Options:
     -c --clean      Overwrite existing built firmware image
@@ -135,8 +135,21 @@ def upload(source_file, source_file_with_version, build_target, remote_dir, devi
 
     first = True
 
-    device_list = devices.split(",")
+    device_list = devices.replace(" ", "").split(",")
+
+    prepared_device_list = []
+    # Expand any ranges (1-3 to 1,2,3)
     for num in device_list:
+        if "-" in num:
+            low,high = num.split("-")
+            nums = list(range(int(low), int(high) + 1))   # + 1 to ensure we include the high value, which would normally get omitted because of list index semantics
+
+            prepared_device_list.extend(nums)
+        else:
+            prepared_device_list.append(int(num))
+
+
+    for num in list(set(prepared_device_list)):
         mac_address = None
         device_name = birdhouse_utils.make_device_name(num)
         device = tbapi.get_device_by_name(device_name)
@@ -166,7 +179,7 @@ def upload(source_file, source_file_with_version, build_target, remote_dir, devi
 
         else:           # Copy file we just uploaded, to reduce bandwidth and go faster
             cp_command    = 'call cp ' + remote_source_dir + '/' + source_file_with_version + ' ' + device_specific_remote_dir + '/'
-            
+
             for output_line in execute('"' + winscp_program_location + '" "' + winscp_profile + '" /command "' + mkdir_command + '" "' + cp_command + '" "exit"'):
                 print(output_line, end="")
 
