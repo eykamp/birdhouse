@@ -101,14 +101,36 @@ const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected 
 void handlesetWifiConnection(); // Forward declare
 
 
-void messageReceivedFromMothership(char* topic, byte* payload, unsigned int length) {
-  return;
+
+// A package just arrived!
+// { "LED" : "ALL_ON" }
+// { "calibrationFactors" : {"temperatureCalibrationFactor" : 1.0, ...}}
+void messageReceivedFromMothership(char *topic, byte *payload, unsigned int length) {
   // See https://github.com/bblanchon/ArduinoJson for usage
   StaticJsonBuffer<MQTT_MAX_PACKET_SIZE> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(payload);
 
-  ledUtils.setBlinkPatternByName(root["LED"]);
+  // Our LED package
+  if(mqtt.containsKey(root, "LED"))
+    ledUtils.setBlinkPatternByName(root["LED"]);
+
+  // Our calibrationFactors package
+  if(mqtt.containsKey(root, "calibrationFactors")) {
+    // Create a block of code for every item in NUMERIC_FIELD_LIST that looks like this:
+    // if(1 == 1 && mqtt.containsKey(root["calibrationFactors"], "temperatureCalibrationFactor"]))
+    //   setTemperatureCalibrationFactor(root["calibrationFactors"]["temperatureCalibrationFactor"]);
+    // ...
+    // We use the group field to only include the values that will be part of the calibration dataset
+    #define FIELD(name, b, c, group, e, g, setterFn)                                  \
+        if(group == 1 && mqtt.containsKey(root["calibrationFactors"], #name))    \
+          Eeprom.setterFn(root["calibrationFactors"][#name]);
+        NUMERIC_FIELD_LIST  
+    #undef FIELD
+
+    mqtt.publishCalibrationFactors(getCalibrationJson());
+  }
 }
+
 
 U32 lastMillis = 0;
 U32 lastScanTime = 0;
