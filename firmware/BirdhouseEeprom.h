@@ -25,24 +25,24 @@ static const int FIRMWARE_VERSION_LENGTH = 12;
 
   // XMacro!
 #define NUMERIC_FIELD_LIST \
-  FIELD(temperatureCalibrationFactor, F32,  atof, TEMPERATURE_CALIBRATION_FACTOR_ADDRESS, getTemperatureCalibrationFactor, setTemperatureCalibrationFactor) \
-  FIELD(temperatureCalibrationOffset, F32,  atof, TEMPERATURE_CALIBRATION_OFFSET_ADDRESS, getTemperatureCalibrationOffset, setTemperatureCalibrationOffset) \
-  FIELD(humidityCalibrationFactor,    F32,  atof, HUMIDITY_CALIBRATION_FACTOR_ADDRESS,    getHumidityCalibrationFactor,    setHumidityCalibrationFactor)    \
-  FIELD(humidityCalibrationOffset,    F32,  atof, HUMIDITY_CALIBRATION_OFFSET_ADDRESS,    getHumidityCalibrationOffset,    setHumidityCalibrationOffset)    \
-  FIELD(pressureCalibrationFactor,    F32,  atof, PRESURE_CALIBRATION_FACTOR_ADDRESS,     getPressureCalibrationFactor,    setPressureCalibrationFactor)    \
-  FIELD(pressureCalibrationOffset,    F32,  atof, PRESURE_CALIBRATION_OFFSET_ADDRESS,     getPressureCalibrationOffset,    setPressureCalibrationOffset)    \
-  FIELD(PM10CalibrationFactor,        F32,  atof, PM10_CALIBRATION_FACTOR_ADDRESS,        getPM10CalibrationFactor,        setPM10CalibrationFactor)        \
-  FIELD(PM10CalibrationOffset,        F32,  atof, PM10_CALIBRATION_OFFSET_ADDRESS,        getPM10CalibrationOffset,        setPM10CalibrationOffset)        \
-  FIELD(PM25CalibrationFactor,        F32,  atof, PM25_CALIBRATION_FACTOR_ADDRESS,        getPM25CalibrationFactor,        setPM25CalibrationFactor)        \
-  FIELD(PM25CalibrationOffset,        F32,  atof, PM25_CALIBRATION_OFFSET_ADDRESS,        getPM25CalibrationOffset,        setPM25CalibrationOffset)        \
-  FIELD(PM1CalibrationFactor,         F32,  atof, PM1_CALIBRATION_FACTOR_ADDRESS,         getPM1CalibrationFactor,         setPM1CalibrationFactor)         \
-  FIELD(PM1CalibrationOffset,         F32,  atof, PM1_CALIBRATION_OFFSET_ADDRESS,         getPM1CalibrationOffset,         setPM1CalibrationOffset)         \
-  FIELD(mqttPort,                     U16,  atoi, PUB_SUB_PORT_ADDRESS,                   getMqttPort,                     setMqttPort)                     \
-  FIELD(birdhouseNumber,              U16,  atoi, BIRDHOUSE_NUMBER_ADDRESS,               getBirdhouseNumber,              setBirdhouseNumber)              \
-  FIELD(sampleDuration,               U16,  atoi, SAMPLE_DURATION_ADDRESS,                getSampleDuration,               setSampleDuration)               \
-  FIELD(ledsInstalledBackwards,       bool, atoi, LEDS_INSTALLED_BACKWARDS_ADDRESS,       getLedsInstalledBackwards,       setLedsInstalledBackwards)       \
-  FIELD(traditionalLeds,              bool, atoi, TRADITIONAL_LEDS_ADDRESS,               getTraditionalLeds,              setTraditionalLeds)              \
-  FIELD(ledStyle,                     U8,   atoi, LED_STYLE_ADDRESS,                      getLedStyle,                     setLedStyle)                     \
+  FIELD(temperatureCalibrationFactor, F32,  atof, 1, TEMPERATURE_CALIBRATION_FACTOR_ADDRESS, getTemperatureCalibrationFactor, setTemperatureCalibrationFactor) \
+  FIELD(temperatureCalibrationOffset, F32,  atof, 1, TEMPERATURE_CALIBRATION_OFFSET_ADDRESS, getTemperatureCalibrationOffset, setTemperatureCalibrationOffset) \
+  FIELD(humidityCalibrationFactor,    F32,  atof, 1, HUMIDITY_CALIBRATION_FACTOR_ADDRESS,    getHumidityCalibrationFactor,    setHumidityCalibrationFactor)    \
+  FIELD(humidityCalibrationOffset,    F32,  atof, 1, HUMIDITY_CALIBRATION_OFFSET_ADDRESS,    getHumidityCalibrationOffset,    setHumidityCalibrationOffset)    \
+  FIELD(pressureCalibrationFactor,    F32,  atof, 1, PRESURE_CALIBRATION_FACTOR_ADDRESS,     getPressureCalibrationFactor,    setPressureCalibrationFactor)    \
+  FIELD(pressureCalibrationOffset,    F32,  atof, 1, PRESURE_CALIBRATION_OFFSET_ADDRESS,     getPressureCalibrationOffset,    setPressureCalibrationOffset)    \
+  FIELD(pm10CalibrationFactor,        F32,  atof, 1, PM10_CALIBRATION_FACTOR_ADDRESS,        getPM10CalibrationFactor,        setPM10CalibrationFactor)        \
+  FIELD(pm10CalibrationOffset,        F32,  atof, 1, PM10_CALIBRATION_OFFSET_ADDRESS,        getPM10CalibrationOffset,        setPM10CalibrationOffset)        \
+  FIELD(pm25CalibrationFactor,        F32,  atof, 1, PM25_CALIBRATION_FACTOR_ADDRESS,        getPM25CalibrationFactor,        setPM25CalibrationFactor)        \
+  FIELD(pm25CalibrationOffset,        F32,  atof, 1, PM25_CALIBRATION_OFFSET_ADDRESS,        getPM25CalibrationOffset,        setPM25CalibrationOffset)        \
+  FIELD(pm1CalibrationFactor,         F32,  atof, 1, PM1_CALIBRATION_FACTOR_ADDRESS,         getPM1CalibrationFactor,         setPM1CalibrationFactor)         \
+  FIELD(pm1CalibrationOffset,         F32,  atof, 1, PM1_CALIBRATION_OFFSET_ADDRESS,         getPM1CalibrationOffset,         setPM1CalibrationOffset)         \
+  FIELD(mqttPort,                     U16,  atoi, 0, PUB_SUB_PORT_ADDRESS,                   getMqttPort,                     setMqttPort)                     \
+  FIELD(birdhouseNumber,              U16,  atoi, 0, BIRDHOUSE_NUMBER_ADDRESS,               getBirdhouseNumber,              setBirdhouseNumber)              \
+  FIELD(sampleDuration,               U16,  atoi, 0, SAMPLE_DURATION_ADDRESS,                getSampleDuration,               setSampleDuration)               \
+  FIELD(ledsInstalledBackwards,       bool, atoi, 0, LEDS_INSTALLED_BACKWARDS_ADDRESS,       getLedsInstalledBackwards,       setLedsInstalledBackwards)       \
+  FIELD(traditionalLeds,              bool, atoi, 0, TRADITIONAL_LEDS_ADDRESS,               getTraditionalLeds,              setTraditionalLeds)              \
+  FIELD(ledStyle,                     U8,   atoi, 0, LED_STYLE_ADDRESS,                      getLedStyle,                     setLedStyle)                     \
 
 #define STRING_FIELD_LIST \
   FIELD(0, localSsid,       LOCAL_SSID_ADDRESS,       SSID_LENGTH,             getLocalSsid,       setLocalSsid)       \
@@ -63,7 +63,7 @@ private:
 
   // Procuces a block of code that follows this pattern:
   //    F32 temperatureCalibrationFactor;
-  #define FIELD(name, datatype, c, d, e, f)             \
+  #define FIELD(name, datatype, c, d, e, f, g)             \
     datatype name;
     NUMERIC_FIELD_LIST  
   #undef FIELD
@@ -119,15 +119,15 @@ private:
   const int PRESURE_CALIBRATION_FACTOR_ADDRESS     = HUMIDITY_CALIBRATION_OFFSET_ADDRESS    + sizeof(humidityCalibrationOffset); 
   const int PRESURE_CALIBRATION_OFFSET_ADDRESS     = PRESURE_CALIBRATION_FACTOR_ADDRESS     + sizeof(pressureCalibrationFactor); 
   const int PM10_CALIBRATION_FACTOR_ADDRESS        = PRESURE_CALIBRATION_OFFSET_ADDRESS     + sizeof(pressureCalibrationOffset); 
-  const int PM10_CALIBRATION_OFFSET_ADDRESS        = PM10_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM10CalibrationFactor); 
-  const int PM25_CALIBRATION_FACTOR_ADDRESS        = PM10_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM10CalibrationOffset); 
-  const int PM25_CALIBRATION_OFFSET_ADDRESS        = PM25_CALIBRATION_FACTOR_ADDRESS        + sizeof(PM25CalibrationFactor); 
-  const int PM1_CALIBRATION_FACTOR_ADDRESS         = PM25_CALIBRATION_OFFSET_ADDRESS        + sizeof(PM25CalibrationOffset);
-  const int PM1_CALIBRATION_OFFSET_ADDRESS         = PM1_CALIBRATION_FACTOR_ADDRESS         + sizeof(PM1CalibrationFactor);
+  const int PM10_CALIBRATION_OFFSET_ADDRESS        = PM10_CALIBRATION_FACTOR_ADDRESS        + sizeof(pm10CalibrationFactor); 
+  const int PM25_CALIBRATION_FACTOR_ADDRESS        = PM10_CALIBRATION_OFFSET_ADDRESS        + sizeof(pm10CalibrationOffset); 
+  const int PM25_CALIBRATION_OFFSET_ADDRESS        = PM25_CALIBRATION_FACTOR_ADDRESS        + sizeof(pm25CalibrationFactor); 
+  const int PM1_CALIBRATION_FACTOR_ADDRESS         = PM25_CALIBRATION_OFFSET_ADDRESS        + sizeof(pm25CalibrationOffset);
+  const int PM1_CALIBRATION_OFFSET_ADDRESS         = PM1_CALIBRATION_FACTOR_ADDRESS         + sizeof(pm1CalibrationFactor);
 
   const int LED_STYLE_ADDRESS                      = LEDS_INSTALLED_BACKWARDS_ADDRESS;
 
-  const int NEXT_ADDRESS            = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(PM1CalibrationOffset); 
+  const int NEXT_ADDRESS            = PM1_CALIBRATION_OFFSET_ADDRESS + sizeof(pm1CalibrationOffset); 
   const int EEPROM_SIZE = NEXT_ADDRESS;
 
 public:
@@ -146,7 +146,7 @@ public:
 
     // Procuces a block of code that follows this pattern:
     //     temperatureCalibrationFactor = readNumberFromEeprom<F32>(TEMPERATURE_CALIBRATION_FACTOR_ADDRESS);
-    #define FIELD(name, datatype, c, address, e, f)             \
+    #define FIELD(name, datatype, c, d, address, f, g)             \
       name = readNumberFromEeprom<datatype>(address);
       NUMERIC_FIELD_LIST  
     #undef FIELD
@@ -190,15 +190,15 @@ public:
   //     F32 getTemperatureCalibrationFactor() {                                                   
   //        return temperatureCalibrationFactor;                                                        
   //     }                                                                     
-  #define FIELD(name, datatype, fromStringFn, address, getter, setter)    \
-    void setter(const char *stringifiedParam) {                           \
-        name = fromStringFn(stringifiedParam);                            \
-        writeNumberToEeprom(address, name);                               \
-    }                                                                     \
-                                                                          \
-    datatype getter() {                                                   \
-       return name;                                                       \
-    }                                                                     \
+  #define FIELD(name, datatype, fromStringFn, d, address, getter, setter)    \
+    void setter(const char *stringifiedParam) {                              \
+        name = fromStringFn(stringifiedParam);                               \
+        writeNumberToEeprom(address, name);                                  \
+    }                                                                        \
+                                                                             \
+    datatype getter() {                                                      \
+       return name;                                                          \
+    }                                                                        \
 
     NUMERIC_FIELD_LIST  
   #undef FIELD
