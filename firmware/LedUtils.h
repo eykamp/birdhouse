@@ -209,6 +209,7 @@ void loop() {
 
 
 // Adapted from https://www.instructables.com/topics/linear-PWM-LED-fade-with-arduino/
+// Returns a pwm value (0..255) for a required percentage (0..100) to provide a linear fade as perceived by eye
 int linearPWM(int percentage) {
   // coefficients
   double a = 9.7758463166360387E-01;
