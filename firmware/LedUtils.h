@@ -260,11 +260,22 @@ void activateLed(U32 ledMask) {
       analogWrite(builtinLedPin, ( (ledMask & BUILTIN)) ? pwm : 0);
     }
   }
+
   else if(ledStyle == ParameterManager::DOTSTAR) {
 
     int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
     int green = (ledMask & (YELLOW | GREEN )) ? 255 : 0;
-    int blue  = (ledMask & (0         )) ? 255 : 0;
+    int blue  = (ledMask & (0              )) ? 255 : 0;
+
+
+    if(fading) {
+      int val = triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
+      F32 blackening = F32(val) / 100.0;
+
+      red   *= blackening;
+      green *= blackening;
+      blue  *= blackening;
+    }
 
     strip.setPixelColor(0, red, green, blue);
     strip.show(); 
