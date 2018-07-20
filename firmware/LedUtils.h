@@ -242,6 +242,13 @@ bool getHighState() {
 }
 
 
+
+// Returns a number between 0 and 100 following a triagle pattern
+int getTriangleValue() {
+  return triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
+}
+
+
 void activateLed(U32 ledMask) {
   if(ledStyle == ParameterManager::RYG || ledStyle == ParameterManager::RYG_REVERSED) {
 
@@ -251,8 +258,7 @@ void activateLed(U32 ledMask) {
       digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
       digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
     } else {
-      int val = triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
-      int pwm = linearPWM(val);
+      int pwm = linearPWM(getTriangleValue());
 
       analogWrite(redLedPin,     ( (ledMask & RED))     ? pwm : 0);
       analogWrite(yellowLedPin,  ( (ledMask & YELLOW))  ? pwm : 0);
@@ -269,8 +275,7 @@ void activateLed(U32 ledMask) {
 
 
     if(fading) {
-      int val = triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
-      F32 blackening = F32(val) / 100.0;
+      F32 blackening = F32(getTriangleValue()) / 100.0;
 
       red   *= blackening;
       green *= blackening;
