@@ -5,7 +5,7 @@ from geopy.geocoders import Nominatim
 from geopy.geocoders import Bing
 from geopy.geocoders import GoogleV3
 
-from provision_config import google_geocoder_api_key, bing_geocoder_api_key
+from config import google_geocoder_api_key, bing_geocoder_api_key
 
 import serial
 import serial.tools.list_ports
