@@ -219,7 +219,7 @@ void onConnectedToPubSubServer() {
 
   reportPlantowerSensorStatus();
   reportResetReason();
-  mqtt.publishCalibrationFactors(getCalibrationFactors());    // report calibration factors
+  mqtt.publishCalibrationFactors(getCalibrationJson());    // report calibration factors
 
   resetDataCollection();                                      // Now we can start our data collection efforts
   ledUtils.setBlinkPattern(LedUtils::SOLID_GREEN);
@@ -308,7 +308,7 @@ void setup() {
   Rest.variable("ledStyle",           &getLedStyle);
   Rest.variable("sensorsDetected",    &getSensorsDetected,    false);      // false ==> We'll handle quoting ourselves
   Rest.variable("plantowerDisabled",  &disablePlantower);      
-  Rest.variable("calibrationFactors", &getCalibrationFactors, false);
+  Rest.variable("calibrationFactors", &getCalibrationJson, false);
 
   Rest.variable("sampleCount",        &plantowerSampleCount);
   Rest.variable("sampleDurations",    &getSampleDuration);
@@ -396,7 +396,7 @@ String getSensorsDetected() {
 
 
 // Returns a JSON object listing all our calibration factors
-String getCalibrationFactors() {
+String getCalibrationJson() {
   return String("{") + 
     "\"temperatureCalibrationFactor\":" + String(Eeprom.getTemperatureCalibrationFactor()) + "," +
     "\"temperatureCalibrationOffset\":" + String(Eeprom.getTemperatureCalibrationOffset()) + "," +
