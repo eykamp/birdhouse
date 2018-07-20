@@ -225,6 +225,16 @@ void publishWeatherData(F32 rawTemp, F32 smoothedTemp, F32 humidity, F32 pressur
   mqttPublishTelemetry(json);
 }
 
+
+bool containsKey(const JsonObject &obj, const char *key) {
+  for(const JsonPair &pair : obj) {
+    if(strcmp(pair.key, key) == 0)
+      return true;
+  }
+
+  return false;
+}
+
 };
 
 
