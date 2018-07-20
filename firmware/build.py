@@ -3,16 +3,17 @@ Build: The birdhouse firmware builder and uploader
 
 Usage:
     build.py <winscpprofile> (all | <devices>) [--clean] 
-    build.py build --clean
+    build.py build [--clean]
     build.py build --help
 
 
 Arguments:
-    winscpprofile   Profile used to connect to server in WinSCP
-    devicelist      List of devices to upload to: e.g. 2,3,4,5 | 2-6 | 4,6-8,13 | all
+    winscpprofile     Profile used to connect to server in WinSCP
+    devicelist        List of devices to upload to: e.g. 2,3,4,5 | 2-6 | 4,6-8,13 | all
 
 Options:
-    -c --clean      Overwrite existing built firmware image
+    -b --buildonly    Build code, but do not upload
+    -c --clean        Overwrite existing built firmware image
  """
 
 import re, os, sys
