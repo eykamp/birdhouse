@@ -244,11 +244,8 @@ bool getHighState() {
 
 
 // Returns a number between 0 and 100 following a triagle pattern
-int getTriangleValue(int maxVal) {
-  if(maxVal > 100)
-    maxVal = 100;
-
-  return triangle(maxVal, 1.3 * SECONDS);  // Don't go higher than 100 here...
+int getTriangleValue() {
+  return triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
 }
 
 
@@ -261,7 +258,7 @@ void activateLed(U32 ledMask) {
       digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
       digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
     } else {
-      int pwm = linearPWM(getTriangleValue(50));
+      int pwm = linearPWM(getTriangleValue());
 
       analogWrite(redLedPin,     ( (ledMask & RED))     ? pwm : 0);
       analogWrite(yellowLedPin,  ( (ledMask & YELLOW))  ? pwm : 0);
@@ -278,7 +275,7 @@ void activateLed(U32 ledMask) {
 
 
     if(fading) {
-      F32 blackening = F32(getTriangleValue(50)) / 100.0;
+      F32 blackening = F32(getTriangleValue()) / 100.0;
 
       red   *= blackening;
       green *= blackening;
@@ -296,7 +293,7 @@ void activateLed(U32 ledMask) {
       digitalWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? LOW : HIGH);
       digitalWrite(greenLedPin,   getHighState());
     } else {
-       int pwm = linearPWM(getTriangleValue(100));
+       int pwm = linearPWM(getTriangleValue());
 
       analogWrite(redLedPin,     (ledMask & RED   || ledMask & YELLOW)  ? PWMRANGE - pwm : PWMRANGE);
       analogWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? PWMRANGE - pwm : PWMRANGE);
