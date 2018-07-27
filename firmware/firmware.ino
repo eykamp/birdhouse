@@ -1,6 +1,3 @@
-// TODO: No AQ readings for 1 min after turned on (as per specs)
-// TODO: No AQ measurements when humidity > 95% (as per specs)
-
 #define AREST_NUMBER_VARIABLES 40
 #define AREST_NUMBER_FUNCTIONS 20
 #define AREST_PARAMS_MODE 1
