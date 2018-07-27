@@ -6,7 +6,10 @@
 #define AREST_PARAMS_MODE 1
 #define AREST_BUFFER_SIZE 4000
 
-#include <ESP8266WebServer.h>   // Include the WebServer library
+#define MQTT_JSON_MAX_PACKET_SIZE 1024   // How much memory we allocate for handling JSON
+
+
+#include <ESP8266WebServer.h>       // Include the WebServer library
 #include <BME280I2C.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
@@ -107,7 +110,7 @@ void handlesetWifiConnection(); // Forward declare
 // { "calibrationFactors" : {"temperatureCalibrationFactor" : 1.0, ...}}
 void messageReceivedFromMothership(char *topic, byte *payload, unsigned int length) {
   // See https://github.com/bblanchon/ArduinoJson for usage
-  StaticJsonBuffer<MQTT_MAX_PACKET_SIZE> jsonBuffer;
+  StaticJsonBuffer<MQTT_JSON_MAX_PACKET_SIZE> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(payload);
 
   // Our LED package
