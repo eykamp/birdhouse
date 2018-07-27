@@ -63,7 +63,7 @@ def main():
 
     build(source_file, build_target, build_target_file)
 
-    text = input("Proceed with upload? [Y/N]")
+    text = input("Proceed with upload to devices << " + devices + " >>? [Y/N]")
     if text.lower() != "y":
         exit()
 
