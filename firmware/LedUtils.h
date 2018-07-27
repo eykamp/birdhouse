@@ -208,7 +208,7 @@ void loop() {
 
 
 // Adapted from https://www.instructables.com/topics/linear-PWM-LED-fade-with-arduino/
-// Returns a pwm value (0..255) for a required percentage (0..100) to provide a linear fade as perceived by eye
+// Returns a pwm value (0..1001) for a required percentage (0..100) to provide a linear fade as perceived by eye
 int linearPWM(int percentage) {
   // coefficients
   double a = 9.7758463166360387E-01;
@@ -244,8 +244,11 @@ bool getHighState() {
 
 
 // Returns a number between 0 and 100 following a triagle pattern
-int getTriangleValue() {
-  return triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
+int getTriangleValue(int maxVal) {
+  if(maxVal > 100)
+    maxVal = 100;
+
+  return triangle(maxVal, 1.3 * SECONDS);  // Don't go higher than 100 here...
 }
 
 
@@ -258,7 +261,7 @@ void activateLed(U32 ledMask) {
       digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
       digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
     } else {
-      int pwm = linearPWM(getTriangleValue());
+      int pwm = linearPWM(getTriangleValue(50));
 
       analogWrite(redLedPin,     ( (ledMask & RED))     ? pwm : 0);
       analogWrite(yellowLedPin,  ( (ledMask & YELLOW))  ? pwm : 0);
@@ -275,7 +278,7 @@ void activateLed(U32 ledMask) {
 
 
     if(fading) {
-      F32 blackening = F32(getTriangleValue()) / 100.0;
+      F32 blackening = F32(getTriangleValue(50)) / 100.0;
 
       red   *= blackening;
       green *= blackening;
@@ -285,8 +288,22 @@ void activateLed(U32 ledMask) {
     strip.setPixelColor(0, red, green, blue);
     strip.show(); 
   }
+
   else if(ledStyle == ParameterManager::FOUR_PIN_COMMON_ANNODE) {
-    // Do something!
+    // With common annode LEDs, LOW is on, HIGH is off; similarly, pwm 0 is on, 1023 (value defined by ESP8266 PWMRANGE macro) is off
+    if(!fading) {
+      digitalWrite(redLedPin,     (ledMask & RED   || ledMask & YELLOW)  ? LOW : HIGH);
+      digitalWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? LOW : HIGH);
+      digitalWrite(greenLedPin,   getHighState());
+    } else {
+       int pwm = linearPWM(getTriangleValue(100));
+
+      analogWrite(redLedPin,     (ledMask & RED   || ledMask & YELLOW)  ? PWMRANGE - pwm : PWMRANGE);
+      analogWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? PWMRANGE - pwm : PWMRANGE);
+      digitalWrite(greenLedPin,   getHighState());
+    }
+
+
   }
 }
 
