@@ -45,7 +45,6 @@ U8 blinkTime = 24 * HOURS;
 U8 blinkState = 0;
 U8 maxBlinkState = 0;
 U32 blinkTimer = 0;
-S16 fadeIncrement = 3000;    // % per second; there are 100 units between off and full bore
 bool fading = false;
 
 U8 redLedPin;
