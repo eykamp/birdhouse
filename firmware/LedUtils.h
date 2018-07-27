@@ -299,8 +299,6 @@ void activateLed(U32 ledMask) {
       analogWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? PWMRANGE - pwm : PWMRANGE);
       digitalWrite(greenLedPin,   getHighState());
     }
-
-
   }
 }
 
@@ -311,6 +309,7 @@ int triangle(int range, int period) {
     U32 x = millis();
     return (F32(range) / F32(period)) * (period - abs(x % (2 * period) - period));     
   }
+
 
 };
 
