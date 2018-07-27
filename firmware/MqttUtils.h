@@ -220,8 +220,13 @@ void publishPmData(F64 pm1, F64 pm25, F64 pm10, F64 rawPm1, F64 rawPm25, F64 raw
 }
 
 
-void publishWeatherData(F32 rawTemp, F32 smoothedTemp, F32 humidity, F32 pressure) {
-  String json = "{\"temperature\":" + String(rawTemp) + ",\"humidity\":" + String(humidity) + ",\"pressure\":" + String(pressure) + ",\"temperature_smoothed\":" + String(smoothedTemp) + "}";
+void publishWeatherData(F32 rawTemp, F32 smoothedTemp, F32 humidity, F32 pressure, bool reportHumidity) {
+  String json = "{\"temperature\":" + String(rawTemp) + ",\"pressure\":" + String(pressure) + ",\"temperature_smoothed\":" + String(smoothedTemp);
+
+  if(reportHumidity)
+    json += ",\"humidity\":" + String(humidity);
+  json += "}";
+
   mqttPublishTelemetry(json);
 }
 

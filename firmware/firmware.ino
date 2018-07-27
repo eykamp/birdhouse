@@ -594,6 +594,11 @@ const char *getTemperatureSensorName() {
 }
 
 
+bool hasHumidity() {
+  return BME_ok && bme.chipModel() == BME280::ChipModel_BME280;
+}
+
+
 // Read sensors each loop tick
 void loopSensors() {
 
@@ -705,10 +710,10 @@ void reportMeasurements() {
 
     // Apply calibration factors
     temp = temp * Eeprom.getTemperatureCalibrationFactor() + Eeprom.getTemperatureCalibrationOffset();
-    pres = pres * Eeprom.getHumidityCalibrationFactor()    + Eeprom.getHumidityCalibrationOffset();
-    hum  = hum  * Eeprom.getPressureCalibrationFactor()    + Eeprom.getPressureCalibrationOffset();
+    hum  = hum  * Eeprom.getHumidityCalibrationFactor()    + Eeprom.getHumidityCalibrationOffset();
+    pres = pres * Eeprom.getPressureCalibrationFactor()    + Eeprom.getPressureCalibrationOffset();
 
-    mqtt.publishWeatherData(temp, TemperatureSmoothingFilter.Current(), hum, pres);
+    mqtt.publishWeatherData(temp, TemperatureSmoothingFilter.Current(), hum, pres, hasHumidity());
   }
 }
 
