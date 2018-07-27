@@ -96,6 +96,8 @@ bool plantowerSensorNondetectReported = false;
 U32 lastMqttConnectAttempt = 0;
 U32 timeOfLastContact = 0;
 
+bool serialSwapped = false;     // Track who is using the serial port
+
 ParameterManager paramManager;
 
 
@@ -109,6 +111,13 @@ void handlesetWifiConnection(); // Forward declare
 // { "LED" : "ALL_ON" }
 // { "calibrationFactors" : {"temperatureCalibrationFactor" : 1.0, ...}}
 void messageReceivedFromMothership(char *topic, byte *payload, unsigned int length) {
+
+  if(!serialSwapped) {
+    Serial.println("Incoming from mothership:");
+    Serial.println((char *)payload);
+  }
+
+
   // See https://github.com/bblanchon/ArduinoJson for usage
   StaticJsonBuffer<MQTT_JSON_MAX_PACKET_SIZE> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(payload);
@@ -119,17 +128,33 @@ void messageReceivedFromMothership(char *topic, byte *payload, unsigned int leng
 
   // Our calibrationFactors package
   if(mqtt.containsKey(root, "calibrationFactors")) {
+    const char *innerRootJson = root["calibrationFactors"];
+
+    // Inner JSON is a string, which needs to be destringified, thanks to the lack of nested attribtues on Thingsboard
+    JsonObject &innerRoot = jsonBuffer.parseObject(innerRootJson);
+    if(!innerRoot.success()) {
+      if(!serialSwapped)
+        Serial.printf("Could not parse calibration JSON: %s\n", (char *)payload);
+      return;
+    }
+   
+
     // Create a block of code for every item in NUMERIC_FIELD_LIST that looks like this:
-    // if(1 == 1 && mqtt.containsKey(root["calibrationFactors"], "temperatureCalibrationFactor"]))
+    // if(1 == 1 && mqtt.containsKey(root["calibrationFactors"], "temperatureCalibrationFactor")) {
+    //   if(!serialSwapped) Serial.printf("Setting %s to %s", "temperatureCalibrationFactor", innerRoot["temperatureCalibrationFactor"]);   
     //   setTemperatureCalibrationFactor(root["calibrationFactors"]["temperatureCalibrationFactor"]);
+    // }
     // ...
     // We use the group field to only include the values that will be part of the calibration dataset
-    #define FIELD(name, b, c, group, e, g, setterFn)                                  \
-        if(group == 1 && mqtt.containsKey(root["calibrationFactors"], #name))    \
-          Eeprom.setterFn(root["calibrationFactors"][#name]);
+    #define FIELD(name, b, c, group, e, f, setterFn)                                       \
+        if(group == 1 && mqtt.containsKey(innerRoot, #name)) {                             \
+          if(!serialSwapped) Serial.printf("Setting %s to %s", #name, innerRoot[#name]);   \
+          Eeprom.setterFn(innerRoot[#name]);                                               \
+        }
         NUMERIC_FIELD_LIST  
     #undef FIELD
 
+    // Tell server the new calibration factors we're using
     mqtt.publishCalibrationFactors(getCalibrationJson());
   }
 }
@@ -146,8 +171,6 @@ bool mqttServerLookupError = false;
 
 bool reportedResetReason = false;
 U32 mqttServerLookupErrorTimer = 0;
-
-bool serialSwapped = false;     // Track who is using the serial port
 
 void setupPubSubClient() {
   if(millis() - mqttServerLookupErrorTimer > 5 * SECONDS)
