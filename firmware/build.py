@@ -128,7 +128,7 @@ def binary_too_big(output):
 def upload(source_file, source_file_with_version, build_target, remote_dir, devices):
 
     if devices == "all":
-        print("Uploading " + build_target + " for all devices")
+        print("Uploading " + build_target + " for all devices to " + remote_dir)
         for output_line in execute('"' + winscp_program_location + '" "' + winscp_profile + '" /command "cd ' + remote_dir + '" "put ' + build_target + '" "exit"'):
             print(output_line, end="")
         return
