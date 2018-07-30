@@ -621,7 +621,7 @@ class ServerSetup(Frame):
 
 
 
-
+#  TODO: These functions are in birdhouseUtils
 # Build a list of ports we can use
 def get_ports():
     # for port in list(serial.tools.list_ports.comports()):
