@@ -18,6 +18,14 @@ ESPTOOL_EXE_LOCATION = r'C:\Users\Chris\AppData\Local\Arduino15\packages\esp8266
 
 def make_device_name(birdhouse_number):
     return 'Birdhouse ' + str(birdhouse_number).zfill(3)
+    
+
+def get_sensor_type(birdhouse_number):
+    # 100-110 reserved for Lair Hill
+    if int(birdhouse_number) >= 100 and int(birdhouse_number) < 110:
+        return 'Lair Hill Birdhouse'
+    
+    return 'Sensorbot Birdhouse'
 
 
 def make_dash_name(birdhouse_number):
