@@ -17,20 +17,20 @@ enum Leds {
   BUILTIN = 8
 };
 
+
 enum BlinkPattern {
   OFF,
-  STARTUP,
-  ALL_ON,
   SOLID_RED,
   SOLID_YELLOW,
-  SOLID_GREEN,
-  FAST_BLINK_RED,
-  FAST_BLINK_YELLOW,
-  FAST_BLINK_GREEN,
-  SLOW_BLINK_RED,
   SLOW_BLINK_YELLOW,
   SLOW_BLINK_GREEN,
-  ERROR_STATE,
+
+  WIFI_CONNECT_TIMED_OUT,
+  DISCONNECTED_FROM_WIFI,
+  CONNECTED_TO_WIFI,
+  WIFI_CONNECT_FAILED,
+  CONNECTED_TO_MQTT_SERVER,
+
   BLINK_PATTERN_COUNT
 };
 
@@ -41,18 +41,25 @@ private:
 
 U8 blinkColor[BLINK_STATES] = { NONE, NONE };
 
-U8 blinkTime = 24 * HOURS;
+U32 blinkTime = 24 * HOURS;
 U8 blinkState = 0;
 U8 maxBlinkState = 0;
 U32 blinkTimer = 0;
 bool fading = false;
+
+
+// Used for flashing patterns
+U8 blinkRhythm = 0;   
+S8 blinkRhythmCounter = 0;
+bool blinkToggle = false;
+
 
 U8 redLedPin;
 U8 yellowLedPin;
 U8 greenLedPin;
 U8 builtinLedPin;
 
-BlinkPattern blinkPattern = STARTUP;
+BlinkPattern blinkPattern = OFF;
 
 ParameterManager::LedStyle ledStyle = ParameterManager::RYG;
 
@@ -80,6 +87,14 @@ void begin(U8 redPin, U8 yellowPin, U8 greenPin, U8 builtinPin, U8 dotStarDataPi
   pinMode(builtinLedPin, OUTPUT);
 
   strip.updatePins(dotStarDataPin, dotStarClockPin);
+
+  // Start with all LEDs off
+  digitalWrite(redLedPin,    getLowState());
+  digitalWrite(yellowLedPin, getLowState());
+  digitalWrite(greenLedPin,  getLowState());
+
+  strip.setPixelColor(0, 0, 0, 0);
+  strip.show(); 
 }
 
 
@@ -91,119 +106,126 @@ void setLedStyle(ParameterManager::LedStyle style) {
 void setBlinkPattern(BlinkPattern blinkPattern) {
   switch(blinkPattern) {
     case OFF:
-      blinkColor[0] = NONE;
-      blinkColor[1] = NONE;
+      setSolidColor(NONE, false);
       break;
 
-    // Should do something different here!!!
-    case STARTUP:
-      blinkColor[0] = NONE;
-      blinkColor[1] = NONE;
+
+    case WIFI_CONNECT_FAILED:
+      if(ledStyle == ParameterManager::BUILTIN_ONLY)
+        setBlinkRhythm(5);
+      else
+        setSlowBlink(RED);
+      break;
+
+    case WIFI_CONNECT_TIMED_OUT:
+      if(ledStyle == ParameterManager::BUILTIN_ONLY)
+        setBlinkRhythm(1);
+      else
+        setFastBlink(RED);
+      break;
+
+    case DISCONNECTED_FROM_WIFI:
+      if(ledStyle == ParameterManager::BUILTIN_ONLY)
+        setBlinkRhythm(4);
+      else
+        setFastBlink(YELLOW);
+      break;
+
+    case CONNECTED_TO_WIFI:
+      if(ledStyle == ParameterManager::BUILTIN_ONLY)
+        setBlinkRhythm(2);
+      else
+        setFastBlink(GREEN);
+      break;
+
+    case CONNECTED_TO_MQTT_SERVER:
+      if(ledStyle == ParameterManager::BUILTIN_ONLY)
+        setBlinkRhythm(0);
+      else
+        setSolidColor(GREEN, true);
       break;
 
     case SOLID_RED:
-    case SLOW_BLINK_RED:
-    case FAST_BLINK_RED:
-      blinkColor[0] = RED;
-      blinkColor[1] = NONE;
+      setSolidColor(RED, false);
       break;
 
     case SOLID_YELLOW:
+      setSolidColor(YELLOW, false);
+      break;
+
     case SLOW_BLINK_YELLOW:
-    case FAST_BLINK_YELLOW:
-      blinkColor[0] = YELLOW;
-      blinkColor[1] = NONE;
+      setSlowBlink(YELLOW);
       break;
 
-    case SOLID_GREEN:
     case SLOW_BLINK_GREEN:
-    case FAST_BLINK_GREEN:
-      blinkColor[0] = GREEN;
-      blinkColor[1] = NONE;
-      break;
-
-    case ERROR_STATE:
-      blinkColor[0] = RED;
-      blinkColor[1] = YELLOW;
-      break;
-  }
-
-
-  switch(blinkPattern) {
-    case STARTUP:
-      fading = false;
-      break;
-
-    case OFF:
-    case SOLID_RED:
-    case SOLID_YELLOW:
-    case SOLID_GREEN:
-      blinkTime = 24 * HOURS;
-      fading = true;
-      maxBlinkState = 0;
-      break;
-
-    case SLOW_BLINK_RED:
-    case SLOW_BLINK_YELLOW:
-    case SLOW_BLINK_GREEN:
-      blinkTime = 1 * SECONDS;
-      fading = false;
-      maxBlinkState = 1;
-      break;
-
-    case FAST_BLINK_RED:
-    case FAST_BLINK_YELLOW:
-    case FAST_BLINK_GREEN:
-    case ERROR_STATE:
-      blinkTime = 400 * MILLIS;
-      fading = false;
-      maxBlinkState = 1;
+      setSlowBlink(GREEN);
       break;
   }
 }
 
 
 void setBlinkPatternByName(const char *mode) {
-  if(     strcmp(mode, "OFF")               == 0)
+  if(     strcmp(mode, "OFF")                      == 0)
     setBlinkPattern(OFF);
-  else if(strcmp(mode, "STARTUP")           == 0)
-    setBlinkPattern(STARTUP);
-  else if(strcmp(mode, "ALL_ON")            == 0)
-    setBlinkPattern(ALL_ON);
-  else if(strcmp(mode, "SOLID_RED")         == 0)
+  else if(strcmp(mode, "SOLID_RED")                == 0)
     setBlinkPattern(SOLID_RED);
-  else if(strcmp(mode, "SOLID_YELLOW")      == 0)
+  else if(strcmp(mode, "SOLID_YELLOW")             == 0)
     setBlinkPattern(SOLID_YELLOW);
-  else if(strcmp(mode, "SOLID_GREEN")       == 0)
-    setBlinkPattern(SOLID_GREEN);
-  else if(strcmp(mode, "FAST_BLINK_RED")    == 0)
-    setBlinkPattern(FAST_BLINK_RED);
-  else if(strcmp(mode, "FAST_BLINK_YELLOW") == 0)
-    setBlinkPattern(FAST_BLINK_YELLOW);
-  else if(strcmp(mode, "FAST_BLINK_GREEN")  == 0)
-    setBlinkPattern(FAST_BLINK_GREEN);
-  else if(strcmp(mode, "SLOW_BLINK_RED")    == 0)
-    setBlinkPattern(SLOW_BLINK_RED);
-  else if(strcmp(mode, "SLOW_BLINK_YELLOW") == 0)
+  else if(strcmp(mode, "WIFI_CONNECT_TIMED_OUT")   == 0)
+    setBlinkPattern(WIFI_CONNECT_TIMED_OUT);
+  else if(strcmp(mode, "DISCONNECTED_FROM_WIFI")   == 0)
+    setBlinkPattern(DISCONNECTED_FROM_WIFI);
+  else if(strcmp(mode, "CONNECTED_TO_WIFI")        == 0)
+    setBlinkPattern(CONNECTED_TO_WIFI);
+  else if(strcmp(mode, "CONNECTED_TO_MQTT_SERVER") == 0)
+    setBlinkPattern(CONNECTED_TO_MQTT_SERVER);
+  else if(strcmp(mode, "WIFI_CONNECT_FAILED")      == 0)
+    setBlinkPattern(WIFI_CONNECT_FAILED);
+  else if(strcmp(mode, "SLOW_BLINK_YELLOW")        == 0)
     setBlinkPattern(SLOW_BLINK_YELLOW);
-  else if(strcmp(mode, "SLOW_BLINK_GREEN")  == 0)
+  else if(strcmp(mode, "SLOW_BLINK_GREEN")         == 0)
     setBlinkPattern(SLOW_BLINK_GREEN);
-  else if(strcmp(mode, "ERROR_STATE")       == 0)
-    setBlinkPattern(ERROR_STATE);
 }
 
+
+U32 activeLedColorMask;
 
 void loop() {
 
   if(millis() - blinkTimer > blinkTime) {     // Time to advance to the next blinkstate?
     blinkTimer = millis();
-    blinkState++;
-   
-    if(blinkState > maxBlinkState)
-      blinkState = 0;
+
+    if(ledStyle == ParameterManager::BUILTIN_ONLY) {
+
+      if(blinkRhythm == 0)
+        activeLedColorMask = BUILTIN;
+        
+      else {
+        blinkToggle = !blinkToggle;
+
+        if(blinkToggle) {
+          blinkRhythmCounter++;
+          if(blinkRhythmCounter > blinkRhythm) {
+            blinkRhythmCounter = 0;
+            blinkTime = 1 * SECONDS;
+          }
+          else 
+            blinkTime = 200 * MILLIS;
+        }
+        activeLedColorMask = (blinkToggle && blinkRhythmCounter > 0) ? BUILTIN : NONE;
+      }
+    } 
+    else {    // Most cases
+      blinkState++;
+     
+      if(blinkState > maxBlinkState)
+        blinkState = 0;
+
+      activeLedColorMask = blinkColor[blinkState];
+    }
   }
 
-  activateLed(blinkColor[blinkState]);
+  activateLed(activeLedColorMask);
 }
 
 
@@ -220,50 +242,107 @@ int linearPWM(int percentage) {
   return amt;   
 }
 
+
 void playStartupSequence() {
-  activateLed(RED);
-  delay(300);
-  activateLed(YELLOW);
-  delay(300);
-  activateLed(GREEN);
-  delay(300);
-  activateLed(NONE);
+  if(ledStyle == ParameterManager::BUILTIN_ONLY) {
+    // 8 rapid flashes
+    for(int i = 0; i < 8; i++) {
+      activateLed(BUILTIN);
+      delay(100);
+      activateLed(NONE);
+      delay(100);
+    }
+  }
+
+  else {
+    // Quick cycle of red/yellow/green
+    activateLed(RED);
+    delay(300);
+    activateLed(YELLOW);
+    delay(300);
+    activateLed(GREEN);
+    delay(300);
+    activateLed(NONE);
+  }
 }
+
 
 
 private:
 
-bool getLowState() {
-  return (ledStyle == ParameterManager::RYG_REVERSED) ? HIGH : LOW;
+void setBlinkRhythm(U8 blinkCount) {
+  blinkRhythm = blinkCount;
+  blinkRhythmCounter = -1;
+  blinkToggle = true;
+  blinkTime = 1 * SECONDS;
+
+  fading = (blinkCount == 0);
 }
+
+
+void setFastBlink(Leds color) {
+  blinkColor[0] = color;
+  blinkColor[1] = NONE;
+  blinkTime = 400 * MILLIS;
+  fading = false;
+  maxBlinkState = 1;
+}
+
+
+void setSlowBlink(Leds color) {
+  blinkColor[0] = color;
+  blinkColor[1] = NONE;
+  blinkTime = 1 * SECONDS;
+  fading = false;
+  maxBlinkState = 1;
+}
+
+
+void setSolidColor(Leds color, bool fad) {
+  blinkColor[0] = color;
+  blinkColor[1] = NONE;
+  blinkTime = 24 * HOURS;
+  maxBlinkState = 0;
+  fading = fad;
+}
+
+
+bool getLowState() {
+  return (ledStyle == ParameterManager::RYG_REVERSED || ledStyle == ParameterManager::BUILTIN_ONLY) ? HIGH : LOW;
+}
+
 
 bool getHighState() {
-  return (ledStyle == ParameterManager::RYG_REVERSED) ? LOW : HIGH;
+  return (ledStyle == ParameterManager::RYG_REVERSED || ledStyle == ParameterManager::BUILTIN_ONLY) ? LOW : HIGH;
 }
-
 
 
 // Returns a number between 0 and 100 following a triagle pattern
 int getTriangleValue() {
-  return triangle(50, 1.3 * SECONDS);  // Don't go higher than 100 here...
+  int max = (ledStyle == ParameterManager::BUILTIN_ONLY) ? 100 : 50;   // Don't go higher than 100 here!
+  F32 duration = 2.5 * SECONDS; 
+
+  return triangle(max, duration);  
 }
 
 
 void activateLed(U32 ledMask) {
   if(ledStyle == ParameterManager::RYG || ledStyle == ParameterManager::RYG_REVERSED) {
 
-    if(!fading) {
-      digitalWrite(redLedPin,     (ledMask & RED)     ? getHighState() : getLowState());
-      digitalWrite(yellowLedPin,  (ledMask & YELLOW)  ? getHighState() : getLowState());
-      digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
-      digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
-    } else {
+    if(fading) {
       int pwm = linearPWM(getTriangleValue());
 
       analogWrite(redLedPin,     ( (ledMask & RED))     ? pwm : 0);
       analogWrite(yellowLedPin,  ( (ledMask & YELLOW))  ? pwm : 0);
       analogWrite(greenLedPin,   ( (ledMask & GREEN))   ? pwm : 0);
       analogWrite(builtinLedPin, ( (ledMask & BUILTIN)) ? pwm : 0);
+    } 
+
+    else {
+      digitalWrite(redLedPin,     (ledMask & RED)     ? getHighState() : getLowState());
+      digitalWrite(yellowLedPin,  (ledMask & YELLOW)  ? getHighState() : getLowState());
+      digitalWrite(greenLedPin,   (ledMask & GREEN)   ? getHighState() : getLowState());
+      digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? LOW : HIGH);    // builtin uses reverse states
     }
   }
 
@@ -288,16 +367,25 @@ void activateLed(U32 ledMask) {
 
   else if(ledStyle == ParameterManager::FOUR_PIN_COMMON_ANNODE) {
     // With common annode LEDs, LOW is on, HIGH is off; similarly, pwm 0 is on, 1023 (value defined by ESP8266 PWMRANGE macro) is off
-    if(!fading) {
-      digitalWrite(redLedPin,     (ledMask & RED   || ledMask & YELLOW)  ? LOW : HIGH);
-      digitalWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? LOW : HIGH);
-      digitalWrite(greenLedPin,   getHighState());
-    } else {
-       int pwm = linearPWM(getTriangleValue());
+    if(fading) {
+      int pwm = linearPWM(getTriangleValue());
 
       analogWrite(redLedPin,     (ledMask & RED   || ledMask & YELLOW)  ? PWMRANGE - pwm : PWMRANGE);
       analogWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? PWMRANGE - pwm : PWMRANGE);
       digitalWrite(greenLedPin,   getHighState());
+    } else {
+      digitalWrite(redLedPin,     (ledMask & RED   || ledMask & YELLOW)  ? LOW : HIGH);
+      digitalWrite(yellowLedPin,  (ledMask & GREEN || ledMask & YELLOW)  ? LOW : HIGH);
+      digitalWrite(greenLedPin,   getHighState());
+    }
+  }
+
+  else if(ledStyle == ParameterManager::BUILTIN_ONLY) {
+    if(fading) {
+      int pwm = linearPWM(getTriangleValue());
+      analogWrite(builtinLedPin, (ledMask & BUILTIN) ? PWMRANGE - pwm : PWMRANGE);
+    } else {
+      digitalWrite(builtinLedPin, (ledMask & BUILTIN) ? getHighState() : getLowState());
     }
   }
 }

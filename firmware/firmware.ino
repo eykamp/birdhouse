@@ -267,7 +267,7 @@ void onConnectedToPubSubServer() {
   mqtt.publishCalibrationFactors(getCalibrationJson());    // report calibration factors
 
   resetDataCollection();                                      // Now we can start our data collection efforts
-  ledUtils.setBlinkPattern(LedUtils::SOLID_GREEN);
+  ledUtils.setBlinkPattern(LedUtils::CONNECTED_TO_MQTT_SERVER);
 }
 
 
@@ -356,7 +356,7 @@ void setup() {
   Rest.variable("calibrationFactors", &getCalibrationJson, false);
 
   Rest.variable("sampleCount",        &plantowerSampleCount);
-  Rest.variable("sampleDurations",    &getSampleDuration);
+  Rest.variable("sampleDuration",     &getSampleDuration);
   Rest.variable("deviceToken",        &getDeviceToken);
   Rest.variable("localSsid",          &getLocalSsid);
   Rest.variable("localPass",          &getLocalPassword);
@@ -397,7 +397,7 @@ void setup() {
   wifiUtils.setupLocalAccessPoint(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress);
 
   // Flash yellow until we've connected via wifi
-  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_YELLOW);
+  ledUtils.setBlinkPattern(LedUtils::DISCONNECTED_FROM_WIFI);
 
 
   server.begin();   // Start the web server
@@ -782,7 +782,7 @@ void onConnectedToWifiCallback() {
 
   connectionFailures = 0;
 
-  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_GREEN);   // Stop flashing yellow now that we've connected to wifi
+  ledUtils.setBlinkPattern(LedUtils::CONNECTED_TO_WIFI);   // Stop flashing yellow now that we've connected to wifi
 
   if(serialSwapTimer == 0)
     serialSwapTimer = millis();
@@ -793,7 +793,7 @@ void onConnectedToWifiTimedOutCallback() {
   if(!serialSwapped)
     Serial.printf("Attempt to connect to wifi timed out, using credentials %s/%s at %d\n", Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), millis());
 
-  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_RED);  
+  ledUtils.setBlinkPattern(LedUtils::WIFI_CONNECT_TIMED_OUT);  
 }
 
 
@@ -802,7 +802,7 @@ void onConnectedToWifiFailedCallback() {
   if(!serialSwapped)
     Serial.println("Attempt to connect to wifi failed with status WL_CONNECT_FAILED"); 
 
-  ledUtils.setBlinkPattern(LedUtils::SLOW_BLINK_RED);
+  ledUtils.setBlinkPattern(LedUtils::WIFI_CONNECT_FAILED);
 
   connectionFailures++;
 
@@ -817,7 +817,7 @@ void onDisconnectedFromWifiCallback() {
   Serial.swap();    // Should be totally superflous
   Serial.begin(SERIAL_BAUD_RATE);
   Serial.println("Disconnected from WiFi");
-  ledUtils.setBlinkPattern(LedUtils::FAST_BLINK_YELLOW);  
+  ledUtils.setBlinkPattern(LedUtils::DISCONNECTED_FROM_WIFI);  
 }
 
 

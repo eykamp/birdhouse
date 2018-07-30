@@ -20,6 +20,7 @@ public:
   LED_STYLE(RYG_REVERSED,           "RYG_REVERSED", "3 LEDs, reverse wired")                      \
   LED_STYLE(DOTSTAR,                "DOTSTAR",      "Dotstar multicolor LED")                     \
   LED_STYLE(FOUR_PIN_COMMON_ANNODE, "4PIN",         "4-pin multicolor LED with common annode")    \
+  LED_STYLE(BUILTIN_ONLY,           "BUILTIN_ONLY", "ESP8266 builtin LED only; no external LEDs") \
 
 
 
