@@ -12,7 +12,7 @@ import json
 from thingsboard_api_tools import TbApi
 
 
-from provision_config import motherShipUrl, username, password, dashboard_template_name, sensor_type, default_device_local_password, wifi_ssid, wifi_password
+from config import motherShipUrl, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password
 
 firmware_folder_name = r"C:\Temp\BirdhouseFirmwareBuildFolder"
 
@@ -66,6 +66,9 @@ def main():
         device_token = tbapi.get_device_token(device)
 
     print("Using device token " + device_token)
+
+
+    # exit()
 
     print("Uploading firmware to birdhouse on " + port + "...")
     upload_firmware(port)
@@ -174,15 +177,25 @@ def upload_firmware(serial_port):
     cmd = birdhouse_utils.ESPTOOL_EXE_LOCATION + r' -vv -cd nodemcu -cb 115200 -cp ' + serial_port + r' -ca 0x00000 -cf ' + image_name
 
     try:
+        print(cmd)
+        print("Uploading...")
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, universal_newlines=True)
+        print("Done.")
         success = True
     except subprocess.CalledProcessError as ex:
         output = ex.output
         success = False
 
-        print("Failed to upload firmware: " + output)
-        exit()
+        # Check for specific known failure modes
+        search = re.search("error: Failed to open (COM\d+)", output)
+        print("Failed to upload firmware:\n" + output)
+        
+        if search:
+            port = search.group(1)
+            print()
+            print("Could not open " + port + ": it appears to be in use by another process!")
 
+        exit()
 
 
 
@@ -200,7 +213,7 @@ def set_params(port, device_token):
         'pm25CalibrationOffset' :        (0,                             '["calibrationFactors"]["pm25CalibrationOffset"]'),
         'pm1CalibrationFactor' :         (1,                             '["calibrationFactors"]["pm1CalibrationFactor"]'),
         'pm1CalibrationOffset' :         (0,                             '["calibrationFactors"]["pm1CalibrationOffset"]'),
-        'sampleDurations' :              (30,                            '["sampleDurations"]'),
+        'sampleDuration' :               (30,                            '["sampleDuration"]'),
         'mqttPort' :                     (1883,                          '["mqttPort"]'),
         'mqttUrl' :                      ('www.sensorbot.org',           '["mqttUrl"]'),
         'ledStyle' :                     (led_style,                     '["ledStyle"]'),
@@ -223,10 +236,16 @@ def set_params(port, device_token):
         print("Could not open serial port " + port)
         exit()
 
-    print("Flushing")
+    print("Start flushing")
     bhserial.write(bytes('\r\n'.encode('UTF-8')))       # Send blank line so we get something back
-    time.sleep(0.1)
-    print(bhserial.readlines())
+    line = read_serial(bhserial)
+
+    while line != "":
+        line = read_serial(bhserial)
+        print("Flushing line:", line)
+
+
+    print("Done flushing")
 
     while batch * batch_size < len(defaults):
         cmd = '/setparams?'
@@ -250,18 +269,20 @@ def set_params(port, device_token):
         if first:       # This will be true if we added no items to our list because, for example, they all had values of None
             continue
 
+        print("Composing",cmd)
         cmd += '\r\n'
-        print(cmd)
+
 
         tries = 3
         done = False
 
         while tries > 0 and not done:
             bhserial.write(bytes(cmd.encode('UTF-8')))
-            time.sleep(0.1)
-            line = bhserial.readline().decode()
-            
-
+            line = read_serial(bhserial)
+            print("Got line back:", line)
+            bhserial.write(bytes("\r\n".encode('UTF-8')))
+            line = read_serial(bhserial)
+            print("Got 2 line back:", line)
             if line == '':
                 tries -= 1
                 continue
@@ -269,18 +290,37 @@ def set_params(port, device_token):
             done = True
         
         if not done:
-            print("It appears the birdhouse isn't accepting commands.  Try again?")
+            print("It appears the device isn't accepting commands.  Try again?")
             exit()
 
         batch += 1
 
     # Verify what we wrote stuck
     bhserial.write(bytes('\r\n'.encode('UTF-8')))       # Send blank line to get back full variable list
-    time.sleep(0.1)
 
-    line = bhserial.readline() #.replace(r'\xff', '*').replace(r'\n', '').replace(r'\r', '')
-    print("verify line:" , line)
-    vars = json.loads(line.decode('Latin-1'))["variables"]   # Latin-1 handles high-order characters properly, which we sometimes get when there's garbage in the EEPROM
+    line = read_serial(bhserial)
+
+
+    print("verify line >>>" , line, "<<<")
+
+    found = False
+    while not found:
+        if line == "":
+            bhserial.write(bytes('\r\n'.encode('UTF-8')))       # Send blank line to get back full variable list
+            time.sleep(0.1)
+            print("Line was empty")
+            next
+        
+        try:
+
+            print("Parsing line >>>", line, "<<<")
+            parsed_json = json.loads(line)
+            vars = parsed_json["variables"]   
+            found = True
+        except:
+            print("Exception")
+            found = False
+            line = read_serial(bhserial)
 
     print(vars)
 
@@ -290,8 +330,27 @@ def set_params(port, device_token):
         print(field, val, path, var)
 
         if var != val:
-            print("Value didn't stick: " + field + " should have been " + str(val) + ", but was " + var)
+            print("Value didn't stick: " + field + " should have been " + str(val) + ", but was " + str(var))
             exit()
+
+
+
+def read_serial(ser):
+    start_time = time.time()
+    buff = ""
+    eating_newlines = True
+
+    while ((time.time() - start_time) < 1):    # seconds
+        char = ser.read(1).decode('Latin-1')        # Latin-1 handles high-order characters properly, which we sometimes get when there's garbage in the EEPROM
+        if char == '\n' or char == '\r':
+            if eating_newlines:
+                continue
+            else:
+                return buff
+        eating_newlines = False
+        buff += char
+
+    return buff
 
 
 
