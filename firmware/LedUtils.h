@@ -262,7 +262,7 @@ void activateLed(U32 ledMask) {
 
       analogWrite(redLedPin,     ( (ledMask & RED))     ? pwm : 0);
       analogWrite(yellowLedPin,  ( (ledMask & YELLOW))  ? pwm : 0);
-      analogWrite(greenLedPin,   ((ledMask & GREEN))    ? pwm : 0);
+      analogWrite(greenLedPin,   ( (ledMask & GREEN))   ? pwm : 0);
       analogWrite(builtinLedPin, ( (ledMask & BUILTIN)) ? pwm : 0);
     }
   }
