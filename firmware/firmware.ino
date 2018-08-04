@@ -321,6 +321,7 @@ void setup() {
   Serial.println("");
   Serial.println("");
   Serial.printf("Firmware Version %s\n", FIRMWARE_VERSION);
+  Serial.printf("Reset reason: %s\n", ESP.getResetReason().c_str());
   Serial.println("");
 
 
