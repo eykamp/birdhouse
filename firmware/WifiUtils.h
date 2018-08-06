@@ -5,6 +5,10 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 
+extern "C" {
+#   include "user_interface.h"    // For wifi_station_set_hostname
+}
+
 class WifiUtils {
 
 
@@ -41,14 +45,19 @@ WifiUtils() {
 }
 
 
-void begin() {
+// Name is what will be displayed on the wifi device list
+void begin(const char *name) {
   WiFi.mode(WIFI_AP_STA);  
 
   WiFi.setAutoConnect(false);
-  WiFi.setAutoReconnect(false);   // Disabling this allows us to connect via wifi AP without issue
+  WiFi.setAutoReconnect(false);     // Disabling this allows us to connect via wifi AP without issue
+
+  char name2[strlen(name) + 1];
+  strcpy(name2, name);
+
+  wifi_station_set_hostname(name2);  // Tell the wifi what to call us
 
   WiFi.begin();
-
 
 
   // Test name resolution... see if this works at DEQ

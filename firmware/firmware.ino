@@ -378,7 +378,7 @@ void setup() {
   Rest.set_id("brdhse");  // Should be 9 chars or less
   Rest.set_name(Eeprom.getLocalSsid());
 
-  wifiUtils.begin();
+  wifiUtils.begin(Eeprom.getLocalSsid());
   wifiUtils.setOnConnectedToWifiCallback        (onConnectedToWifiCallback);
   wifiUtils.setOnConnectedToWifiTimedOutCallback(onConnectedToWifiTimedOutCallback);
   wifiUtils.setOnConnectedToWifiFailedCallback  (onConnectedToWifiFailedCallback);
