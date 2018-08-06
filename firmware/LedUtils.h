@@ -286,6 +286,7 @@ void setFastBlink(Leds color) {
   blinkTime = 400 * MILLIS;
   fading = false;
   maxBlinkState = 1;
+  activeLedColorMask = color;
 }
 
 
@@ -295,6 +296,7 @@ void setSlowBlink(Leds color) {
   blinkTime = 1 * SECONDS;
   fading = false;
   maxBlinkState = 1;
+  activeLedColorMask = color;
 }
 
 
@@ -304,6 +306,7 @@ void setSolidColor(Leds color, bool fad) {
   blinkTime = 24 * HOURS;
   maxBlinkState = 0;
   fading = fad;
+  activeLedColorMask = color;
 }
 
 
@@ -348,10 +351,9 @@ void activateLed(U32 ledMask) {
 
   else if(ledStyle == ParameterManager::DOTSTAR) {
 
-    int red   = (ledMask & (RED | YELLOW   )) ? 255 : 0;
-    int green = (ledMask & (YELLOW | GREEN )) ? 255 : 0;
-    int blue  = (ledMask & (0              )) ? 255 : 0;
-
+    int red   = (ledMask == RED    || ledMask == YELLOW) ? 255 : 0;
+    int green = (ledMask == YELLOW || ledMask == GREEN ) ? 255 : 0;
+    int blue  = 0;
 
     if(fading) {
       F32 blackening = F32(getTriangleValue()) / 100.0;
