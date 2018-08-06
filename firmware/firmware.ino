@@ -25,7 +25,7 @@
 #include "c:/dev/aREST/aREST.h"   // Our REST server for provisioning
 
 #include "ESP8266Ping.h"          // For ping, of course
-#include "Filter.h"
+#include "Filter.h"               // For data smoothing
 
 
 
@@ -829,6 +829,7 @@ void activatePlantower()
 
   if(!wifiUtils.isConnected()) 
     return;
+
 
 
   // if(serialSwapTimer == 0)    // This is only 0 if we've never connected to wifi
