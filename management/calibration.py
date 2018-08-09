@@ -16,7 +16,7 @@ spec.loader.exec_module(foo)
 
 import birdhouse_utils
 
-from config import motherShipUrl, username, password, dashboard_template_name, sensor_type
+from config import motherShipUrl, username, password, dashboard_template_name
 
 tbapi = foo.TbApi(motherShipUrl, username, password)
 
