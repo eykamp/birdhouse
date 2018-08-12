@@ -89,7 +89,7 @@ def main():
     # delete_customer_by_name(token, 'Hank Williams 3')
 
 
-def create_customer():
+def create_customer(cust_info):
     # Lookup missing fields, such as zip, lat, and lon
     birdhouse_utils.update_customer_data(cust_info)
 
@@ -113,7 +113,7 @@ def create_device(cleanup):
     dash_def = tbapi.get_dashboard_definition(tbapi.get_id(template_dash))
 
    
-    customer = create_customer()
+    customer = create_customer(cust_info)
     if customer is None:
          exit()
 
