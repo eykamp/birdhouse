@@ -50,18 +50,18 @@ def update_customer_data(cust_info):
         # Update customer data with cocoder data
         if cust_info["zip"] == "" or cust_info["zip"] == None:
             cust_info["zip"] = location["zip"]
+
         if cust_info["lat"] == "" or cust_info["lat"] == None:
-            print("upd")
             cust_info["lat"] = location["lat"]
+
         if cust_info["lon"] == "" or cust_info["lon"] == None:
             cust_info["lon"] = location["lon"]
     else:
         if cust_info["zip"] == "" or cust_info["zip"] == None:
-            print("Need a zip code to proceed")
-            exit(1)
+            raise ValueError("Need a zip code to proceed")
+
         if cust_info["lat"] == "" or cust_info["lat"] == None or cust_info["lon"] == "" or cust_info["lon"] == None:
-            print("Need a lat/lon to proceed")
-            exit(1)
+            raise ValueError("Need a lat/lon to proceed")
 
     print (cust_info)
     return cust_info
@@ -156,7 +156,6 @@ def get_zip_from_google_location(location):
 
 
 # Build a list of ports we can use
-
 def get_ports():
     return list(serial.tools.list_ports.comports())
 
@@ -172,8 +171,6 @@ def get_port_hwids():
 def get_port_names():
     # for port in list(serial.tools.list_ports.comports()):
     #     print(port.name or port.device, port.hwid)
-
-    # sys.exit()
 
     ports = []
     for port in get_ports():
