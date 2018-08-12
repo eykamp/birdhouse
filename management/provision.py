@@ -18,6 +18,9 @@ firmware_folder_name = r"C:\Temp\BirdhouseFirmwareBuildFolder"
 
 # This to be passed in
 birdhouse_number = 6
+led_style = 'RYG'   #  RYG, RYG_REVERSED, DOTSTAR, 4PIN, BUILTIN_ONLY, UNKNOWN
+
+
 birdhouse_name = birdhouse_utils.make_device_name(birdhouse_number)
 sensor_type = birdhouse_utils.get_sensor_type(birdhouse_number)
 
@@ -36,7 +39,6 @@ cust_info["lon"]      = None     # Will be populated by geocoder if empty
 cust_info["email"]    = "chris@sensorbot.org"
 cust_info["phone"]    = "555-1212"
 
-led_style = 'RYG'   #  RYG, RYG_REVERSED, DOTSTAR, 4PIN, UNKNOWN
 
 tbapi = TbApi(motherShipUrl, username, password)
 
