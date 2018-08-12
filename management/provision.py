@@ -230,7 +230,7 @@ def set_params(port, device_token):
 
     batch_size = 5                      # Do this in batches because if we do too many, they values don't stick.  Likely a bug in aREST.
 
-    bhserial = serial.Serial(port, 115200, timeout=5)
+    bhserial = serial.Serial(port, 115200, timeout=1)
     if bhserial is None:
         print("Could not open serial port " + port)
         exit()
