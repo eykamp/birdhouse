@@ -340,7 +340,7 @@ def read_serial(ser):
     eating_newlines = True
 
     while ((time.time() - start_time) < 1):    # seconds
-        char = ser.read(1).decode('Latin-1')        # Latin-1 handles high-order characters properly, which we sometimes get when there's garbage in the EEPROM
+        char = ser.read(1).decode('Latin-1')   # Read one char, convert to Latin-1, which  handles high-order characters properly, which we sometimes get when there's garbage in the EEPROM
         if char == '\n' or char == '\r':
             if eating_newlines:
                 continue
