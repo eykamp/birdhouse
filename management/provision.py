@@ -68,7 +68,7 @@ def main():
 
     # exit()
 
-    print("Uploading firmware to birdhouse on " + port + "...")
+    print("Uploading firmware to birdhouse on " + str(port) + "...")
     upload_firmware(port)
 
     time.sleep(2)
