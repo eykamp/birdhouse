@@ -11,7 +11,7 @@ from thingsboard_api_tools import TbApi    # sudo pip install git+git://github.c
 
 
 
-from config import motherShipUrl, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password
+from config import motherShipUrl, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password, esptool_exe_location
 firmware_folder_name = r"C:\Temp\BirdhouseFirmwareBuildFolder"
 
 
@@ -175,7 +175,7 @@ def upload_firmware(serial_port):
         print("Could not find firmware in folder " + firmware_folder_name)
         exit()
 
-    cmd = birdhouse_utils.ESPTOOL_EXE_LOCATION + r' -vv -cd nodemcu -cb 115200 -cp ' + serial_port + r' -ca 0x00000 -cf ' + image_name
+    cmd = esptool_exe_location + r' -vv -cd nodemcu -cb 115200 -cp ' + serial_port + r' -ca 0x00000 -cf ' + image_name
 
     try:
         print(cmd)
