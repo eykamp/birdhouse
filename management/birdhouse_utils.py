@@ -11,6 +11,7 @@ import serial
 import serial.tools.list_ports
 
 
+# These are IDs that are associated with NodeMCU boards
 ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
 ESPTOOL_EXE_LOCATION = r'C:\Users\Chris\AppData\Local\Arduino15\packages\esp8266\tools\esptool\0.4.13/esptool.exe'
 
@@ -25,6 +26,7 @@ def get_sensor_type(birdhouse_number):
     if int(birdhouse_number) >= 100 and int(birdhouse_number) < 110:
         return 'Lair Hill Birdhouse'
     
+    # Everything else is a Sensorbot Birdhouse
     return 'Sensorbot Birdhouse'
 
 
