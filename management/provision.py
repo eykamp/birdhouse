@@ -7,9 +7,7 @@ import serial
 import time
 import json
 
-# pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-# sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-from thingsboard_api_tools import TbApi
+from thingsboard_api_tools import TbApi    # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
 
 from config import motherShipUrl, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password
