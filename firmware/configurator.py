@@ -17,7 +17,7 @@ from thingsboard_api_tools import TbApi     # pip install git+git://github.com/e
 
 # Get our passwords and other private data
 sys.path.insert(0, "../management/")
-from configurator_config import motherShipUrl, username, password #, dashboard_template_name, sensor_type
+from config import motherShipUrl, username, password #, dashboard_template_name, sensor_type
 
 
 ESP8266_VID_PID = '1A86:7523'
