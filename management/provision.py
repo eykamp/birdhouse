@@ -53,7 +53,7 @@ def main():
         print("Could not find a port with a birdhouse on it.  Here is a list of all hwids I could find:")
         print(birdhouse_utils.get_port_hwids())
 
-        exit
+        exit()
 
 
     cleanup = False      # If true, deletes everything that is created
@@ -71,7 +71,7 @@ def main():
 
     # exit()
 
-    print("Uploading firmware to birdhouse on " + str(port) + "...")
+    print("Uploading firmware to birdhouse on " + port + "...")
     upload_firmware(port)
 
     time.sleep(2)
