@@ -21,10 +21,15 @@ def make_device_name(birdhouse_number):
     
 
 def get_sensor_type(birdhouse_number):
-    # 100-110 reserved for Lair Hill
-    if int(birdhouse_number) >= 100 and int(birdhouse_number) < 110:
+    # 90-99 resered for BottleBot
+    if int(birdhouse_number) >= 90 and int(birdhouse_number) <= 99:
+        return 'BottleBot'
+
+    # 100-109 reserved for Lair Hill
+    if int(birdhouse_number) >= 100 and int(birdhouse_number) <= 109:
         return 'Lair Hill Birdhouse'
-    
+
+
     # Everything else is a Sensorbot Birdhouse
     return 'Sensorbot Birdhouse'
 
