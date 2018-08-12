@@ -19,6 +19,7 @@ firmware_folder_name = r"C:\Temp\BirdhouseFirmwareBuildFolder"
 # This to be passed in
 birdhouse_number = 6
 birdhouse_name = birdhouse_utils.make_device_name(birdhouse_number)
+sensor_type = birdhouse_utils.get_sensor_type(birdhouse_number)
 
 
 cust_info = {}
