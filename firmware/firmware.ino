@@ -239,8 +239,8 @@ void reconnectToPubSubServer() {
 
   mqttConnectionAttempts++;
 
-  // We've observed crashes after several dozen failed connection attempts.  Not sure why, but this may  address the symptom.
-  if(mqttConnectionAttempts > 8)
+  // We've observed crashes after several dozen failed connection attempts.  Not sure why, but this may address the symptom.
+  if(mqttConnectionAttempts > 16)
     restart();
 
   if(!serialSwapped)
