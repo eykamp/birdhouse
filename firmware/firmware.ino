@@ -227,7 +227,7 @@ void onDisconnectedFromPubSubServer() {
 }
 
 
-int mqttConnectionAttepmts = 0;
+int mqttConnectionAttempts = 0;
 
 // Gets run when we're not connected to the PubSub server
 void reconnectToPubSubServer() {
@@ -237,14 +237,14 @@ void reconnectToPubSubServer() {
   if(!wifiUtils.isConnected())   // No point in doing anything here if we don't have internet access
     return;
 
-  mqttConnectionAttepmts++;
+  mqttConnectionAttempts++;
 
   // We've observed crashes after several dozen failed connection attempts.  Not sure why, but this may  address the symptom.
-  if(mqttConnectionAttepmts > 8)
+  if(mqttConnectionAttempts > 8)
     restart();
 
   if(!serialSwapped)
-    Serial.printf("Connecting to mqtt server (attempt %s)\n", mqttConnectionAttepmts);
+    Serial.printf("Connecting to mqtt server (attempt %d)\n", mqttConnectionAttempts);
 
 
   // Attempt to connect
@@ -277,6 +277,8 @@ void onConnectedToPubSubServer() {
 
   resetDataCollection();                                      // Now we can start our data collection efforts
   ledUtils.setBlinkPattern(LedUtils::CONNECTED_TO_MQTT_SERVER);
+
+  mqttConnectionAttempts = 0;
 }
 
 
@@ -838,8 +840,6 @@ void activatePlantower()
 
   if(!wifiUtils.isConnected()) 
     return;
-
-
 
   // if(serialSwapTimer == 0)    // This is only 0 if we've never connected to wifi
   //   return;
