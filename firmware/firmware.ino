@@ -30,7 +30,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.139" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.140" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
@@ -227,6 +227,8 @@ void onDisconnectedFromPubSubServer() {
 }
 
 
+int mqttConnectionAttepmts = 0;
+
 // Gets run when we're not connected to the PubSub server
 void reconnectToPubSubServer() {
   if(!mqttServerConfigured)
@@ -235,8 +237,15 @@ void reconnectToPubSubServer() {
   if(!wifiUtils.isConnected())   // No point in doing anything here if we don't have internet access
     return;
 
+  mqttConnectionAttepmts++;
+
+  // We've observed crashes after several dozen failed connection attempts.  Not sure why, but this may  address the symptom.
+  if(mqttConnectionAttepmts > 8)
+    restart();
+
   if(!serialSwapped)
-    Serial.println("Connecting to mqtt server");
+    Serial.printf("Connecting to mqtt server (attempt %s)\n", mqttConnectionAttepmts);
+
 
   // Attempt to connect
   lastMqttConnectAttempt = millis();
