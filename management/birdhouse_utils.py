@@ -74,26 +74,29 @@ def update_customer_data(cust_info):
 
 ''' Geocode an address '''
 def geocode(address, address2, city, state, zip, country):
+def is_empty(s):
+    ''' Returns true if a string is None or looks empty '''
+    return s is None or s.strip() == ""
 
-    if address == None or address == "":
+    if is_empty(address):
         print("Need an address to geocode!")
         return None
 
     geoaddress = address
 
-    if address2 != None and address2 != "":
+    if not is_empty(address2):
         geoaddress += "," + address2
 
-    if city != None and city != "":
+    if not is_empty(city):
         geoaddress += "," + city
 
-    if state != None and state != "":
+    if not is_empty(state):
         geoaddress += "," + state
 
-    if zip != None and zip != "":
-        geoaddress += "," + zip
+    if not is_empty(postcode):
+        geoaddress += "," + postcode
 
-    if country != None and country != "":
+    if not is_empty(country):
         geoaddress += "," + country
 
     geolocator = Nominatim(timeout=30)
