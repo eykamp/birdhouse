@@ -9,6 +9,7 @@ from config import google_geocoder_api_key, bing_geocoder_api_key
 
 import serial
 import serial.tools.list_ports
+import re
 
 
 # These are IDs that are associated with NodeMCU boards
@@ -17,7 +18,11 @@ ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
 
 
 def make_device_name(birdhouse_number):
-    return 'Birdhouse ' + str(birdhouse_number).zfill(3)
+    # If birdhouse_number is not in fact a number, let's assume we already have a name, and just return it
+    if re.match(r'^\d+$', str(birdhouse_number)):
+        return 'Birdhouse ' + str(birdhouse_number).zfill(3)
+    else:
+        return birdhouse_number
     
 
 def get_sensor_type(birdhouse_number):
