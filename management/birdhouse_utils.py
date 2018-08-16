@@ -72,11 +72,13 @@ def update_customer_data(cust_info):
     return cust_info
 
 
-''' Geocode an address '''
-def geocode(address, address2, city, state, zip, country):
 def is_empty(s):
     ''' Returns true if a string is None or looks empty '''
     return s is None or s.strip() == ""
+
+
+def geocode(address, address2, city, state, postcode, country):
+    ''' Geocode an address; returns dict with lat, lon, and postcode '''
 
     if is_empty(address):
         print("Need an address to geocode!")
@@ -98,13 +100,6 @@ def is_empty(s):
 
     if not is_empty(country):
         geoaddress += "," + country
-
-    geolocator = Nominatim(timeout=30)
-    location = geolocator.geocode(geoaddress, exactly_one=True, addressdetails=True)
-    if location is not None:
-        return {"lat":location.latitude, "lon":location.longitude, "zip":get_zip_from_nominatim_location(location)}
-    else:
-        print("Nominatim could not geocode address")
 
 
     if bing_geocoder_api_key != None:
