@@ -7,6 +7,7 @@ import json
 import sklearn
 from sklearn import preprocessing
 from sklearn import metrics
+import re
 
 import importlib.util
 spec = importlib.util.spec_from_file_location("thingsboard_api_tools", "C:/dev/thingsboard_api_tools/thingsboard_api_tools/__init__.py")
