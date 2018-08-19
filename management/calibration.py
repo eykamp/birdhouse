@@ -76,7 +76,6 @@ def formatDataForGoogle(bh_list):
 '''
 Compute a correlation for a list birdhouses and the corresponding reference dataset (where appropriate)... should be in the same spot for this to be meaningful
 '''
-    tolerance = pd.Timedelta('30s')
 def compare(bh_list, sample_time):
     timeframe = pd.Timedelta(sample_time)
     
