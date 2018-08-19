@@ -25,10 +25,10 @@ method1 = []
 method2 = []
 
 def main():
-    # corr = compare(["002", "003", "004", "005", "010", "011", "012", "013"])
+    # corr = compare(["002", "003", "004", "005", "010", "011", "012", "013"], '1h')
     # print(corr.to_string())
 
-    # corr = compare(["007", "039", "009", "006", "020", "021", "024", "018"])
+    # corr = compare(["007", "039", "009", "006", "020", "021", "024", "018"], '1h')
     # print(corr.to_string())
     # exit()
 
@@ -76,9 +76,9 @@ def formatDataForGoogle(bh_list):
 '''
 Compute a correlation for a list birdhouses and the corresponding reference dataset (where appropriate)... should be in the same spot for this to be meaningful
 '''
-def compare(bh_list):
     tolerance = pd.Timedelta('30s')
-    timeframe = pd.Timedelta('1h')
+def compare(bh_list, sample_time):
+    timeframe = pd.Timedelta(sample_time)
     
 
     d,r = retrieve_data(bh_list[0])
