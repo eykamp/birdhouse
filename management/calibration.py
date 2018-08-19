@@ -237,11 +237,11 @@ def retrieve_data(birdhouse_number):
 
 
 
-'''
-Creates a pandas timeseries data frame indexed and ordered by the timestamp column
-Will rename value column "value" (which is what the data is called when retrieved from Thingsboard) to the specified name
-'''
 def create_data_frame(data, name):
+    '''
+    Creates a pandas timeseries data frame indexed and ordered by the timestamp column
+    Will rename value column "value" (which is what the data is called when retrieved from Thingsboard) to the specified name
+    '''
     df = (pd.read_json(json.dumps(data), orient="records", typ="frame", convert_dates=['ts'])
               .set_index('ts')
               .sort_values(by=['ts'])) 
