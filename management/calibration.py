@@ -80,7 +80,7 @@ def compare(bh_list, sample_time):
     timeframe = pd.Timedelta(sample_time)
     
 
-    d,r = retrieve_data(bh_list[0])
+    d, r = retrieve_data(bh_list[0])
 
     if r is not None:
         ref = create_data_frame(r, "ref").resample(timeframe).mean()
@@ -105,9 +105,10 @@ def compare(bh_list, sample_time):
 
 
 
+
+    
 def doit(birdhouse_number):
     telemetry, reference_telemetry = retrieve_data(birdhouse_number)
-
     data_df = create_data_frame(telemetry, "data") 
     ref_df  = create_data_frame(reference_telemetry, "ref")
 
@@ -204,6 +205,7 @@ def retrieve_data(birdhouse_number):
     start_ts = calibrationData["periodStart"]
     end_ts   = calibrationData["periodEnd"]
     reference_device_name = calibrationData["referenceDevice"]
+
     attributes = []
     reference_attributes = []
 
