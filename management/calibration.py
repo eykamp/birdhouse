@@ -120,7 +120,7 @@ def doit(birdhouse_number):
     resampled.dropna(inplace=True) 
 
 
-    ### Here we have two columns of aligned hourly data with missing values stripped out
+    ### Here we have two columns of aligned data (generally hourly, but could be other intervals) with missing values stripped out
 
     # Plot our original datasets
     plt.plot(resampled["ref"].values, label="deq ref")
