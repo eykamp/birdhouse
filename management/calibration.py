@@ -61,15 +61,15 @@ def main():
 
 
 
-def formatDataForGoogle(bh_list):
+# def formatDataForGoogle(bh_list):
 
-    d1,r = retrieve_data(bh_list[0])
-    d2,r = retrieve_data(bh_list[1])
+#     d1,r = retrieve_data(bh_list[0])
+#     d2,r = retrieve_data(bh_list[1])
 
-    for v in (d1):
-        print(v['ts'],"\t",v['value'])
-    for v in (d2):
-        print(v['ts'],"\t\t",v['value'])
+#     for v in (d1):
+#         print(v['ts'],"\t",v['value'])
+#     for v in (d2):
+#         print(v['ts'],"\t\t",v['value'])
 
 
 
