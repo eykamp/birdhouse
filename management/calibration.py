@@ -24,6 +24,41 @@ tbapi = foo.TbApi(motherShipUrl, username, password)
 method1 = []
 method2 = []
 
+
+# May 2 - 25
+# calibrationData={"periodStart":1525287600000, "periodEnd":1527213018000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}}
+# calibrationData={"periodStart":1525287600000, "periodEnd":1525978800000, "reference":"DEQ"}   # Wednesday, May 2, 2018 12:00:00 PM - Thursday, May 10, 2018 12:00:00 
+# birdhouse 002
+
+calibrationData = {}
+# May 3 6PM - May 30 3PM
+calibrationData[100] = {"periodStart":1532822400000, "periodEnd":1534235400000, "referenceDevice":"average(3,4,11,12,13)", "attributes":{"plantowerPM25conc":"pm25"}, "duration": "10m"} 
+calibrationData[101] = {"periodStart":1532822400000, "periodEnd":1534442400000, "referenceDevice":"average(3,4,11,12,13)", "attributes":{"plantowerPM25conc":"pm25"}, "duration": "10m"} 
+calibrationData[102] = {"periodStart":1532822400000, "periodEnd":1534442400000, "referenceDevice":"average(3,4,11,12,13)", "attributes":{"plantowerPM25conc":"pm25"}, "duration": "10m"} 
+
+calibrationData[2] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[3] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[4] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[5] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[10] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[11] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[12] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[13] = {"periodStart":1525287600000, "periodEnd":1527717600000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+
+# 5/31/18 4PM - 6/18/18 12:00PM
+calibrationData[6] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[7] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[9] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[18] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[20] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[21] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[24] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+calibrationData[39] = {"periodStart":1527807600000, "periodEnd":1529348400000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}, "duration":"1H"}
+
+
+
+
+
 def main():
     # corr = compare(["002", "003", "004", "005", "010", "011", "012", "013"], '1h')
     # print(corr.to_string())
@@ -195,21 +230,19 @@ def doit(birdhouse_number):
 
 def retrieve_data(birdhouse_number):
     device_name = birdhouse_utils.make_device_name(birdhouse_number)
-    # May 2 - 25
-    calibrationData={"periodStart":1525287600000, "periodEnd":1527213018000, "referenceDevice":"DEQ (SEL)", "attributes":{"plantowerPM25conc":"pm25"}}
     
-    if len(calibrationData["attributes"]) == 0:
+    if len(calibrationData[birdhouse_number]["attributes"]) == 0:
         print("Nothing to compare!")
         exit()
 
-    start_ts = calibrationData["periodStart"]
-    end_ts   = calibrationData["periodEnd"]
-    reference_device_name = calibrationData["referenceDevice"]
+    start_ts = calibrationData[birdhouse_number]["periodStart"]
+    end_ts   = calibrationData[birdhouse_number]["periodEnd"]
+    reference_device_name = calibrationData[birdhouse_number]["referenceDevice"]
 
     attributes = []
     reference_attributes = []
 
-    for a1, a2 in calibrationData["attributes"].items():
+    for a1, a2 in calibrationData[birdhouse_number]["attributes"].items():
         attributes.append(a1)
         reference_attributes.append(a2)
 
@@ -291,5 +324,3 @@ def get_telemetry(device, field, start_ts, end_ts):
 main()
 
 
-# calibrationData={"periodStart":1525287600000, "periodEnd":1525978800000, "reference":"DEQ"}
-# birdhouse 002
