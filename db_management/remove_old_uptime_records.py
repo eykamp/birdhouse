@@ -12,7 +12,7 @@ This script will delete any uptime data more than 30 days old, except those reco
 
 con = None
 
-logging.basicConfig(filename='/var/db_maintenance.log',level=logging.DEBUG)
+logging.basicConfig(filename='/var/log/db_maintenance.log', level=logging.DEBUG)
 
 
 try:
@@ -40,7 +40,7 @@ try:
         WHERE K.entity_id = deletable.entity_id  AND  K.key = deletable.key  AND  K.ts = deletable.ts;
         """)
 
-except psycopg2.DatabaseError, e:
+except psycopg2.DatabaseError as e:
     logging.error('Error removing useless uptime records: %s' % e)
     
 finally:
