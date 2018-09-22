@@ -7,13 +7,14 @@ import sys
 This script will delete any uptime data more than 30 days old, except those records that are written either:
     1) Immediately after a reboot
     2) Immediately prior to a device rebooting or being taken offline
+
+To be run daily via cron    
 '''
 
 
-con = None
-
 logging.basicConfig(filename='/var/log/db_maintenance.log', level=logging.DEBUG)
 
+con = None
 
 try:
     con = psycopg2.connect("dbname='thingsboard'")
