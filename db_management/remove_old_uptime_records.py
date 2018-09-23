@@ -26,7 +26,7 @@ try:
           FROM (  SELECT *,
                        lead(long_v) over (partition by entity_id order by ts) as next_val,
                        lag(long_v) over (partition by entity_id order by ts) as prev_val
-                  FROM test -- ts_kv
+                  FROM ts_kv
                   WHERE key = 'uptime'
                           AND 
                         ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
@@ -37,7 +37,7 @@ try:
                 long_v > prev_val  -- we are not the lowest;
         )
         
-        DELETE FROM test K
+        DELETE FROM ts_kv K
         USING deletable
         WHERE K.entity_id = deletable.entity_id  AND  K.key = deletable.key  AND  K.ts = deletable.ts;
         """)
