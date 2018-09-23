@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import psycopg2  # pip install psycopg2
+import psycopg2  # pip install psycopg2-binary
 import logging
 import sys
 
@@ -22,18 +22,19 @@ try:
     cur.execute("""
         WITH deletable AS (
 
-        SELECT t.*
-        FROM (SELECT *,
-                     lead(long_v) over (partition by entity_id order by ts) as next_val,
-                     lag(long_v) over (partition by entity_id order by ts) as prev_val
-              FROM test -- ts_kv
-              WHERE key = 'uptime'
-                AND 
-              ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
-             ) t
-        WHERE long_v < next_val  -- delete where the next value is higher than this one... still growing!
-                AND              -- but only where...
-              long_v > prev_val  -- we are not the lowest;
+          SELECT t.*
+          FROM (  SELECT *,
+                       lead(long_v) over (partition by entity_id order by ts) as next_val,
+                       lag(long_v) over (partition by entity_id order by ts) as prev_val
+                  FROM test -- ts_kv
+                  WHERE key = 'uptime'
+                          AND 
+                        ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
+               ) AS t
+
+          WHERE long_v < next_val    -- delete where the next value is higher than this one... still growing!
+                  AND              -- but only where...
+                long_v > prev_val  -- we are not the lowest;
         )
         
         DELETE FROM test K
