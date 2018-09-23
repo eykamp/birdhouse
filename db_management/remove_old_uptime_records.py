@@ -32,7 +32,7 @@ try:
                         ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
                ) AS t
 
-          WHERE long_v < next_val    -- delete where the next value is higher than this one... still growing!
+          WHERE long_v < next_val  -- delete where the next value is higher than this one... still growing!
                   AND              -- but only where...
                 long_v > prev_val  -- we are not the lowest;
         )
