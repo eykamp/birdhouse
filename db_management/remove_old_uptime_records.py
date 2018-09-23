@@ -15,6 +15,7 @@ To be run daily via cron
 logging.basicConfig(filename='/var/log/db_maintenance.log', level=logging.DEBUG)
 
 con = None
+rows = -1
 
 try:
     con = psycopg2.connect("dbname='thingsboard'")
@@ -42,8 +43,12 @@ try:
         WHERE K.entity_id = deletable.entity_id  AND  K.key = deletable.key  AND  K.ts = deletable.ts;
         """)
 
+    rows = cur.rowcount
+    con.commit()
+    logging.info("Deleted", rows, "uptime records")
+
 except psycopg2.DatabaseError as e:
-    logging.error('Error removing useless uptime records: %s' % e)
+    logging.error("Error removing useless uptime records: %s" % e)
     
 finally:
     if con:
