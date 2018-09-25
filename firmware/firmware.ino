@@ -170,13 +170,14 @@ bool reportedResetReason = false;
 U32 mqttServerLookupErrorTimer = 0;
 
 void setupPubSubClient() {
+  // Reset error status after 5 seconds to prevent us from continually hammering the server
   if(millis() - mqttServerLookupErrorTimer > 5 * SECONDS)
     mqttServerLookupError = false;
 
   if(mqttServerConfigured || mqttServerLookupError)    // If we're already configured, or we've failed at attempting to do so, don't try again
     return;
 
-  if(!wifiUtils.isConnected())          // No point in doing anything here if we don't have internet access
+  if(!wifiUtils.isConnected())                  // No point in doing anything here if we don't have internet access
     return;
 
   IPAddress serverIp; 
