@@ -165,6 +165,7 @@ U32 initialFreeHeap;
 
 bool mqttServerConfigured = false;
 bool mqttServerLookupError = false;
+bool dnsLookupOk;
 
 bool reportedResetReason = false;
 U32 mqttServerLookupErrorTimer = 0;
@@ -181,14 +182,16 @@ void setupPubSubClient() {
     return;
 
   IPAddress serverIp; 
-  IPAddress fallbackServerIp(162,212,157,80);   // 162.212.157.80
+  IPAddress fallbackServerIp(198,46,139,101);   // 198.46.139.101 ==> sensorbot.org v 2.0
 
-  bool dnsLookupOk = (WiFi.hostByName(Eeprom.getMqttUrl(), serverIp) == 1);
+
+  dnsLookupOk = (WiFi.hostByName(Eeprom.getMqttUrl(), serverIp) == 1);
 
   if(!dnsLookupOk) {
     if(!serialSwapped)
       Serial.println("DNS failed: using fallback IP address.");
   }
+
 
   mqtt.mqttSetServer(dnsLookupOk ? serverIp : fallbackServerIp, Eeprom.getMqttPort());
   mqttServerConfigured = true;
@@ -270,6 +273,10 @@ void onConnectedToPubSubServer() {
   mqtt.publishSampleDuration(getSampleDuration());
   mqtt.publishTempSensorNameAndSoftwareVersion(getTemperatureSensorName(), FIRMWARE_VERSION, WiFi.macAddress());
   mqtt.publishStatusMessage("Connected");
+
+  if(!dnsLookupOk)
+    mqtt.publishDnsResult("Failed");
+
 
 
   reportPlantowerSensorStatus();

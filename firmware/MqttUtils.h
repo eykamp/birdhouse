@@ -185,6 +185,11 @@ void publishResetReason(const String &reason) {
 }
 
 
+void publishDnsResult(const String &reason) {
+  mqttPublishTelemetry(String("{\"dnsResult\":\"") + reason + "\"}");
+}
+
+
 void publishWifiScanResults(const String &results) {
   mqttPublishAttribute(String("{\"visibleHotspots\":\"") + results + "\"}");
 }
