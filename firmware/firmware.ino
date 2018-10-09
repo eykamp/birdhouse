@@ -22,7 +22,7 @@
 
 #include <PMS.h>                  // Plantower
 #include <ESP8266httpUpdate.h>    // OTA Updates
-#include "c:/dev/aREST/aREST.h"   // Our REST server for provisioning
+#include <aREST.h>                // Our REST server for provisioning
 
 #include "ESP8266Ping.h"          // For ping, of course
 #include "Filter.h"               // For data smoothing
