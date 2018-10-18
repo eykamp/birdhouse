@@ -75,7 +75,7 @@ PMS::DATA PmsData;
 
 
 // Where do we check for firmware updates?
-#define FIRMWARE_UPDATE_SERVER "www.sensorbot.org"
+#define FIRMWARE_UPDATE_SERVER "198.46.139.101"
 #define FIRMWARE_UPDATE_PORT 8989
 
 
