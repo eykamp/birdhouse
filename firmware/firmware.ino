@@ -509,8 +509,17 @@ void loop() {
   WiFiClient client = server.available();
 
   if(client) {
+    // Safari often hangs when contacting the device's REST server.  It appears that, on occasion, the client is ready, but 
+    // the incoming data is not yet present.  This can cause the request to get lost, and an empty response sent.
+    // By injecting a small wait, this seems to cure the problem.
+    int tries = 0;
+    while(!client.available() && tries < 10) {
+      delay(10);
+      tries++;
+    }
+
     if(!serialSwapped)
-      Serial.println("Handling incoming connection data");
+      Serial.printf("Handling incoming connection data (on attempt %d)\n", tries + 1);
     Rest.handle(client);
   }
 
