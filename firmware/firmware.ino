@@ -267,7 +267,7 @@ void onConnectedToPubSubServer() {
   mqtt.mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Announce ourselves to the server
-  mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress);
+  publishLocalCredentials();
   mqtt.publishLocalIp(WiFi.localIP());
   
   mqtt.publishSampleDuration(getSampleDuration());
@@ -407,7 +407,7 @@ void setup() {
   setupPubSubClient();
   mqtt.mqttSetCallback(messageReceivedFromMothership);
 
-  paramManager.setLocalCredentialsChangedCallback([]()    { mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress); });
+  paramManager.setLocalCredentialsChangedCallback([]()    { publishLocalCredentials(); });
   paramManager.setWifiCredentialsChangedCallback([]()     { wifiUtils.setChangedWifiCredentials(); });
   paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
   paramManager.setLedStyleChangedCallback(updateLedStyle);
@@ -423,6 +423,11 @@ void setup() {
   server.begin();   // Start the web server
 
   initialFreeHeap = ESP.getFreeHeap();
+}
+
+
+void publishLocalCredentials() {
+  mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), localAccessPointAddress);
 }
 
 
