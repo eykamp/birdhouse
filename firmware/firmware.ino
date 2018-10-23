@@ -30,7 +30,7 @@
 
 
 
-#define FIRMWARE_VERSION "0.142" // Changing this variable name will require changing the build file to extract it properly
+#define FIRMWARE_VERSION "0.143" // Changing this variable name will require changing the build file to extract it properly
 
 #define TEMPERATURE_UNIT BME280::TempUnit_Celsius
 #define PRESSURE_UNIT    BME280::PresUnit_hPa
