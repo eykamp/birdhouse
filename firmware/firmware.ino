@@ -267,8 +267,7 @@ void onConnectedToPubSubServer() {
   mqtt.mqttSubscribe("v1/devices/me/attributes");                           // ... and subscribe to any shared attribute changes
 
   // Announce ourselves to the server
-  publishLocalCredentials();
-  mqtt.publishLocalIp(WiFi.localIP());
+  publishCredentials();
   
   mqtt.publishSampleDuration(getSampleDuration());
   mqtt.publishTempSensorNameAndSoftwareVersion(getTemperatureSensorName(), FIRMWARE_VERSION, WiFi.macAddress());
@@ -407,7 +406,7 @@ void setup() {
   setupPubSubClient();
   mqtt.mqttSetCallback(messageReceivedFromMothership);
 
-  paramManager.setLocalCredentialsChangedCallback([]()    { publishLocalCredentials(); });
+  paramManager.setLocalCredentialsChangedCallback([]()    { publishCredentials(); });
   paramManager.setWifiCredentialsChangedCallback([]()     { wifiUtils.setChangedWifiCredentials(); });
   paramManager.setMqttCredentialsChangedCallback(onMqttPortUpdated);
   paramManager.setLedStyleChangedCallback(updateLedStyle);
@@ -426,8 +425,8 @@ void setup() {
 }
 
 
-void publishLocalCredentials() {
-  mqtt.publishLocalCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), localAccessPointAddress);
+void publishCredentials() {
+  mqtt.publishCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress, Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), WiFi.localIP());
 }
 
 

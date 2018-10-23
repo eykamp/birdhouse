@@ -108,15 +108,20 @@ void publishSampleDuration(U16 sampleDuration) {
 }
 
 
-void publishLocalCredentials(const char *ssid, const char *password, const char *ipAddr) {
-  StaticJsonBuffer<256> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
-  root["localSsid"] = ssid;
-  root["localPassword"] = password;
-  root["localIpAddress"] = ipAddr;
+void publishCredentials(const char *ssid, const char *password, const char *ipAddr, const char *wifiSsid, const char *wifiPassword, const IPAddress &lanIpAddress) {
+  String json = String("{") + 
+    "\"localCredentials\": \"{" +  
+      "\\\"ssid\\\":"       + "\\\"" + String(ssid) + "\\\"," +
+      "\\\"password\\\":"   + "\\\"" + String(password) + "\\\"," +
+      "\\\"ipAddress\\\":"  + "\\\"" + String(ipAddr) + "\\\"" +
+    "}\"," +
 
-  String json;
-  root.printTo(json);
+    "\"lanCredentials\": \"{" +    
+      "\\\"ssid\\\":"       + "\\\"" + String(wifiSsid) + "\\\"," +
+      "\\\"password\\\":"   + "\\\"" + String(wifiPassword) + "\\\"," +
+      "\\\"ipAddress\\\":"  + "\\\"" + lanIpAddress.toString() + "\\\"" +
+    "}\"" +
+  "}";
 
   mqttPublishAttribute(json);
 }
@@ -148,11 +153,6 @@ bool publishDeviceData(U32 uptime, U32 freeHeap) {
 
 void reportPlantowerDetectNondetect(bool sensorFound) {
   mqttPublishAttribute(String("{\"plantowerSensorDetected\":") + (sensorFound ? "True" : "False") + "}");
-}
-
-
-void publishLocalIp(const IPAddress &ipAddr) {
-  mqttPublishAttribute(String("{\"lanIpAddress\":\"") + ipAddr.toString() + "\"}");
 }
 
 
