@@ -137,9 +137,7 @@ def create_device(cleanup):
         "address": birdhouse_utils.one_line_address(cust_info)
     }
 
-    shared_attributes = {
-         "LED": "Unknown"
-    }
+    shared_attributes = None  # ??? Not sure
 
     device = tbapi.add_device(birdhouse_utils.make_device_name(birdhouse_number), sensor_type, shared_attributes, server_attributes)
     device_id = tbapi.get_id(device)
