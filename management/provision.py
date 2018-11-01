@@ -327,11 +327,10 @@ def set_params(port, device_token):
 
     for item in items:
         field, val, path = item[0], item[1][0], item[1][1]
-        var = eval("vars" + path)
-        print(field, val, path, var)
+        checkval = eval("vars" + path)
 
-        if var != val:
-            print("Value didn't stick: " + field + " should have been " + str(val) + ", but was " + str(var))
+        if checkval != val:
+            print("Value didn't stick: " + field + " expected " + str(checkval) + ", but got " + str(var))
             exit()
 
 
