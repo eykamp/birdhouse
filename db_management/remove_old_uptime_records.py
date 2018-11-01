@@ -34,12 +34,12 @@ try:
 
           WHERE long_v < next_val  -- delete where the next value is higher than this one... still growing!
                   AND              -- but only where...
-                long_v > prev_val  -- we are not the lowest;
+                long_v > prev_val limit 200000  -- we are not the lowest 
         )
         
         DELETE FROM ts_kv K
         USING deletable
-        WHERE K.entity_id = deletable.entity_id  AND  K.key = deletable.key  AND  K.ts = deletable.ts;
+        WHERE K.entity_id = deletable.entity_id  AND  K.key = 'uptime'  AND  K.ts = deletable.ts;
         """)
 
     rows = cur.rowcount

@@ -21,7 +21,7 @@ urls = (
     '/', 'set_led_color',
     '/hotspots/', 'handle_hotspots',
     '/update/(.*)', 'handle_update',
-    '/firmware//(.*)', 'handle_firmware',
+    '/firmware', 'handle_firmware',
     '/purpleair/(.*)', 'handle_purpleair'
 )
 
@@ -111,10 +111,8 @@ class handle_hotspots:
 
 # Returns a copy of the latest version of the firmware
 class handle_firmware:
-    def GET(self, status):
+    def GET(self):
         web.debug("Handling firmware request")
-        web.debug(status)
-
         return get_firmware(get_path_of_latest_firmware(firmware_images_folder))
 
 
