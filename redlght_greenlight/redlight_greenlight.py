@@ -107,15 +107,49 @@ class handle_hotspots:
             web.debug("Error sending location telemetry!")
             return
 
+def get_path_of_latest_firmware(folder, current_major = 0, current_minor = 0):
+    newest_firmware = None
+    newest_major = current_major
+    newest_minor = current_minor
+
+    for file in os.listdir(folder):
+        candidate = re.search("(\d+)\.(\d+).bin", file)
+        if candidate:
+            major = int(candidate.group(1))
+            minor = int(candidate.group(2))
+
+            if major > newest_major or (major == newest_major and minor > newest_minor):
+                newest_major = major
+                newest_minor = minor
+                newest_firmware = os.path.join(folder, file)
+
+    return newest_firmware
+
+
+def get_firmware(full_filename):
+    with open(full_filename, 'rb') as file:
+        bin_image = file.read()
+        byte_count = str(len(bin_image))
+        md5 = hashlib.md5(bin_image).hexdigest()
+
+        web.debug("Sending firmware (" + byte_count + " bytes), with hash " + md5)
+
+        web.header('Content-type','application/octet-stream')
+        web.header('Content-transfer-encoding','base64') 
+        web.header('Content-length', byte_count)
+        web.header('x-MD5', md5)
+
+        return bin_image
+
+
 class handle_update:
     # Returns the full file/path of the latest firmware, or None if we are already running the latest
-    def find_firmware(self, current_version, mac_address):
+    def find_firmware_folder(self, current_version, mac_address):
         v = re.search("(\d+)\.(\d+)", current_version)
-        newest_major = int(v.group(1))
-        newest_minor = int(v.group(2))
+        current_major = int(v.group(1))
+        current_minor = int(v.group(2))
 
         device_specific_subfolder = None
-        newest_firmware = None
 
         # If there is a dedicated folder for this device, search there; if not, use the default firmware_images_folder
         subdirs = get_immediate_subdirectories(firmware_images_folder)
@@ -141,18 +175,7 @@ class handle_update:
             print("Error>>> " + folder + " is not a folder!")
             return
 
-        for file in os.listdir(folder):
-            candidate = re.search("(\d+)\.(\d+).bin", file)
-            if candidate:
-                c_major = int(candidate.group(1))
-                c_minor = int(candidate.group(2))
-
-                if c_major > newest_major or (c_major == newest_major and c_minor > newest_minor):
-                    newest_major = c_major
-                    newest_minor = c_minor
-                    newest_firmware = os.path.join(folder, file)
-
-        return newest_firmware
+        return get_path_of_latest_firmware(folder, current_major, current_minor)
 
 
     def GET(self, status):
@@ -181,22 +204,11 @@ class handle_update:
         # mqtt_status = params.mqtt_status
         # web.debug("MQTT status:", mqtt_status)
 
-        newest_firmware = self.find_firmware(current_version, mac)
+        newest_firmware = self.find_firmware_folder(current_version, mac)
 
         if newest_firmware:
             web.debug("Upgrading birdhouse to " + newest_firmware)
-            with open(newest_firmware, 'rb') as file:
-                bin_image = file.read()
-                byte_count = str(len(bin_image))
-                md5 = hashlib.md5(bin_image).hexdigest()
-
-                web.debug("Sending update (" + byte_count + " bytes), with hash " + md5)
-
-                web.header('Content-type','application/octet-stream')
-                web.header('Content-transfer-encoding','base64') 
-                web.header('Content-length', byte_count)
-                web.header('x-MD5', md5)
-                return bin_image
+            return get_firmware(newest_firmware)
         else:
             web.debug("Birdhouse already at most recent version (" + current_version + ")")
 
