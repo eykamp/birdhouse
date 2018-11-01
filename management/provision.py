@@ -57,11 +57,14 @@ def main():
 
     port = birdhouse_utils.get_best_guess_port()
 
-    if port is None:
-        print("Could not find a port with a birdhouse on it.  Here is a list of all hwids I could find:")
-        print(birdhouse_utils.get_port_hwids())
+        if port is None:
+            print("Could not find a port with a birdhouse on it.  Is the device plugged in?")
+            ids = birdhouse_utils.get_port_hwids()
+            if len(ids) > 0:
+                print("Here is a list of all hwids I could find:")
+                print(birdhouse_utils.get_port_hwids())
 
-        exit()
+            exit()
 
 
     cleanup = False      # If true, deletes everything that is created
