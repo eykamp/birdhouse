@@ -1,4 +1,5 @@
 import birdhouse_utils
+import requests 
 import subprocess
 import re
 import sys
@@ -6,12 +7,13 @@ import os
 import serial
 import time
 import json
+import tempfile
 
 from thingsboard_api_tools import TbApi    # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
 
 
-from config import motherShipUrl, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password, esptool_exe_location
+from config import motherShipUrl, firmware_url, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password, esptool_exe_location
 firmware_folder_name = r"C:\Temp\BirdhouseFirmwareBuildFolder"
 
 
@@ -181,35 +183,34 @@ def create_device(cleanup):
 
 def upload_firmware(serial_port):
 
-    image_name = find_firmware(firmware_folder_name)
-
-    if image_name is None:
-        print("Could not find firmware in folder " + firmware_folder_name)
-        exit()
-
-    cmd = esptool_exe_location + r' -vv -cd nodemcu -cb 115200 -cp ' + serial_port + r' -ca 0x00000 -cf ' + image_name
-
     try:
-        print(cmd)
-        print("Uploading...")
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, universal_newlines=True)
-        print("Done.")
-        success = True
-    except subprocess.CalledProcessError as ex:
-        output = ex.output
-        success = False
+        firmware = fetch_firmware()
 
-        # Check for specific known failure modes
-        search = re.search("error: Failed to open (COM\d+)", output)
-        print("Failed to upload firmware:\n" + output)
-        
-        if search:
-            port = search.group(1)
-            print()
-            print("Could not open " + port + ": it appears to be in use by another process!")
+        cmd = esptool_exe_location + r' -vv -cd nodemcu -cb 115200 -cp ' + serial_port + r' -ca 0x00000 -cf ' + firmware.name
 
-        exit()
+        try:
+            print(cmd)
+            print("Uploading...")
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, universal_newlines=True)
+            print("Done.")
+            success = True
+        except subprocess.CalledProcessError as ex:
+            output = ex.output
+            success = False
 
+            # Check for specific known failure modes
+            search = re.search("error: Failed to open (COM\d+)", output)
+            print("Failed to upload firmware:\n" + output)
+            
+            if search:
+                port = search.group(1)
+                print()
+                print("Could not open " + port + ": it appears to be in use by another process!")
+
+            exit()
+
+    finally:
+        firmware.close()        # Triggers file deletion
 
 
 
@@ -366,37 +367,15 @@ def read_serial(ser):
     return buff
 
 
+def fetch_firmware():
+    file = tempfile.NamedTemporaryFile(delete=False)
 
-# TODO: Variant of this fn in redlight_greenlight
-def find_firmware(folder, current_version=None):
-    
-    newest_firmware = None
+    r = requests.get(firmware_url) 
+      
+    # Save received content in binary mv format
+    file.write(r.content) 
 
-    if current_version is None:
-        newest_major = 0
-        newest_minor = 0
-    else:
-        v = re.search("(\d+)\.(\d+)", current_version)
-        newest_major = int(v.group(1))
-        newest_minor = int(v.group(2))
-
-
-    for file in os.listdir(folder):
-        candidate = re.search("(\d+)\.(\d+).bin", file)
-        if candidate:
-            c_major = int(candidate.group(1))
-            c_minor = int(candidate.group(2))
-
-            if c_major > newest_major or c_minor > newest_minor:
-                newest_major = c_major
-                newest_minor = c_minor
-                newest_firmware = os.path.join(folder, file)
-
-    return newest_firmware
-
-
-
-
+    return file
 
 
 '''
