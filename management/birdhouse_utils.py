@@ -68,7 +68,7 @@ def update_customer_data(cust_info):
         if cust_info["lat"] == "" or cust_info["lat"] == None or cust_info["lon"] == "" or cust_info["lon"] == None:
             raise ValueError("Need a lat/lon to proceed")
 
-    print (cust_info)
+    return cust_info
     return cust_info
 
 
