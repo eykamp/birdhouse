@@ -21,7 +21,7 @@ urls = (
     '/', 'set_led_color',
     '/hotspots/', 'handle_hotspots',
     '/update/(.*)', 'handle_update',
-    '/firmware/', 'handle_firmware',
+    '/firmware//(.*)', 'handle_firmware',
     '/purpleair/(.*)', 'handle_purpleair'
 )
 
