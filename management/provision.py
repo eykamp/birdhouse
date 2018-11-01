@@ -16,6 +16,8 @@ firmware_folder_name = r"C:\Temp\BirdhouseFirmwareBuildFolder"
 
 
 
+
+
 # This to be passed in
 birdhouse_number = 6
 led_style = 'RYG'   #  RYG, RYG_REVERSED, DOTSTAR, 4PIN, BUILTIN_ONLY, UNKNOWN
@@ -40,10 +42,16 @@ cust_info["email"]    = "chris@sensorbot.org"
 cust_info["phone"]    = "555-1212"
 
 
+
+
 tbapi = TbApi(motherShipUrl, username, password)
 
 
+
 def main():
+
+
+
     # for port in birdhouse_utils.get_ports():
     #     print( port.hwid())
 
@@ -87,6 +95,7 @@ def main():
     # print(get_customer(token, 'Art'))
     # print(get_public_user_uuid(token))
     # delete_customer_by_name(token, 'Hank Williams 3')
+
 
 
 def create_customer(cust_info):
@@ -197,6 +206,7 @@ def upload_firmware(serial_port):
             print("Could not open " + port + ": it appears to be in use by another process!")
 
         exit()
+
 
 
 
