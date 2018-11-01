@@ -46,6 +46,7 @@ cust_info["phone"]    = "555-1212"
 
 tbapi = TbApi(motherShipUrl, username, password)
 
+thingsboard_only = False
 
 
 def main():
@@ -55,7 +56,8 @@ def main():
     # for port in birdhouse_utils.get_ports():
     #     print( port.hwid())
 
-    port = birdhouse_utils.get_best_guess_port()
+    if not thingsboard_only:
+        port = birdhouse_utils.get_best_guess_port()
 
         if port is None:
             print("Could not find a port with a birdhouse on it.  Is the device plugged in?")
@@ -79,8 +81,8 @@ def main():
 
     print("Using device token " + device_token)
 
-
-    # exit()
+    if thingsboard_only:
+        exit()
 
     print("Uploading firmware to birdhouse on " + port + "...")
     upload_firmware(port)
