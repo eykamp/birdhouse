@@ -81,6 +81,240 @@ def update_customer_data(cust_info):
             raise ValueError("Need a lat/lon to proceed")
 
     return cust_info
+
+
+class Customer:
+
+    def __init__(self):
+        self.name       = None
+        self.address    = None
+        self.address2   = None
+        self.city       = None
+        self.state      = None
+        self.postcode   = None
+        self.country    = None
+        self.email      = None
+        self.phone      = None
+        self.first_name = None
+        self.last_name  = None
+        self.lat        = None
+        self.lon        = None
+        self.cust_id    = None
+        self.device_id  = None
+        self._tbapi     = None
+
+
+    def load(tbapi, name):
+        cust = tbapi.get_customer(name)
+        dev  = tbapi.get_device_by_name(name)
+
+        if cust is None or dev is None:
+            return None
+
+        cust_id   = tbapi.get_id(cust)
+        device_id = tbapi.get_id(dev)
+
+        first_name = ""
+        last_name = ""
+
+        print(cust)
+        if "additionalInfo" in cust and cust["additionalInfo"] is not None:
+            if "firstName" in cust["additionalInfo"]:
+                first_name = cust["additionalInfo"]["firstName"]
+            if "lastName"  in cust["additionalInfo"]:
+                last_name  = cust["additionalInfo"]["lastName"]
+
+        lat = None
+        lon = None
+
+        attribs = tbapi.get_server_attributes(dev)
+        for attrib in attribs:
+            if attrib["key"] == "latitude":
+                lat = attrib["value"]
+                break
+
+        for attrib in attribs:
+            if attrib["key"] == "longitude":
+                lon = attrib["value"]
+                break
+
+        customer = Customer()
+        customer._tbapi = tbapi      # Hold on to this for future reference
+        customer.init(name, cust["address"], cust["address2"], cust["city"], cust["state"], cust["zip"], cust["country"], cust["email"], cust["phone"], first_name, last_name, lat, lon, cust_id, device_id)
+
+        return customer
+
+
+    def save(self):
+
+        if self._tbapi is None:
+            raise Exception("Please define tbapi!")
+
+        if self.device_id is None or self.cust_id is None:
+            raise Exception("Need to define device_id and cust_id!")
+
+        name = None
+
+        if self.first_name is not None:
+            name = self.first_name
+
+            if self.last_name is not None:
+                name = self.first_name + " " + self.last_name
+
+        additional_info = {}
+        additional_info["firstName"] = self.first_name
+        additional_info["lastName"]  = self.last_name
+
+        if name is not None: 
+            additional_info["description"]  = name
+
+
+        self._tbapi.update_customer(self.cust_id, self.name, self.address, self.address2, self.city, self.state, self.postcode, self.country, self.email, self.phone, additional_info)
+
+        server_attributes = {
+            "latitude":  self.lat,
+            "longitude": self.lon,
+            "address":   self.one_line_address()
+        }
+
+        self._tbapi.set_server_attributes(self.device_id, server_attributes)
+
+
+
+    def update(self, name=None, address=None, address2=None, city=None, state=None, postcode=None, country=None, email=None, phone=None, first_name=None, last_name=None, lat=None, lon=None):
+        if name is not None:       self.name = name
+        if address is not None:    self.address = address
+        if address2 is not None:   self.address2 = address2
+        if city is not None:       self.city = city
+        if state is not None:      self.state = state
+        if postcode is not None:   self.postcode = postcode
+        if country is not None:    self.country = country
+        if email is not None:      self.email = email
+        if phone is not None:      self.phone = phone
+        if first_name is not None: self.first_name = first_name
+        if last_name is not None:  self.last_name = last_name
+        if lat is not None:        self.lat = lat
+        if lon is not None:        self.lon = lon
+
+        # Did "location" change?  If it did, and lat/lon/zip were not specified, then let's automatically update those
+        if address is not None or address2 is not None or city is not None or state is not None or country is not None:
+            if lat is None or lon is None or postcode is None:
+
+                results = geocode(self.address, self.address2, self.city, self.state, self.postcode, self.country)
+                if results is not None:
+                    if lat      is None: self.lat      = results["lat"]
+                    if lon      is None: self.lon      = results["lon"]
+                    if postcode is None: self.postcode = results["zip"]
+
+
+    def init(self, name, address, address2, city, state, postcode, country, email, phone, first_name, last_name, lat, lon, cust_id, device_id):
+        self.name       = name
+        self.address    = address
+        self.address2   = address2
+        self.city       = city
+        self.state      = state
+        self.postcode   = postcode
+        self.country    = country
+        self.email      = email
+        self.phone      = phone
+        self.first_name = first_name
+        self.last_name  = last_name
+        self.lat        = lat
+        self.lon        = lon
+        self.cust_id    = cust_id
+        self.device_id  = device_id
+
+
+    def one_line_address(self):
+        return self.address + ", " + ((self.address2 + ", ") if self.address2 is not None and self.address2 != "" else "") + self.city + ", " + self.state 
+
+
+def get_cust(tbapi, name):
+    cust = tbapi.get_customer(name)
+    dev  = tbapi.get_device_by_name(name)
+
+    if cust is None or dev is None:
+        return None
+
+    cust_id   = tbapi.get_id(cust)
+    device_id = tbapi.get_id(dev)
+
+    attribs = tbapi.get_server_attributes(dev)
+    descr = None
+    first_name = ""
+    last_name = ""
+    if "additionalInfo" in cust and "description" in cust["additionalInfo"]:
+        descr = cust["additionalInfo"]["description"]
+
+    if descr is not None:
+        words = descr.split()
+
+    if len(words) > 0:
+        first_name = words[0]
+    if len(words) > 1:
+        last_name = words[1]
+
+    lat = None
+    lon = None
+
+    for attrib in attribs:
+        if attrib["key"] == "latitude":
+            lat = attrib["value"]
+            break
+
+    for attrib in attribs:
+        if attrib["key"] == "longitude":
+            lon = attrib["value"]
+            break
+
+    return Customer(name, cust["address"], cust["address2"], cust["city"], cust["state"], cust["zip"], cust["country"], cust["email"], cust["phone"], first_name, last_name, lat, lon, cust_id, device_id)
+
+
+''' Extract fields from a customer record '''
+def get_cust_info(tbapi, name):
+    cust = tbapi.get_customer(name)
+    dev = tbapi.get_device_by_name(name)
+    
+
+    if cust is None or dev is None:
+        return None
+
+    cust_id   = tbapi.get_id(cust)
+    device_id = tbapi.get_id(dev)
+
+    attribs = tbapi.get_server_attributes(dev)
+    lat = None
+    lon = None
+
+    for attrib in attribs:
+        if attrib["key"] == "latitude":
+            lat = attrib["value"]
+            break
+
+    for attrib in attribs:
+        if attrib["key"] == "longitude":
+            lon = attrib["value"]
+            break
+
+    return make_cust_info(name, cust["address"], cust["address2"], cust["city"], cust["state"], cust["zip"], cust["country"], cust["email"], cust["phone"], lat, lon, cust_id, device_id)
+
+
+def make_cust_info(name, address, address2, city, state, postcode, country, email, phone, lat, lon, cust_id, device_id):
+    cust_info = {}
+    cust_info["name"]      = name
+    cust_info["address"]   = address
+    cust_info["address2"]  = address2
+    cust_info["city"]      = city
+    cust_info["state"]     = state
+    cust_info["zip"]       = postcode
+    cust_info["country"]   = country
+    cust_info["email"]     = email
+    cust_info["phone"]     = phone
+    cust_info["lat"]       = lat
+    cust_info["lon"]       = lon
+    cust_info["cust_id"]   = cust_id
+    cust_info["device_id"] = device_id
+
     return cust_info
 
 
@@ -200,6 +434,3 @@ def get_best_guess_port():
             if "VID:PID=" + vid in port.hwid:
                 return port.name or port.device
     return None
-    
-
-
