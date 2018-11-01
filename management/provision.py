@@ -11,11 +11,7 @@ import tempfile
 
 from thingsboard_api_tools import TbApi    # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
-
-
 from config import motherShipUrl, firmware_url, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password, esptool_exe_location
-firmware_folder_name = r"C:\Temp\BirdhouseFirmwareBuildFolder"
-
 
 
 
