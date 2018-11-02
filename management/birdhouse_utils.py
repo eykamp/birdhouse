@@ -47,6 +47,7 @@ def one_line_address(cust_info):
     return cust_info["address"] + ", " + ((cust_info["address2"] + ", ") if cust_info["address2"] is not None and cust_info["address2"] != "" else "") + cust_info["city"] + ", " + cust_info["state"] 
 
 
+# Untested!
 def update_customer(tbapi, cust_info):
     tbapi.update_customer(cust_info["cust_id"], cust_info["name"], cust_info["address"], cust_info["address2"], cust_info["city"], cust_info["state"], cust_info["zip"], cust_info["country"], cust_info["email"], cust_info["phone"])
 
@@ -56,7 +57,7 @@ def update_customer(tbapi, cust_info):
         "address": one_line_address(cust_info)
     }
 
-    tbapi.set_server_attributes(device_id, cust_info["device_id"])
+    tbapi.set_server_attributes(cust_info["cust_id"], server_attributes)
 
 
 def update_customer_data(cust_info):    
