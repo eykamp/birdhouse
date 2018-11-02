@@ -105,7 +105,27 @@ class Customer:
         self._tbapi     = None
 
 
-    def load(tbapi, name):
+    def __init__(self, name, address, address2, city, state, zip, country, email, phone, first_name, last_name, lat, lon, cust_id, device_id)
+        self.name       = name
+        self.address    = address
+        self.address2   = address2
+        self.city       = city
+        self.state      = state
+        self.postcode   = postcode
+        self.country    = country
+        self.email      = email
+        self.phone      = phone
+        self.first_name = first_name
+        self.last_name  = last_name
+        self.lat        = lat
+        self.lon        = lon
+        self.cust_id    = cust_id
+        self.device_id  = device_id
+        self._tbapi     = None
+
+
+
+    def load(self, tbapi, name):
         cust = tbapi.get_customer(name)
         dev  = tbapi.get_device_by_name(name)
 
