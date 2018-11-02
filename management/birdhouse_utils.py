@@ -398,7 +398,7 @@ def get_zip_from_bing_location(location):
     return location.raw['address']['postalCode']
 
 
-# location looks like this: {'place_id': '153499388', 'licence': 'Data © OpenStreetMap contributors, ODbL 1.0. http://www.openstreetmap.org/copyright', 'osm_type': 'way', 'osm_id': '367938871', 'boundingbox': ['45.4914508', '45.4915745', '-122.6234954', '-122.623365'], 'lat': '45.49151265', 'lon': '-122.623430224919', 'display_name': '3814, Southeast Cora Street, Creston-Kenilworth, Portland, Multnomah County, Oregon, 97202, United States of America', 'class': 'building', 'type': 'yes', 'importance': 0.421, 'address': {'house_number': '3814', 'road': 'Southeast Cora Street', 'suburb': 'Creston-Kenilworth', 'city': 'Portland', 'county': 'Multnomah County', 'state': 'Oregon', 'postcode': '97202', 'country': 'United States of America', 'country_code': 'us'}}
+# location looks like this: {'place_id': '153499388', 'licence': 'Data (c) OpenStreetMap contributors, ODbL 1.0. http://www.openstreetmap.org/copyright', 'osm_type': 'way', 'osm_id': '367938871', 'boundingbox': ['45.4914508', '45.4915745', '-122.6234954', '-122.623365'], 'lat': '45.49151265', 'lon': '-122.623430224919', 'display_name': '3814, Southeast Cora Street, Creston-Kenilworth, Portland, Multnomah County, Oregon, 97202, United States of America', 'class': 'building', 'type': 'yes', 'importance': 0.421, 'address': {'house_number': '3814', 'road': 'Southeast Cora Street', 'suburb': 'Creston-Kenilworth', 'city': 'Portland', 'county': 'Multnomah County', 'state': 'Oregon', 'postcode': '97202', 'country': 'United States of America', 'country_code': 'us'}}
 def get_zip_from_nominatim_location(location):
     return location.raw['address']['postcode']
 
