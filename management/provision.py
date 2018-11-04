@@ -1,17 +1,26 @@
 import birdhouse_utils
 import requests 
-import subprocess
-import re
-import sys
-import os
-import serial
-import time
 import json
+import os
+import re
+import serial
+import subprocess
+import requests                             # pip install requests
+import sys
 import tempfile
+import time
 
-from thingsboard_api_tools import TbApi    # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+from docopt import docopt                   # pip install docopt
+from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
-from config import motherShipUrl, firmware_url, username, password, dashboard_template_name, default_device_local_password, wifi_ssid, wifi_password, esptool_exe_location
+from timeit import default_timer as timer
+
+import birdhouse_utils
+from config import (dashboard_template_name, default_device_local_password,
+                    esptool_exe_location, firmware_url, motherShipUrl,
+                    password, username, wifi_password, wifi_ssid)
+
+
 
 
 
