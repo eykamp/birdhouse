@@ -7,10 +7,10 @@ from geopy.geocoders import GoogleV3
 
 from config import google_geocoder_api_key, bing_geocoder_api_key
 
-import serial
-import serial.tools.list_ports
+import serial                       # pip install serial
+import serial.tools.list_ports      # pip install pyserial
 import re
-
+# pip install serial geopy pyserial
 
 # These are IDs that are associated with NodeMCU boards
 ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
