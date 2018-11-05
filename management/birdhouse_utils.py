@@ -124,8 +124,8 @@ def purge_server_objects_for_device(tbapi, device_name, unsafe=False):
     print("Cleaning up server objects for '" + device_name + "'...", end='')
 
     device = tbapi.get_device_by_name(device_name)
-    dash = tbapi.get_dashboard_by_name(device_name)
-    cust = tbapi.get_customer_by_name(device_name)
+    dash = tbapi.get_dashboard_by_name(make_dash_name(device_name))
+    cust = tbapi.get_customer_by_name(make_customer_name(device_name))
 
     if device is not None and not unsafe:
         telkeys = tbapi.get_telemetry_keys(device)
