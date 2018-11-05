@@ -43,6 +43,9 @@ def get_sensor_type(birdhouse_number):
 def make_dash_name(birdhouse_number):
     return make_device_name(birdhouse_number) + " Dash"
 
+def make_customer_name(birdhouse_number):
+    return make_device_name(birdhouse_number)
+
 
 def one_line_address(cust_info):
     return cust_info["address"] + ", " + ((cust_info["address2"] + ", ") if cust_info["address2"] is not None and cust_info["address2"] != "" else "") + cust_info["city"] + ", " + cust_info["state"] 
