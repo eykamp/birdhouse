@@ -22,6 +22,7 @@ urls = (
     '/hotspots/', 'handle_hotspots',
     '/update/(.*)', 'handle_update',
     '/firmware', 'handle_firmware',
+    '/validatekey', 'handle_validate_key',
     '/purpleair/(.*)', 'handle_purpleair'
 )
 
@@ -222,6 +223,29 @@ class handle_update:
             web.debug("Birdhouse already at most recent version (" + current_version + ")")
 
         raise web.NotModified()
+
+
+class handle_validate_key:
+    # Pass two args: name and key.  Returns "true" if key is the correct secret key for named device, false otherwise.
+    # Used to validate whether users have input correct secret key when configuring devices.
+    def GET(self):
+        query = web.input(name='', key='')
+
+        name = query['name']
+        key = query['key']
+
+        if name == '' or key == '':
+            raise web.HTTPError("401 Please specify 'name' and 'key' params") 
+
+        device = tbapi.get_device_by_name(name)
+
+        if device is None:
+            raise web.HTTPError("401 Invalid device '" + name + "'") 
+
+        token = tbapi.get_device_token(device)
+
+        return "true" if token == key else "false"
+        
 
 class set_led_color:    
     def POST(self):
