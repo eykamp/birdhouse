@@ -67,7 +67,6 @@ def update_customer(tbapi, cust_info):
 def update_customer_data(cust_info):    
     location = geocode(cust_info["address"], cust_info["address2"], cust_info["city"], cust_info["state"], cust_info["zip"], cust_info["country"])
 
-    print(location)
     if location is not None:
         # Update customer data with cocoder data
         if cust_info["zip"] == "" or cust_info["zip"] == None:
