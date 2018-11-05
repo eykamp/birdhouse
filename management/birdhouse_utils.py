@@ -119,18 +119,28 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def purge_server_objects_for_device(tbapi, device_name, unsafe=False):
+def get_server_object_names_for_birdhouse(birdhouse_number):
+    device_name = make_device_name(birdhouse_number)
+    cust_name   = make_customer_name(birdhouse_number)
+    dash_name   = make_dash_name(birdhouse_number)
+
+    return device_name, cust_name, dash_name
+
+
+def purge_server_objects_for_device(tbapi, birdhouse_number, unsafe=False):
+    device_name, cust_name, dash_name = get_server_object_names_for_birdhouse(birdhouse_number)
+    
     print("Deleting server objects for '" + device_name + "'...", end='')
 
     device = tbapi.get_device_by_name(device_name)
-    dash = tbapi.get_dashboard_by_name(make_dash_name(device_name))
-    cust = tbapi.get_customer_by_name(make_customer_name(device_name))
+    cust   = tbapi.get_customer_by_name(cust_name)
+    dash   = tbapi.get_dashboard_by_name(dash_name)
 
     if device is not None and not unsafe:
         telkeys = tbapi.get_telemetry_keys(device)
         if len(telkeys) > 0:
             print()
-            answer = query_yes_no("Device '" + device_name + "' has data.  Are you sure you want to delete it from the server?", default="no")
+            answer = query_yes_no("\nDevice '" + device_name + "' has data.  Are you sure you want to delete it from the server?", default="no")
             if not answer:
                 print("Aborting!")
                 exit()
