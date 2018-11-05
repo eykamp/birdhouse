@@ -20,3 +20,5 @@ management/config\.py
 firmware/config\.py
 
 *.pyc
+
+firmware/\.vscode/
