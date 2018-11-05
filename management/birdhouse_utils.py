@@ -106,35 +106,16 @@ def purge_server_objects_for_device(tbapi, device_name):
     print(" ok")
 
 
-
 class Customer:
 
-    def __init__(self):
-        self.name       = None
-        self.address    = None
-        self.address2   = None
-        self.city       = None
-        self.state      = None
-        self.postcode   = None
-        self.country    = None
-        self.email      = None
-        self.phone      = None
-        self.first_name = None
-        self.last_name  = None
-        self.lat        = None
-        self.lon        = None
-        self.cust_id    = None
-        self.device_id  = None
-        self._tbapi     = None
-
-
-    def __init__(self, name, address, address2, city, state, zip, country, email, phone, first_name, last_name, lat, lon, cust_id, device_id):
+    def __init__(self, name=None, address=None, address2=None, city=None, state=None, zip=None, country=None, email=None, 
+                       phone=None, first_name=None, last_name=None, lat=None, lon=None, cust_id=None, device_id=None):
         self.name       = name
         self.address    = address
         self.address2   = address2
         self.city       = city
         self.state      = state
-        self.postcode   = postcode
+        self.postcode   = zip
         self.country    = country
         self.email      = email
         self.phone      = phone
