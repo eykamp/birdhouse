@@ -105,7 +105,7 @@ class Customer:
         self._tbapi     = None
 
 
-    def __init__(self, name, address, address2, city, state, zip, country, email, phone, first_name, last_name, lat, lon, cust_id, device_id)
+    def __init__(self, name, address, address2, city, state, zip, country, email, phone, first_name, last_name, lat, lon, cust_id, device_id):
         self.name       = name
         self.address    = address
         self.address2   = address2
