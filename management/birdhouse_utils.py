@@ -84,6 +84,29 @@ def update_customer_data(cust_info):
     return cust_info
 
 
+def purge_server_objects_for_device(tbapi, device_name):
+    print("Cleaning up server objects for '" + device_name + "'...", end='')
+
+    device = tbapi.get_device_by_name(device_name)
+    dash = tbapi.get_dashboard_by_name(device_name)
+    cust = tbapi.get_customer_by_name(device_name)
+
+    if dash is not None:
+        tbapi.delete_dashboard(tbapi.get_id(dash))
+        print(" dash...", end='')
+
+    if device is not None:
+        tbapi.delete_device(tbapi.get_id(device))
+        print(" device...", end='')
+
+    if cust is not None:
+        tbapi.delete_customer_by_id(tbapi.get_id(cust))
+        print(" cust...", end='')
+
+    print(" ok")
+
+
+
 class Customer:
 
     def __init__(self):
