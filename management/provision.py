@@ -29,7 +29,6 @@ from config import (dashboard_template_name, default_device_local_password,
 birdhouse_number = 6
 led_style = 'RYG'   #  RYG, RYG_REVERSED, DOTSTAR, 4PIN, BUILTIN_ONLY, UNKNOWN
 
-
 birdhouse_name = birdhouse_utils.make_device_name(birdhouse_number)
 sensor_type = birdhouse_utils.get_sensor_type(birdhouse_number)
 
@@ -133,7 +132,6 @@ def create_device(cleanup):
 
     dash_def = tbapi.get_dashboard_definition(tbapi.get_id(template_dash))
 
-   
     customer = create_customer(cust_info)
     if customer is None:
          exit()
