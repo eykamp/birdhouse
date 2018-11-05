@@ -121,7 +121,7 @@ def query_yes_no(question, default="yes"):
 
 
 def purge_server_objects_for_device(tbapi, device_name, unsafe=False):
-    print("Cleaning up server objects for '" + device_name + "'...", end='')
+    print("Deleting server objects for '" + device_name + "'...", end='')
 
     device = tbapi.get_device_by_name(device_name)
     dash = tbapi.get_dashboard_by_name(make_dash_name(device_name))
