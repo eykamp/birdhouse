@@ -137,19 +137,26 @@ def purge_server_objects_for_device(tbapi, device_name, unsafe=False):
                 exit()
             print("Deleting...", end='')
 
+    deleted_any = False
     if dash is not None:
         tbapi.delete_dashboard(tbapi.get_id(dash))
+        deleted_any = True
         print(" dash...", end='')
 
     if device is not None:
         tbapi.delete_device(tbapi.get_id(device))
+        deleted_any = True
         print(" device...", end='')
 
     if cust is not None:
         tbapi.delete_customer_by_id(tbapi.get_id(cust))
+        deleted_any = True
         print(" cust...", end='')
 
-    print(" ok")
+    if deleted_any:
+        print(" ok")
+    else:
+        print(" no objects found")
 
 
 class Customer:
