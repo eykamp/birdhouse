@@ -18,3 +18,5 @@ management/deq\.log
 management/config\.py
 
 firmware/config\.py
+
+*.pyc
