@@ -24,7 +24,7 @@ def make_device_name(birdhouse_number):
         return 'Birdhouse ' + str(birdhouse_number).zfill(3)
     else:
         return birdhouse_number
-    
+
 
 def get_sensor_type(birdhouse_number):
     # 90-99 resered for BottleBot
@@ -48,7 +48,7 @@ def make_customer_name(birdhouse_number):
 
 
 def one_line_address(cust_info):
-    return cust_info["address"] + ", " + ((cust_info["address2"] + ", ") if cust_info["address2"] is not None and cust_info["address2"] != "" else "") + cust_info["city"] + ", " + cust_info["state"] 
+    return cust_info["address"] + ", " + ((cust_info["address2"] + ", ") if cust_info["address2"] is not None and cust_info["address2"] != "" else "") + cust_info["city"] + ", " + cust_info["state"]
 
 
 # Untested!
@@ -64,7 +64,7 @@ def update_customer(tbapi, cust_info):
     tbapi.set_server_attributes(cust_info["cust_id"], server_attributes)
 
 
-def update_customer_data(cust_info):    
+def update_customer_data(cust_info):
     location = geocode(cust_info["address"], cust_info["address2"], cust_info["city"], cust_info["state"], cust_info["zip"], cust_info["country"])
 
     if location is not None:
@@ -129,7 +129,7 @@ def get_server_object_names_for_birdhouse(birdhouse_number):
 
 def purge_server_objects_for_device(tbapi, birdhouse_number, unsafe=False):
     device_name, cust_name, dash_name = get_server_object_names_for_birdhouse(birdhouse_number)
-    
+
     print("Deleting server objects for '" + device_name + "'...", end='')
 
     device = tbapi.get_device_by_name(device_name)
@@ -170,7 +170,7 @@ def purge_server_objects_for_device(tbapi, birdhouse_number, unsafe=False):
 
 class Customer:
 
-    def __init__(self, name=None, address=None, address2=None, city=None, state=None, zip=None, country=None, email=None, 
+    def __init__(self, name=None, address=None, address2=None, city=None, state=None, zip=None, country=None, email=None,
                        phone=None, first_name=None, last_name=None, lat=None, lon=None, cust_id=None, device_id=None):
         self.name       = name
         self.address    = address
@@ -252,7 +252,7 @@ class Customer:
         additional_info["firstName"] = self.first_name
         additional_info["lastName"]  = self.last_name
 
-        if name is not None: 
+        if name is not None:
             additional_info["description"]  = name
 
 
@@ -313,7 +313,7 @@ class Customer:
 
 
     def one_line_address(self):
-        return self.address + ", " + ((self.address2 + ", ") if self.address2 is not None and self.address2 != "" else "") + self.city + ", " + self.state 
+        return self.address + ", " + ((self.address2 + ", ") if self.address2 is not None and self.address2 != "" else "") + self.city + ", " + self.state
 
 
 def get_cust(tbapi, name):
@@ -361,7 +361,7 @@ def get_cust(tbapi, name):
 def get_cust_info(tbapi, name):
     cust = tbapi.get_customer(name)
     dev = tbapi.get_device_by_name(name)
-    
+
 
     if cust is None or dev is None:
         return None
@@ -446,12 +446,12 @@ def geocode(address, address2, city, state, postcode, country):
         print("Skipping Bing geocoder because we don't have a free API key")
 
 
-    if google_geocoder_api_key != None:   
+    if google_geocoder_api_key != None:
         geolocator = GoogleV3(api_key=google_geocoder_api_key, timeout=30)
         location = geolocator.geocode(geoaddress)
         if location is not None:
             return {"lat": location.latitude, "lon": location.longitude, "zip": get_zip_from_google_location(location)}
-        else:   
+        else:
             print("Google could not geocode address")
     else:
         print("Skipping Google geocoder because we don't have a free API key")
@@ -484,7 +484,7 @@ def get_zip_from_google_location(location):
         return None
 
     # if postal_code_suffix != None:
-    #     return postal_code + "-" + postal_code_suffix 
+    #     return postal_code + "-" + postal_code_suffix
 
     return postal_code
 
@@ -511,7 +511,7 @@ def get_port_names():
     ports = []
     for port in get_ports():
         ports.append((port.name or port.device, port.name or port.device))
-    
+
     return ports
 
 
