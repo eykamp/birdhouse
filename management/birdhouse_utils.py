@@ -1,7 +1,4 @@
-import geopy        # pip install geopy
-
 # Import some geocoders
-from geopy.geocoders import Nominatim
 from geopy.geocoders import Bing
 from geopy.geocoders import GoogleV3
 
@@ -42,6 +39,7 @@ def get_sensor_type(birdhouse_number):
 
 def make_dash_name(birdhouse_number):
     return make_device_name(birdhouse_number) + " Dash"
+
 
 def make_customer_name(birdhouse_number):
     return make_device_name(birdhouse_number)
@@ -98,7 +96,7 @@ def query_yes_no(question, default="yes"):
 
     The "answer" return value is True for "yes" or False for "no".
     """
-    valid = { "yes": True, "y": True, "ye": True, "no": False, "n": False }
+    valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
     if default is None:
         prompt = " [y/n] "
     elif default == "yes":
@@ -357,8 +355,8 @@ def get_cust(tbapi, name):
     return Customer(name, cust["address"], cust["address2"], cust["city"], cust["state"], cust["zip"], cust["country"], cust["email"], cust["phone"], first_name, last_name, lat, lon, cust_id, device_id)
 
 
-''' Extract fields from a customer record '''
 def get_cust_info(tbapi, name):
+    ''' Extract fields from a customer record '''
     cust = tbapi.get_customer(name)
     dev = tbapi.get_device_by_name(name)
 
@@ -435,7 +433,7 @@ def geocode(address, address2, city, state, postcode, country):
         geoaddress += "," + country
 
 
-    if bing_geocoder_api_key != None:
+    if bing_geocoder_api_key is not None:
         geolocator = Bing(api_key=bing_geocoder_api_key, timeout=30)
         location = geolocator.geocode(geoaddress, exactly_one=True)
         if location is not None:
@@ -446,7 +444,7 @@ def geocode(address, address2, city, state, postcode, country):
         print("Skipping Bing geocoder because we don't have a free API key")
 
 
-    if google_geocoder_api_key != None:
+    if google_geocoder_api_key is not None:
         geolocator = GoogleV3(api_key=google_geocoder_api_key, timeout=30)
         location = geolocator.geocode(geoaddress)
         if location is not None:
@@ -468,6 +466,7 @@ def get_zip_from_bing_location(location):
 def get_zip_from_nominatim_location(location):
     return location.raw['address']['postcode']
 
+
 # location looks like this: {'address_components': [{'long_name': '3814', 'short_name': '3814', 'types': ['street_number']}, {'long_name': 'Southeast Cora Street', 'short_name': 'SE Cora St', 'types': ['route']}, {'long_name': 'Southeast Portland', 'short_name': 'Southeast Portland', 'types': ['neighborhood', 'political']}, {'long_name': 'Portland', 'short_name': 'Portland', 'types': ['locality', 'political']}, {'long_name': 'Multnomah County', 'short_name': 'Multnomah County', 'types': ['administrative_area_level_2', 'political']}, {'long_name': 'Oregon', 'short_name': 'OR', 'types': ['administrative_area_level_1', 'political']}, {'long_name': 'United States', 'short_name': 'US', 'types': ['country', 'political']}, {'long_name': '97202', 'short_name': '97202', 'types': ['postal_code']}, {'long_name': '3240', 'short_name': '3240', 'types': ['postal_code_suffix']}], 'formatted_address': '3814 SE Cora St, Portland, OR 97202, USA', 'geometry': {'bounds': {'northeast': {'lat': 45.491584, 'lng': -122.6233581}, 'southwest': {'lat': 45.4914341, 'lng': -122.6234858}}, 'location': {'lat': 45.491509, 'lng': -122.6234219}, 'location_type': 'ROOFTOP', 'viewport': {'northeast': {'lat': 45.4928580302915, 'lng': -122.6220729697085}, 'southwest': {'lat': 45.4901600697085, 'lng': -122.6247709302915}}}, 'partial_match': True, 'place_id': 'ChIJYTmEb3eglVQRkRYA8D5F_yA', 'types': ['premise']}
 def get_zip_from_google_location(location):
     bits = location.raw['address_components']
@@ -480,15 +479,13 @@ def get_zip_from_google_location(location):
         if 'postal_code_suffix' in b['types']:
             postal_code_suffix = b['long_name']
 
-    if postal_code == None:
+    if postal_code is None:
         return None
 
     # if postal_code_suffix != None:
     #     return postal_code + "-" + postal_code_suffix
 
     return postal_code
-
-
 
 
 # Build a list of ports we can use
