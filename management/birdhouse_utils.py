@@ -439,7 +439,7 @@ def geocode(address, address2, city, state, postcode, country):
         geolocator = Bing(api_key=bing_geocoder_api_key, timeout=30)
         location = geolocator.geocode(geoaddress, exactly_one=True)
         if location is not None:
-            return {"lat":location.latitude, "lon":location.longitude, "zip":get_zip_from_bing_location(location)}
+            return {"lat": location.latitude, "lon": location.longitude, "zip": get_zip_from_bing_location(location)}
         else:
             print("Bing could not geocode address")
     else:
@@ -450,7 +450,7 @@ def geocode(address, address2, city, state, postcode, country):
         geolocator = GoogleV3(api_key=google_geocoder_api_key, timeout=30)
         location = geolocator.geocode(geoaddress)
         if location is not None:
-            return {"lat":location.latitude, "lon":location.longitude, "zip":get_zip_from_google_location(location)}
+            return {"lat": location.latitude, "lon": location.longitude, "zip": get_zip_from_google_location(location)}
         else:   
             print("Google could not geocode address")
     else:
