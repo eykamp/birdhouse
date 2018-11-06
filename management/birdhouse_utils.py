@@ -69,19 +69,19 @@ def update_customer_data(cust_info):
 
     if location is not None:
         # Update customer data with cocoder data
-        if cust_info["zip"] == "" or cust_info["zip"] == None:
+        if cust_info["zip"] == "" or cust_info["zip"] is None:
             cust_info["zip"] = location["zip"]
 
-        if cust_info["lat"] == "" or cust_info["lat"] == None:
+        if cust_info["lat"] == "" or cust_info["lat"] is None:
             cust_info["lat"] = location["lat"]
 
-        if cust_info["lon"] == "" or cust_info["lon"] == None:
+        if cust_info["lon"] == "" or cust_info["lon"] is None:
             cust_info["lon"] = location["lon"]
     else:
-        if cust_info["zip"] == "" or cust_info["zip"] == None:
+        if cust_info["zip"] == "" or cust_info["zip"] is None:
             raise ValueError("Need a zip code to proceed")
 
-        if cust_info["lat"] == "" or cust_info["lat"] == None or cust_info["lon"] == "" or cust_info["lon"] == None:
+        if cust_info["lat"] == "" or cust_info["lat"] is None or cust_info["lon"] == "" or cust_info["lon"] is None:
             raise ValueError("Need a lat/lon to proceed")
 
     return cust_info
