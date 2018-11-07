@@ -8,7 +8,8 @@ import serial                       # pip install pyserial
 import serial.tools.list_ports      
 import re
 import sys
-# pip install serial geopy pyserial
+import esptool
+# pip install geopy pyserial esptool
 
 # These are IDs that are associated with NodeMCU boards
 ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
@@ -514,7 +515,22 @@ def get_port_names():
 
 def get_best_guess_port():
     for port in get_ports():
-        for vid in ESP8266_VID_PIDS:
-            if "VID:PID=" + vid in port.hwid:
-                return port.name or port.device
+        port_name = port.name or port.device
+        print("Probing port " + port_name)
+        try:
+            esp = esptool.ESPLoader.detect_chip(port_name)
+            esp.hard_reset()
+            esp._port.close()
+
+            return port_name
+        except (esptool.FatalError, OSError) as err:
+            print("%s failed to connect: %s" % (port, err))
+
     return None
+
+
+    # for port in get_ports():
+    #     for vid in ESP8266_VID_PIDS:
+    #         if "VID:PID=" + vid in port.hwid:
+    #             return port.name or port.device
+    # return None
