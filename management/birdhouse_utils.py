@@ -5,7 +5,7 @@ from geopy.geocoders import GoogleV3
 from config import google_geocoder_api_key, bing_geocoder_api_key
 
 import serial                       # pip install pyserial
-import serial.tools.list_ports      
+import serial.tools.list_ports
 import re
 import sys
 import esptool
