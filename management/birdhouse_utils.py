@@ -522,12 +522,12 @@ def make_mothership_url(base_url):
     return "http://" + base_url + ":8080"
 
 
-def hard_reset(esp, ser):
+def hard_reset(esp):
     # esp = esptool.ESPLoader.detect_chip(port)
     print("Resetting")
     esp.hard_reset()
 
-    time.sleep(1)
+    time.sleep(0.5)  # seconds
 
     s = esp._port.read_all()
     print(s)
@@ -545,11 +545,11 @@ def get_best_guess_port():
             esp = esptool.ESPLoader.detect_chip(port_name)
             esp._timeout = .01
             esp.hard_reset()
-            # esp._port.close()
 
-            return port_name, esp
+            return esp
         except (esptool.FatalError, OSError) as err:
             print("%s failed to connect: %s" % (port, err))
+            raise err
 
     return None
 

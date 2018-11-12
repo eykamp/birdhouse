@@ -42,12 +42,11 @@ Server options:
 import json
 import os
 import re
-import serial
 import subprocess
 import requests                             # pip install requests
 import tempfile
 import time
-
+import esptool                              # pip install esptool
 from docopt import docopt                   # pip install docopt
 from types import SimpleNamespace
 from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -172,14 +171,15 @@ def main(settings):
                 print("Aborting.")
                 exit()
 
-        settings.port = find_birdhouse_port()
+        settings.esp = find_birdhouse_port()
+        settings.port = settings.esp._port.portstr
         # If we have a UI, we can get the port later.  If running headless, we need it now, or we'll have to abort.
         if settings.port is None:
             print("Could not find a USB port with a birdhouse on it.  Is your device plugged in?  Is another program using the port?")
             # list_hwids(port)   <-- Not using hwids anymore!
             exit()
 
-        bhserial = esp._port  #serial.Serial(settings.port, 115200, timeout=1)
+        bhserial = settings.esp._port
         if bhserial is None:
             print("Could not establish serial connection to device on port " + settings.port)
             exit()
@@ -193,22 +193,6 @@ def main(settings):
         exit()
 
     # assign_device_to_public_user(token, device_id)
-
-    time.sleep(10)
-    print("Reading1")
-    birdhouse_utils.hard_reset(esp, bhserial)
-    print("Reading2")
-
-    x = read_params_from_device(bhserial)
-    print(x)
-
-    time.sleep(10)
-    print("Reading3")
-    birdhouse_utils.hard_reset(esp, bhserial)
-
-    print("Reading4")
-    x = read_params_from_device(bhserial)
-    print(x)
 
     if ui_mode:
         start_ui(tbapi, bhserial)
@@ -238,23 +222,20 @@ def upload_firmware_and_configure(bhserial, settings):
 
 
 
-esp = None
-
-
 def find_birdhouse_port():
-    global esp
     # If we are uploading firmware, we need to figure out which port the device is on.
     # If we can't find the right port, we'll abort.
     print("Scanning ports for a connected birdhouse...", end='')
-    port, esp = birdhouse_utils.get_best_guess_port()
 
-    if port is None:
+    try:
+        esp = birdhouse_utils.get_best_guess_port()
+    except esptool.FatalError:
         print(" not found")
         return None
 
-    print("Using " + port)
+    print("Using " + esp._port.portstr)
 
-    return port, esp
+    return esp
 
 
 def get_or_validate_device_token(tbapi, birdhouse_number, token_to_validate, create_thingsboard_objects):
@@ -503,23 +484,14 @@ def get_default_values(settings):
 
 def set_params(bhserial, settings):
 
-    birdhouse_utils.hard_reset(esp, bhserial)
-    
     defaults = get_default_values(settings)
 
+
+    # Process in batches because if we do too many, the values don't stick.  Likely a bug in aREST.
     batch = 0
+    batch_size = 5
 
-    batch_size = 5                      # Do this in batches because if we do too many, they values don't stick.  Likely a bug in aREST.
-
-    print("Start flushing")
-    resp = send_line_to_serial(bhserial, "")   # Send blank line so we get something back
-
-    while resp != "":
-        resp = read_serial(bhserial)
-        print("Flushing line:", resp)
-
-
-    print("Done flushing")
+    birdhouse_utils.hard_reset(settings.esp)
 
     items = list(defaults.items())
 
@@ -556,7 +528,7 @@ def set_params(bhserial, settings):
 
             resp = send_line_to_serial(bhserial, "")
             print("Got response:", resp)
-
+            
             if resp == '':
                 tries -= 1
                 continue
@@ -583,7 +555,6 @@ def set_params(bhserial, settings):
 
 
 def read_params_from_device(bhserial):
-
     tries = 10
     while tries > 0:
         resp = send_line_to_serial(bhserial, "")
@@ -604,30 +575,8 @@ def read_params_from_device(bhserial):
 
 def send_line_to_serial(bhserial, cmd):
     bhserial.write(bytes((cmd + '\r\n').encode('UTF-8')))       # Send blank line to get back full variable list
-    time.sleep(0.1)
-    return read_serial(bhserial)
-
-
-def read_serial(ser):
-    buff = ser.read_until()
-    print("Buff:",buff)
-    return buff
-    
-    start_time = time.time()
-    buff = ""
-    eating_newlines = True
-
-    while ((time.time() - start_time) < 1):    # seconds
-        char = ser.read(1).decode('Latin-1')   # Read one char, convert to Latin-1, which  handles high-order characters properly, which we sometimes get when there's garbage in the EEPROM
-        if char == '\n' or char == '\r':
-            if eating_newlines:
-                continue
-            else:
-                return buff
-        eating_newlines = False
-        buff += char
-
-    print("Returning buff: |" + buff + "|")
+    time.sleep(0.5)
+    buff = bhserial.read_until()
     return buff
 
 
@@ -699,8 +648,6 @@ class MainMenu(Frame):
         self.palette["changed"] = (Screen.COLOUR_RED, Screen.A_NORMAL, Screen.COLOUR_BLUE)
 
         self._status_msg = Label("Welcome!")
-
-        self.reset_form()
 
         # User supplied data:
         layout.add_widget(Text("Birdhouse Number:", "birdhouse_number", validator=r'^\d+$', on_change=self.on_birdhouse_number_changed, on_blur=partial(self.on_blurred, "birdhouse_number")))
@@ -898,9 +845,6 @@ class MainMenu(Frame):
         ''' Updates the UI and settings object based on values retrieved from an attached device '''
         defaults = get_default_values(settings)
         params = read_params_from_device(self.bhserial)
-        print(params)
-        self.set_status_msg("Done!!!")
-        return
 
         for item in list(defaults.items()):
             field, val, path, settingspath = item[0], item[1][0], item[1][1], item[1][2]
@@ -919,66 +863,13 @@ class MainMenu(Frame):
         print(msg)
 
 
-    def reset_form(self):
-        for data_element in parse_list:
-            self.data[data_element] = ""
-
-
-    def parse_response(self, json):
-        for data_element in parse_list:
-            # Runs a series of commands that look like: self.data["local_pass"] = (json["variables"]["localPass"])
-            cmd = 'self.data["' + data_element + '"] = str(json["variables"]' + parse_list[data_element][0] + ')'
-            try:
-                exec(cmd)
-            except KeyError:
-                print("Could not find expected key in JSON received from Birdhouse.  Looking for: %s, but did not find it.\nJSON: %s" % (data_element, json))
-                exit()
-            except Exception as ex:
-                print("Trying to execute line: %s" % cmd)
-                print("JSON: %s" % json)
-                print(ex)
-                raise ex
-
-            # Special handlers:
-            if data_element == 'birdhouse_number':
-                self.data[data_element] = str(self.data[data_element]).zfill(3)
-
-            # Do this before clobbering with cmd line params so that the changes will be highlighted on the form
-            self.orig_data[data_element] = self.data[data_element]
-
-            # Overwrite any values with those from the cmd line
-            if self.overwrite_params_with_cmd_line_values:
-                if parse_list[data_element][2] is not None:
-                    try:
-                        initVal = eval("args." + parse_list[data_element][2])
-                    except AttributeError:
-                        initVal = None
-                    if initVal is not None:
-                        self.data[data_element] = initVal
-                        print("Setting %s to %s" % (data_element, str(initVal)))
-
-            # Populate the widget
-            widget = self.layout.find_widget(data_element)
-            if not widget:
-                print("Could not find widget %s", data_element)
-                exit(1)
-            try:
-                widget.value = self.data[data_element]
-            except AttributeError as ex:
-                print("Failed evaluting element %s" % data_element)
-                raise ex
-
-            # Special handlers:
-            settings.self.layout.find_widget('birdhouse_number').value = self.data['birdhouse_number']
-
-
     def write_values(self):
         set_params(self.bhserial, self.settings)
 
 
     def reload_values(self):
         self.set_status_msg("Reading values from device")
-        birdhouse_utils.hard_reset(esp, self.bhserial)
+        birdhouse_utils.hard_reset(self.settings.esp)
         self.set_status_msg("Done")
         self.query_birdhouse()
         self.set_status_msg("Imported saved values from device")
