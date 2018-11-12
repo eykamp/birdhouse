@@ -25,7 +25,7 @@ import birdhouse_utils
 
 
 from thingsboard_api_tools import TbApi                             # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-from config import motherShipUrl, username, password, deq_logfile   # You'll need to create this... Be sure to gitignore it!
+from config import base_url, thingsboard_username, thingsboard_password, deq_logfile   # You'll need to create this... Be sure to gitignore it!
 
 
 args = docopt(__doc__)
@@ -38,7 +38,8 @@ build_only = args['build']
 # clean = True
 # build_only = False
 
-tbapi = TbApi(motherShipUrl, username, password)
+mothership_url = birdhouse_utils.make_mothership_url(base_url)
+tbapi = TbApi(mothership_url, thingsboard_username, thingsboard_password)
 
 
 winscp_program_location = r"c:\Program Files (x86)\WinSCP\WinSCP.com"

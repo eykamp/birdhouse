@@ -516,6 +516,10 @@ def get_port_names():
     return ports
 
 
+def make_mothership_url(base_url):
+    return "http://" + base_url + ":8080"
+
+
 def get_best_guess_port():
     for port in get_ports():
         port_name = port.name or port.device
