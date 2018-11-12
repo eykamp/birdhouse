@@ -53,7 +53,6 @@ remote_dir = "/sensorbot/firmware_images"                   # Where we store the
 
 
 def main():
-
     version = extract_version(source_file)
     build_target_file = source_name + "_" + str(version) + ".bin"
 
