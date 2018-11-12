@@ -9,6 +9,8 @@ import serial.tools.list_ports
 import re
 import sys
 import esptool
+import time
+
 # pip install geopy pyserial esptool
 
 # These are IDs that are associated with NodeMCU boards
@@ -520,16 +522,32 @@ def make_mothership_url(base_url):
     return "http://" + base_url + ":8080"
 
 
+def hard_reset(esp, ser):
+    # esp = esptool.ESPLoader.detect_chip(port)
+    print("Resetting")
+    esp.hard_reset()
+
+    time.sleep(1)
+
+    s = esp._port.read_all()
+    print(s)
+    print("--")
+
+    # esp._port.close()
+    # del esp
+
+
 def get_best_guess_port():
     for port in get_ports():
         port_name = port.name or port.device
         print("Probing port " + port_name)
         try:
             esp = esptool.ESPLoader.detect_chip(port_name)
+            esp._timeout = .01
             esp.hard_reset()
-            esp._port.close()
+            # esp._port.close()
 
-            return port_name
+            return port_name, esp
         except (esptool.FatalError, OSError) as err:
             print("%s failed to connect: %s" % (port, err))
 
