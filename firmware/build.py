@@ -64,7 +64,7 @@ def main():
 
     build(source_file, build_target, build_target_file)
 
-    text = input("Proceed with upload to devices << " + devices + " >>? [Y/N]")
+    text = input("Upload firmware version " + str(version) + " to devices << " + devices + " >>? [Y/N]")
     if text.lower() != "y":
         exit()
 
