@@ -113,8 +113,8 @@ def build(source_file, build_target, build_target_file):
     os.rename(os.path.join(build_folder, built_file), os.path.join(build_folder, build_target_file))
 
 
-''' Ensure our binary doesn't grow too large for OTA updates '''
 def binary_too_big(output):
+    ''' Ensure our binary doesn't grow too large for OTA updates '''
     for output_line in output:
         # Sketch uses 318064 bytes (30%) of program storage space. Maximum is 1044464 bytes.
         search = re.search('^Sketch uses \d+ bytes \((\d+)%\) of program storage space. Maximum', output_line)
@@ -143,7 +143,7 @@ def upload(source_file, source_file_with_version, build_target, remote_dir, devi
     # Expand any ranges (1-3 to 1,2,3)
     for num in device_list:
         if "-" in num:
-            low,high = num.split("-")
+            low, high = num.split("-")
             nums = list(range(int(low), int(high) + 1))   # + 1 to ensure we include the high value, which would normally get omitted because of list index semantics
 
             prepared_device_list.extend(nums)
