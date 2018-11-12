@@ -14,6 +14,13 @@
 #include "Types.h"
 #include "Intervals.h"
 #include "BirdhouseEeprom.h"
+#include <aREST.h>                // Our REST server for provisioning -- MUST BE INCLUDED BEFORE MqttUtils.h
+                                  // aREst.h does not terminate lines with a /r/n when the token PubSubClient_h 
+                                  // is defined, and that lack of termination causes our serial port i/o
+                                  // to stall.
+                                  // We use the PubSubClient library, (it's imported in MqttUtils.h) so we need 
+                                  // to include that after we've brought in the aREST lib.  
+
 #include "MqttUtils.h"
 #include "ParameterManager.h"
 #include "LedUtils.h"
@@ -22,7 +29,6 @@
 
 #include <PMS.h>                  // Plantower
 #include <ESP8266httpUpdate.h>    // OTA Updates
-#include <aREST.h>                // Our REST server for provisioning
 
 #include "ESP8266Ping.h"          // For ping, of course
 #include "Filter.h"               // For data smoothing
