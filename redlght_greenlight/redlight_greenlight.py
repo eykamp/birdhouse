@@ -5,7 +5,6 @@ import googlemaps       # sudo pip install googlemaps
 import geopy.distance   # sudo pip install geopy
 import re
 import os
-import base64
 import time
 import hashlib          # for md5 
 
