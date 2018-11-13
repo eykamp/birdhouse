@@ -239,7 +239,7 @@ class handle_validate_key:
         device = tbapi.get_device_by_name(name)
 
         if device is None:
-            raise web.HTTPError("401 Invalid device '" + name + "'") 
+            return "bad_device"
 
         token = tbapi.get_device_token(device)
 
