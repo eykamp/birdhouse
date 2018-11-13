@@ -6,7 +6,7 @@ import geopy.distance   # sudo pip install geopy
 import re
 import os
 import time
-import hashlib          # for md5 
+import hashlib          # for md5
 
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 from thingsboard_api_tools import TbApi # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -83,7 +83,7 @@ class handle_hotspots:
         if "error" in results:
             web.debug("Received error from Google API!")
             return
- 
+
         try:
             wifi_lat = results["location"]["lat"]
             wifi_lng = results["location"]["lng"]
@@ -144,7 +144,7 @@ def get_firmware(full_filename):
         web.debug("Sending firmware (" + byte_count + " bytes), with hash " + md5)
 
         web.header('Content-type','application/octet-stream')
-        web.header('Content-transfer-encoding','base64') 
+        web.header('Content-transfer-encoding','base64')
         web.header('Content-length', byte_count)
         web.header('x-MD5', md5)
 
@@ -234,7 +234,7 @@ class handle_validate_key:
         key = query['key']
 
         if name == '' or key == '':
-            raise web.HTTPError("401 Please specify 'name' and 'key' params") 
+            raise web.HTTPError("401 Please specify 'name' and 'key' params")
 
         device = tbapi.get_device_by_name(name)
 
@@ -244,9 +244,9 @@ class handle_validate_key:
         token = tbapi.get_device_token(device)
 
         return "true" if token == key else "false"
-        
 
-class set_led_color:    
+
+class set_led_color:
     def POST(self):
         # Decode request data
 
