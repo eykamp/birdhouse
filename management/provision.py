@@ -2,7 +2,7 @@
 provision.py: The birdhouse and bottlebot provisioning script
 
 Usage:
-        provision.py
+        provision.py [<number> --token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD]
         provision.py upload <number> --token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD
         provision.py create <number> --addr ADDRESS [--addr2 ADDRESS2] --city CITY --state STATE [--country COUNTRY] [--zip ZIP] --email EMAIL --phone PHONE [--lat LAT --lon LON] [--baseurl URL] [--testmode]
         provision.py create upload <number> --addr ADDRESS [--addr2 ADDRESS2] --city CITY --state STATE [--country COUNTRY] [--zip ZIP] --email EMAIL --phone PHONE [--lat LAT --lon LON] --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD [--baseurl URL]
@@ -90,10 +90,10 @@ settings = SimpleNamespace(**{
 
 settings.birdhouse_number = args['<number>']
 settings.led_style        = args['--ledstyle']
-device_token_arg          = args['--token']
+settings.device_token     = args['--token']
 settings.wifi_ssid        = args['--wifissid']   or config.wifi_ssid       if 'wifi_ssid'       in dir(config) else None
-settings.wifi_password    = args['--wifipass']   or config.wifi_password   if 'wifi_password'   in dir(config) else None
-settings.device_local_pw  = args['--devicepass'] or config.device_password if 'device_password' in dir(config) else None
+settings.wifi_pass        = args['--wifipass']   or config.wifi_password   if 'wifi_password'   in dir(config) else None
+settings.local_pass       = args['--devicepass'] or config.device_password if 'device_password' in dir(config) else None
 base_url                  = args['--baseurl']    or config.base_url        if 'base_url'        in dir(config) else "www.sensorbot.org"
 
 thingsboard_username = config.thingsboard_username if 'thingsboard_username' in dir(config) else None
@@ -121,7 +121,7 @@ ui_mode            = not args['upload'] and not args['create'] and not args['del
 
 testmode           = args['--testmode']
 
-if thingsboard_only and device_token_arg is not None:
+if thingsboard_only and settings.device_token is not None:
     print("Can't pass a token if we're only creating the server objects!")
     exit()
 
@@ -147,7 +147,7 @@ if ui_mode:
 
 
 def main(settings):
-    print("Version " + __version__)
+    print("Sensorbot Device Provisioning Script Version " + __version__ )
 
     validate_led_style(settings.led_style)
 
@@ -156,28 +156,26 @@ def main(settings):
         tbapi = TbApi(mothership_url, thingsboard_username, thingsboard_password)
 
     if should_delete_only:
-        settings.birdhouse_utils.purge_server_objects_for_device(tbapi, settings.birdhouse_number)
+        birdhouse_utils.purge_server_objects_for_device(tbapi, settings.birdhouse_number)
         exit()
 
+
     device_name = birdhouse_utils.make_device_name(settings.birdhouse_number)
-    print("Configuring device '" + device_name + "'\n")
+    if settings.birdhouse_number is not None:
+        print("Configuring device '" + device_name + "'\n")
 
     # Get the port first to ensure our local house is in order before we validate things over the network
+    validated_token = False
     if should_upload_firmware:
-
         if settings.birdhouse_number is not None and settings.device_token is not None:
-            if not validate_device_token(tbapi, settings.birdhouse_number, settings.device_token):
+            if not validate_device_token(settings.birdhouse_number, settings.device_token):
                 print("Passed an invalid device token for the specified device.")
                 print("Aborting.")
                 exit()
+            validated_token = True
 
         settings.esp = find_birdhouse_port()
         settings.port = settings.esp._port.portstr
-        # If we have a UI, we can get the port later.  If running headless, we need it now, or we'll have to abort.
-        if settings.port is None:
-            print("Could not find a USB port with a birdhouse on it.  Is your device plugged in?  Is another program using the port?")
-            # list_hwids(port)   <-- Not using hwids anymore!
-            exit()
 
         bhserial = settings.esp._port
         if bhserial is None:
@@ -196,30 +194,23 @@ def main(settings):
 
     if ui_mode:
         start_ui(tbapi, bhserial)
+        exit()
 
-    settings.device_token = get_or_validate_device_token(tbapi, settings.birdhouse_number, device_token_arg, should_create_thingsboard_objects)
-    exit()
+    if not validated_token:
+        settings.device_token = get_or_validate_device_token(tbapi, settings.birdhouse_number, settings.device_token, should_create_thingsboard_objects)
 
     if should_upload_firmware:
         upload_firmware_and_configure(bhserial, settings)
 
 
 def upload_firmware_and_configure(bhserial, settings):
-    print("Uploading firmware to device on " + settings.port + "...")
-    upload_firmware(settings.port)
+    # birdhouse_utils.hard_reset(settings.esp)
+    # time.sleep(1)
+    upload_firmware(settings.esp)
 
     time.sleep(2)
 
     set_params(bhserial, settings)
-
-    # def list_hwids(port):
-#     ids = birdhouse_utils.get_port_hwids()
-
-#     if len(ids) > 0:
-#         print("Here is a list of all hwids I could find:")
-#         print(birdhouse_utils.get_port_hwids())
-#         print("If you are sure the device is plugged in, please send this list to chris@sensorbot.org.")
-
 
 
 def find_birdhouse_port():
@@ -230,8 +221,14 @@ def find_birdhouse_port():
     try:
         esp = birdhouse_utils.get_best_guess_port()
     except esptool.FatalError:
-        print(" not found")
+        print(" error")
         return None
+
+    if esp is None:
+        print(" none found")
+        print("Could not find a USB port with a birdhouse on it.\n\t* Is your device plugged in?\n\t* Is another program using the port?")
+        # list_hwids(port)   <-- Not using hwids anymore!
+        exit()
 
     print("Using " + esp._port.portstr)
 
@@ -264,14 +261,14 @@ def get_or_validate_device_token(tbapi, birdhouse_number, token_to_validate, cre
 
     else:
         print("Validating device token...", end='')
-        if not validate_device_token(tbapi, birdhouse_number, token_to_validate):
+        if not validate_device_token(birdhouse_number, token_to_validate):
             print(" failed\nDevice token appears invalid for specified device. Please check the number and dial again.")
             exit()
         print(" ok")
         return token_to_validate
 
 
-def validate_device_token(tbapi, birdhouse_number, token):
+def validate_device_token(birdhouse_number, token):
     if birdhouse_number is None or token is None:
         return False
 
@@ -297,6 +294,12 @@ def validate_device_token(tbapi, birdhouse_number, token):
         print("\nError validating device token; server returned code " + str(resp.status_code))
         print("Aborting!")
         exit()
+
+    if resp.text == 'bad_device':
+        print("\nThe device number you specified is unknown or invalid.")
+        print("Aborting!")
+        exit()
+
 
     return resp.text == 'true'
 
@@ -381,16 +384,20 @@ def create_customer(tbapi, cust_name, cust_info):
                               cust_info["zip"], cust_info["country"], cust_info["email"], cust_info["phone"])
 
 
-def upload_firmware(serial_port):
-
+def upload_firmware(esp):
+    serial_port = esp._port.portstr
     try:
         firmware = fetch_firmware()
 
         try:
             start = timer()
 
-            print("Uploading firmware to device...")
-            run(["python", "-u", "esptool.py", '--port', serial_port, 'write_flash', '0x00000', firmware])
+            print("Uploading firmware to device on " + serial_port + "...")
+
+            esptool.write_flash(esp, ('0x00000', firmware))   <=== what are args?
+
+            # run(["python", "-u", "esptool.py", '--port', serial_port, 'write_flash', '0x00000', firmware])
+            # print("ret " + str(ret))
 
             elapsed = timer() - start   # in seconds
 
@@ -414,12 +421,11 @@ def upload_firmware(serial_port):
             exit()
 
     finally:
-        os.remove(firmware)
+        os.remove(firmware)     # Cleanup, cleanup
 
 
 def run(cmd):
     subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-
 
 def validate_led_style(led_style):
     styles = [i[1] for i in led_styles]
@@ -474,9 +480,9 @@ def get_default_values(settings):
         'ledStyle':                     (settings.led_style,         '["ledStyle"]',                                           'led_style',        'str'),
         'deviceToken':                  (settings.device_token,      '["deviceToken"]',                                        'device_token',     'str'),
         'localSsid':                    (device_name,                '["localSsid"]',                                          None,               'str'),
-        'localPass':                    (settings.device_local_pw,   '["localPass"]',                                          'local_pass',       'str'),
+        'localPass':                    (settings.local_pass,        '["localPass"]',                                          'local_pass',       'str'),
         'wifiSsid':                     (settings.wifi_ssid,         '["wifiSsid"]',                                           'wifi_ssid',        'str'),
-        'wifiPass':                     (settings.wifi_password,     '["wifiPass"]',                                           'wifi_pass',        'str'),
+        'wifiPass':                     (settings.wifi_pass,         '["wifiPass"]',                                           'wifi_pass',        'str'),
         'serialNumber':                 (settings.birdhouse_number,  '["serialNumber"]',                                       'birdhouse_number', 'int'),
     }
 
@@ -485,7 +491,6 @@ def get_default_values(settings):
 def set_params(bhserial, settings):
 
     defaults = get_default_values(settings)
-
 
     # Process in batches because if we do too many, the values don't stick.  Likely a bug in aREST.
     batch = 0
@@ -650,13 +655,18 @@ class MainMenu(Frame):
         self._status_msg = Label("Welcome!")
 
         # User supplied data:
-        layout.add_widget(Text("Birdhouse Number:", "birdhouse_number", validator=r'^\d+$', on_change=self.on_birdhouse_number_changed, on_blur=partial(self.on_blurred, "birdhouse_number")))
+        layout.add_widget(Text("Birdhouse Number:", "birdhouse_number", validator=r'^\d+$', on_change=self.on_birdhouse_number_changed, on_blur=partial(self.on_blurred, "birdhouse_number", True)))
+        layout.add_widget(Text("Device Token:", "device_token", validator=token_validation_pattern, on_blur=partial(self.on_blurred, "device_token", True)))
 
-        layout.add_widget(Text("Device Token:", "device_token", validator=token_validation_pattern, on_blur=partial(self.on_blurred, "device_token")))
+        layout.add_widget(Text("Local Password:", "local_pass", on_blur=partial(self.on_blurred, "local_pass", False)))
+        layout.add_widget(Text("WiFi SSID:", "wifi_ssid", on_blur=partial(self.on_blurred, "wifi_ssid", False)))
+        layout.add_widget(Text("WiFi Password:", "wifi_pass", on_blur=partial(self.on_blurred, "wifi_pass", False)))
 
-        layout.add_widget(Text("Local Password:", "local_pass", on_change=self.input_changed))
-        layout.add_widget(Text("WiFi SSID:", "wifi_ssid", on_change=self.input_changed))
-        layout.add_widget(Text("WiFi Password:", "wifi_pass", on_change=self.input_changed))
+        layout.add_widget(RadioButtons(led_styles, "LED Style:", "led_style", on_change=self.on_led_style_changed))
+
+
+        # provision.py [<number> --token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD]
+
 
 
         # layout.add_widget(RadioButtons([("Red", "Red"), ("Yellow", "Yellow"), ("Green", "Green"), ("Cycle", "all"), ("Off", "off")], "Test LEDs", "led_test", on_change=self.on_test_leds_changed))
@@ -664,48 +674,32 @@ class MainMenu(Frame):
 
 
         # Parameters
-        layout.add_widget(Text("Device on Port:", "port"))
+        layout.add_widget(Text("Using device on Port:", "port"))
         layout.find_widget("port").disabled = True
         # layout.find_widget("port").value = settings.port or "Device not found! Please plug it in!"
-
-        layout.add_widget(Text("Temp Sensor:", "temperatureSensor"))
-        layout.find_widget("temperatureSensor").disabled = True
-        layout.add_widget(Text("Found Plantower Sensor:", "plantowerSensorDetected"))
-        layout.find_widget("plantowerSensorDetected").disabled = True
-
-        layout.add_widget(Text("WiFi Status:", "wifi_status"))
-        layout.find_widget("wifi_status").disabled = True
-        layout.add_widget(Text("MQTT Status:", "mqtt_status"))
-        layout.find_widget("mqtt_status").disabled = True
-
-        layout.add_widget(RadioButtons(led_styles, "LED Style:", "led_style", on_change=self.on_led_style_changed))
-
 
         layout.add_widget(Text("Local SSID:", "local_ssid", on_change=self.input_changed))
         layout.find_widget("local_ssid").disabled = True
 
         layout.add_widget(Divider())
 
-        # Buttons
-        layout2 = Layout([1, 1, 1, 1])
-        self.add_layout(layout2)
-        layout2.add_widget(Button("Server", self.server_config), 0)
-        layout2.add_widget(Button("Write to device", self.write_values), 0)
-        layout2.add_widget(Button("Refresh", self.reload_values), 1)
-        # layout2.add_widget(Button("Rescan Ports", self.scan_ports), 1)
-        layout2.add_widget(Button("Reboot Birdhouse", self.reboot), 2)
-        layout2.add_widget(Button("Exit", self._quit), 3)
 
-        layout3 = Layout([100])
+        # Buttons
+        layout2 = Layout([1, 1])
+        self.add_layout(layout2)
+        layout2.add_widget(Button("[Install firmware]", self.install_firmware, add_box=False), 0)
+        layout2.add_widget(Button("[Exit]", self._quit, add_box=False), 1)
+
+        layout3 = Layout([16, 15, 8])
         self.add_layout(layout3)
-        layout3.add_widget(Divider())
-        layout3.add_widget(Button("Finalize", self.finalize), 0)
+        layout3.add_widget(Button("[Write settings]", self.write_values, add_box=False), 0)
+        layout3.add_widget(Button("[Load settings]", self.reload_values, add_box=False), 1)
+        layout3.add_widget(Button("[Reboot]", self.reboot, add_box=False), 2)
 
         # Status message
-        layout4 = Layout([100])
-        self.add_layout(layout4)
-        layout4.add_widget(Divider())
-        layout4.add_widget(self._status_msg)
+        layout_status = Layout([100])
+        self.add_layout(layout_status)
+        layout_status.add_widget(self._status_msg)
 
         self.fix()  # Calculate positions of widgets
 
@@ -748,7 +742,7 @@ class MainMenu(Frame):
         if settings.birdhouse_number is None:
             return
 
-        if validate_device_token(self.tbapi, settings.birdhouse_number, token):
+        if validate_device_token(settings.birdhouse_number, token):
             self.set_status_msg("Token OK")
             self.token_ok = True
         else:
@@ -763,22 +757,20 @@ class MainMenu(Frame):
         self.layout.find_widget('local_ssid').value = birdhouse_utils.make_device_name(num)
 
 
-    def on_blurred(self, name=None):
+    def on_blurred(self, name=None, change_triggers_device_token_validation=False):
         if name is None:
             return
 
-        print("name=",name)
+        print("name=", name)
 
-        if self.value_changed(name):
+        changed = self.update_settings_param(name)
+        if changed and change_triggers_device_token_validation:
             self.revalidate_device_token()
 
-
-    # def on_device_token_blurred(self):
-    #     if self.value_changed('device_token'):
-    #         self.revalidate_device_token()
+        self.set_status_msg(name + " set to " + eval("settings." + name))
 
 
-    def value_changed(self, item):
+    def update_settings_param(self, item):
         val = self.layout.find_widget(item).value
         # if val == "":
         #     return False
@@ -814,12 +806,9 @@ class MainMenu(Frame):
         if self.initializing:
             return
 
-        if self.has_connection_to_birdhouse:
-            val = self.layout.find_widget("led_style").value
-            cmd = '/setparams?ledStyle=' + val
-            print(cmd)
-            resp = send_line_to_serial(self.bhserial, cmd)  # We'll ignore the response
-            print(resp)
+        val = self.layout.find_widget("led_style").value
+        self.settings.led_style = val
+
 
     def on_test_leds_changed(self):
         if self.initializing:
@@ -835,10 +824,6 @@ class MainMenu(Frame):
                 self.set_status_msg('LEDS should be off')
             else:
                 self.set_status_msg(val + " LED should be on")
-
-
-    def server_config(self):
-        raise NextScene("Server Configuration")
 
 
     def query_birdhouse(self):
@@ -865,6 +850,11 @@ class MainMenu(Frame):
 
     def write_values(self):
         set_params(self.bhserial, self.settings)
+        self.set_status_msg("Parameters successfully written to device")
+
+
+    def install_firmware(self):
+        upload_firmware_and_configure(self.bhserial, self.settings)
 
 
     def reload_values(self):
@@ -880,17 +870,9 @@ class MainMenu(Frame):
 
         send_line_to_serial(self.bhserial, '/restart')  # We'll ignore the response
 
-
         time.sleep(3)
         self.query_birdhouse()
 
-    def finalize(self):
-        self.set_status_msg("Finalizing")
-
-        send_line_to_serial(self.bhserial, '/updateFirmware')  # We'll ignore the response
-
-        time.sleep(3)
-        self.query_birdhouse()
 
     def make_device_name(self, base_name):
         return base_name
