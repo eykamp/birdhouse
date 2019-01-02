@@ -127,7 +127,8 @@ if thingsboard_only and settings.device_token is not None:
 
 #################################################
 
-mothership_url     = birdhouse_utils.make_mothership_url(base_url)
+base_url           = birdhouse_utils.get_base_url(args)
+mothership_url     = birdhouse_utils.make_mothership_url(args)
 firmware_url       = "http://" + base_url + ":8989/firmware"
 key_validation_url = "http://" + base_url + ":8989/validatekey"
 
@@ -340,7 +341,7 @@ def create_server_objects(tbapi, birdhouse_number):
 
     shared_attributes = None  # ??? Not sure
 
-    sensor_type = birdhouse_utils.get_sensor_type(birdhouse_number)
+    sensor_type = birdhouse_utils.get_sensor_type(birdhouse_number)[0]
     device = tbapi.add_device(device_name, sensor_type, shared_attributes, server_attributes)
     device_id = tbapi.get_id(device)
 
@@ -394,7 +395,7 @@ def upload_firmware(esp):
 
             print("Uploading firmware to device on " + serial_port + "...")
 
-            esptool.write_flash(esp, ('0x00000', firmware))   <=== what are args?
+            # esptool.write_flash(esp, ('0x00000', firmware))   <=== what are args?
 
             # run(["python", "-u", "esptool.py", '--port', serial_port, 'write_flash', '0x00000', firmware])
             # print("ret " + str(ret))
