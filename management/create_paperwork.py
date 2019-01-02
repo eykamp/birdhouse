@@ -1,9 +1,28 @@
+"""
+create_paperwork.py: Create paperwork for devices
+
+Usage:
+        create_paperwork.py <num>...  [--baseurl=URL]
+
+Parameters:
+    num                 Device number
+
+Options:
+    --baseurl URL       Base URL of Sensorbot Thingsboard installation (do not include http:// prefix!) (e.g. 'www.sensorbot.org')
+ """
+
 import tempfile
 import subprocess
 import os
 import re
 from lxml import etree
 from copy import deepcopy
+from docopt import docopt                   # pip install docopt
+
+import birdhouse_utils
+from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+
+import config
 
 
 nameplate_template_file = r'c:\dev\birdhouse\management\nameplate_template.svg'
@@ -15,14 +34,41 @@ element_height = 235
 elements_per_page = 4
 
 
-params = [("Bott1", "001", "XXXXXXXXXXXXXXXXXXXX"), ("Bott1", "2222", "LO"*5), ("Bott1", "3", "MMMMMMMMMM"),
-            ("Bott1", "44-44", "XOXO" * 5), ("Bott1", "55555", "Y"*20), ("Bott1", "666", "8*8*"*5), ("Bott1", "001", "XXXXXXXXXXXXXXXXXXXX"), ("Bott1", "2222", "LO"*5), ("Bott1", "3", "MMMMMMMMMM"),
-            ("Bott1", "44-44", "XOXO" * 5), ("Bott1", "55555", "Y"*20), ("Bott1", "666", "8*8*"*5), ("Bott1", "$$$", "8*8*"*5)]
+args = docopt(__doc__)
+
 
 
 def main():
+    params = make_params(args["<num>"])
+
+    print("Generating PDF documents... ", end='', flush=True)
     pages = generate_pdfs(params)
+    print("Ok")
     print(f"Generated {pages} PDF documents")
+
+
+def make_params(nums):
+    mothership_url = birdhouse_utils.make_mothership_url(args)
+
+    tbapi = TbApi(mothership_url, config.thingsboard_username, config.thingsboard_password)
+
+    params = []
+
+    for num in nums:
+        print(f"Retrieving details for device {num}... ", end='', flush=True)
+        name = birdhouse_utils.make_device_name(num)
+        device = tbapi.get_device_by_name(name)
+
+        if device is None:
+            print(f"Failed.\nCould not find device {num}... Aborting.")
+            exit()
+
+        token = tbapi.get_device_token(device)
+
+        params.append((birdhouse_utils.get_sensor_type(num)[1], birdhouse_utils.make_device_number(num), token))
+        print("done.")
+
+    return params
 
 
 def generate_pdfs(params):
