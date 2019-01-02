@@ -81,7 +81,7 @@ PMS::DATA PmsData;
 
 
 // Where do we check for firmware updates?
-#define FIRMWARE_UPDATE_SERVER "198.46.139.101"
+#define FIRMWARE_UPDATE_SERVER "192.210.218.130"
 #define FIRMWARE_UPDATE_PORT 8989
 
 
@@ -187,9 +187,8 @@ void setupPubSubClient() {
   if(!wifiUtils.isConnected())                  // No point in doing anything here if we don't have internet access
     return;
 
-  IPAddress serverIp; 
-  IPAddress fallbackServerIp(198,46,139,101);   // 198.46.139.101 ==> sensorbot.org v 2.0
-
+  IPAddress serverIp;
+  IPAddress fallbackServerIp(192, 210, 218, 130); // 192.210.218.130 ==> sensorbot.org 3.0
 
   dnsLookupOk = (WiFi.hostByName(Eeprom.getMqttUrl(), serverIp) == 1);
 
