@@ -3,6 +3,7 @@ from geopy.geocoders import Bing
 from geopy.geocoders import GoogleV3
 
 from config import google_geocoder_api_key, bing_geocoder_api_key
+import config
 
 import serial                       # pip install pyserial
 import serial.tools.list_ports
@@ -528,8 +529,24 @@ def get_port_names():
     return ports
 
 
-def make_mothership_url(base_url):
-    return "http://" + base_url + ":8080"
+def get_base_url(args):
+    """
+    Try to figure out which URL to use: was it passed with the --baseurl parameter?  In our config file?  Or just the default?
+    args is a docopt argument list
+    """
+    return args['--baseurl'] or config.base_url if 'base_url' in dir(config) else "www.sensorbot.org"
+
+
+def make_mothership_url(args):
+    """
+    Pass in a string representing the base server URL, or a docopt arg array from which the --baseurl param will be extracted
+    """
+    if type(args) is str:
+        base = args
+    else:
+        base = get_base_url(args)
+
+    return "http://" + base + ":8080"
 
 
 def hard_reset(esp):
