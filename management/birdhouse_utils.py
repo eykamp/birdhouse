@@ -18,6 +18,9 @@ import time
 ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
 
 
+def make_device_number(birdhouse_number):
+    return str(birdhouse_number).zfill(3)
+
 
 def make_device_name(birdhouse_number):
     if birdhouse_number is None:
@@ -25,7 +28,7 @@ def make_device_name(birdhouse_number):
 
     # If birdhouse_number is not in fact a number, let's assume we already have a name, and just return it
     if re.match(r'^\d+$', str(birdhouse_number)):
-        return 'Birdhouse ' + str(birdhouse_number).zfill(3)
+        return 'Birdhouse ' + make_device_number(birdhouse_number)
     else:
         return birdhouse_number
 
