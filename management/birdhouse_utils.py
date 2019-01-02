@@ -30,17 +30,27 @@ def make_device_name(birdhouse_number):
 
 
 def get_sensor_type(birdhouse_number):
-    # 90-99 resered for BottleBot
+    """
+    Returns two names -- the first is used for configuring Thingsboard and elsewhere a descriptive device name is used;
+    the second is used for printing labels and is a more generic, compact name for the device.
+    """
+    # 90-99 resered for Bottlebots build by Bridges Academy
     if int(birdhouse_number) >= 90 and int(birdhouse_number) <= 99:
-        return 'BottleBot'
+        return 'Bottlebot', 'Bottlebot'
 
     # 100-109 reserved for Lair Hill
     if int(birdhouse_number) >= 100 and int(birdhouse_number) <= 109:
-        return 'Lair Hill Birdhouse'
+        return 'Lair Hill Birdhouse', 'Birdhouse'
 
+    # 150-180 reserved for kits distributed through OMSI
+    if int(birdhouse_number) >= 150 and int(birdhouse_number) < 170:
+        return 'OMSI Kit Birdhouse', 'Birdhouse'
+
+    if int(birdhouse_number) >= 170 and int(birdhouse_number) <= 190:
+        return 'OMSI Kit Bottlebot', 'Bottlebot'
 
     # Everything else is a Sensorbot Birdhouse
-    return 'Sensorbot Birdhouse'
+    return 'Sensorbot Birdhouse', 'Birdhouse'
 
 
 def make_dash_name(birdhouse_number):
