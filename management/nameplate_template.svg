@@ -33,9 +33,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4"
-     inkscape:cx="283.17912"
-     inkscape:cy="746.42252"
+     inkscape:zoom="0.7"
+     inkscape:cx="183.93745"
+     inkscape:cy="736.83988"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -57,7 +57,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -98,7 +98,7 @@
          sodipodi:role="line"
          id="tspan5182"
          x="-1081.355"
-         y="696.43512"></tspan></text>
+         y="696.43512" /></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;"
@@ -109,7 +109,7 @@
          sodipodi:role="line"
          id="tspan5208"
          x="-895.48694"
-         y="618.14832"></tspan></text>
+         y="618.14832" /></text>
     <g
        id="g8500"
        transform="matrix(2.2702057,0,0,2.2702057,1865.8943,-1157.8089)">
@@ -225,7 +225,7 @@
     </g>
     <g
        id="g3399"
-       transform="matrix(3.7512416,0,0,3.7512416,3765.2675,-1607.8071)">
+       transform="matrix(3.7512416,0,0,3.7512416,3765.2675,-1587.8071)">
       <g
          id="g10576"
          transform="matrix(1.3262093,0,0,1.3262093,432.81546,-231.80824)">
@@ -257,43 +257,44 @@
       <flowRoot
          xml:space="preserve"
          id="flowRoot10568"
-         style="fill:black;stroke:none;stroke-opacity:1;stroke-width:1px;stroke-linejoin:miter;stroke-linecap:butt;fill-opacity:1;font-family:'Noto Sans';font-style:normal;font-weight:normal;font-size:5.33333333px;line-height:125%;letter-spacing:0px;word-spacing:0px;-inkscape-font-specification:'Noto Sans';font-stretch:normal;font-variant:normal"><flowRegion
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.33333349px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"><flowRegion
            id="flowRegion10570"><rect
              id="rect10572"
              width="222.85715"
              height="92.85714"
              x="11.428572"
              y="261.42859" /></flowRegion><flowPara
-           id="flowPara10574"></flowPara></flowRoot>    </g>
+           id="flowPara10574" /></flowRoot>    </g>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        x="-1452.4565"
-       y="761.60669"
+       y="781.60669"
        id="text5174"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan5176"
          x="-1452.4565"
-         y="761.60669"
+         y="781.60669"
          style="font-size:12.5px">Cut template along dashed lines; tape to the back of </tspan><tspan
          sodipodi:role="line"
          x="-1452.4565"
-         y="777.23169"
+         y="797.23169"
          style="font-size:12.5px"
          id="tspan8939">ESP8266 so that USB port is aligned with template</tspan><tspan
          sodipodi:role="line"
          x="-1452.4565"
-         y="792.85669"
+         y="812.85669"
          style="font-size:12.5px"
          id="tspan10594">marking; each 'x' should align with a connector pin.</tspan><tspan
          sodipodi:role="line"
          x="-1452.4565"
-         y="808.48169"
+         y="828.48169"
          id="tspan5178"
          style="font-size:12.5px" /></text>
     <g
-       id="g10168">
+       id="g10168"
+       transform="translate(0,43.075698)">
       <rect
          transform="scale(-1,-1)"
          id="rect1117-55"
@@ -1001,7 +1002,8 @@
            sodipodi:role="line">PM Sensor</tspan></text>
     </g>
     <g
-       id="g10379">
+       id="g10379"
+       transform="translate(0,41.056151)">
       <text
          y="1099.8446"
          x="785.28314"
@@ -1646,72 +1648,89 @@
            sodipodi:role="line">t</tspan></text>
     </g>
     <g
-       id="g8953"
-       transform="translate(10.857143,-38.142043)">
+       id="g3822"
+       transform="translate(0,8.6990088)">
       <text
          sodipodi:linespacing="125%"
          id="text3366"
-         y="663.39215"
-         x="-1332.7504"
+         y="661.25012"
+         x="-1321.8932"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
            id="tspan3375"
-           y="663.39215"
-           x="-1332.7504"
+           y="661.25012"
+           x="-1321.8932"
            sodipodi:role="line" /><tspan
            style="font-size:12.5px"
            id="tspan3381"
-           y="679.01715"
-           x="-1332.7504"
+           y="676.87512"
+           x="-1321.8932"
            sodipodi:role="line" /><tspan
            style="font-size:12.5px"
            id="tspan3385"
-           y="694.64215"
-           x="-1332.7504"
+           y="692.50012"
+           x="-1321.8932"
            sodipodi:role="line">Bottlebot: Tape or glue to outside of PM sensor so it can been seen from the outside.  </tspan><tspan
            style="font-size:12.5px"
            id="tspan3387"
-           y="710.26715"
-           x="-1332.7504"
+           y="708.12512"
+           x="-1321.8932"
            sodipodi:role="line">Note orientation: screw holes are on the outside; connector socket is on top</tspan><tspan
            style="font-size:12.5px"
            id="tspan3389"
-           y="725.89215"
-           x="-1332.7504"
+           y="723.75012"
+           x="-1321.8932"
            sodipodi:role="line" /><tspan
            style="font-size:12.5px"
            id="tspan4265"
-           y="741.51715"
-           x="-1332.7504"
+           y="739.37512"
+           x="-1321.8932"
            sodipodi:role="line" /></text>
       <text
          sodipodi:linespacing="125%"
          id="text3413"
-         y="671.31982"
-         x="-1332.3004"
+         y="669.1778"
+         x="-1321.4432"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
-           y="671.31982"
-           x="-1332.3004"
+           y="669.1778"
+           x="-1321.4432"
            id="tspan3415"
            sodipodi:role="line">Cut this nameplate out (a small white border looks nice), and affix as follows:</tspan></text>
       <text
          sodipodi:linespacing="125%"
          id="text8947"
-         y="733.58948"
-         x="-1332.6003"
+         y="731.44745"
+         x="-1321.7432"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.33333349px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
            style="font-size:12.5px"
-           y="733.58948"
-           x="-1332.6003"
+           y="731.44745"
+           x="-1321.7432"
            id="tspan8949"
            sodipodi:role="line">Birdhouse: Glue to inside of back panel near the peak; ensure enough </tspan><tspan
            style="font-size:12.5px"
            id="tspan8951"
-           y="749.21448"
-           x="-1332.6003"
+           y="747.07245"
+           x="-1321.7432"
            sodipodi:role="line">room for the nail hole used to hang the device.</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.33333349px;line-height:125%;font-family:'Noto Sans';-inkscape-font-specification:'Noto Sans';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="-1320.6807"
+         y="624.30377"
+         id="text3801"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan3803"
+           x="-1320.6807"
+           y="624.30377"
+           style="font-size:17.5px">IMPORTANT: Bottlebot Instructions: https://tinyurl.com/ydxv7hfe </tspan><tspan
+           sodipodi:role="line"
+           x="-1320.6807"
+           y="646.17877"
+           style="font-size:17.5px"
+           id="tspan3805">                        Birdhouse Instructions: https://tinyurl.com/ybv8ey5l </tspan></text>
     </g>
   </g>
 </svg>

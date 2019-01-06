@@ -30,8 +30,8 @@ outfile_base = r'c:\dev\birdhouse\management\test'          # Will have _{pagenu
 
 inkscape = r'c:\Program Files\Inkscape\inkscape.exe'        # Full path to inkscape binary (for converting SVGs to PDFs)
 
-element_height = 235
-elements_per_page = 4
+element_height = 320
+elements_per_page = 3
 
 
 args = docopt(__doc__)
