@@ -44,7 +44,8 @@ def main():
     print("Generating PDF documents... ", end='', flush=True)
     pages = generate_pdfs(params)
     print("Ok")
-    print(f"Generated {pages} PDF documents")
+    pagestr = str(pages).replace('\\\\', '\\')
+    print(f"Generated {len(pages)} PDF documents in folder {pagestr}.")
 
 
 def make_params(nums):
@@ -73,6 +74,7 @@ def make_params(nums):
 
 def generate_pdfs(params):
     pages = calc_num_pages(len(params), elements_per_page)
+    doclist = list()
 
     for page in range(pages):
         # Start afresh for each sheet
@@ -104,6 +106,7 @@ def generate_pdfs(params):
 
         tmpfile = get_temp_file()                   # For an intermediate copy of our SVG
         outfile = outfile_base + f'_{page}.pdf'     # For the final copy of our PDF
+        doclist.append(outfile)
 
         # Convert with Inkscape
         try:
@@ -113,7 +116,7 @@ def generate_pdfs(params):
         finally:
             os.remove(tmpfile)
 
-    return pages
+    return doclist
 
 
 def calc_num_pages(elements, elements_per_page):
