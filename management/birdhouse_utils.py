@@ -2,8 +2,11 @@
 from geopy.geocoders import Bing
 from geopy.geocoders import GoogleV3
 
-from config import google_geocoder_api_key, bing_geocoder_api_key
-import config
+# We don't want to fail in the absence of a config file -- most users won't actually need one
+try:
+    import config
+except ModuleNotFoundError:
+    config = {}
 
 import serial                       # pip install pyserial
 import serial.tools.list_ports
@@ -452,9 +455,8 @@ def geocode(address, address2, city, state, postcode, country):
     if not is_empty(country):
         geoaddress += "," + country
 
-
-    if bing_geocoder_api_key is not None:
-        geolocator = Bing(api_key=bing_geocoder_api_key, timeout=30)
+    if config.bing_geocoder_api_key is not None:
+        geolocator = Bing(api_key=config.bing_geocoder_api_key, timeout=30)
         location = geolocator.geocode(geoaddress, exactly_one=True)
         if location is not None:
             return {"lat": location.latitude, "lon": location.longitude, "zip": get_zip_from_bing_location(location)}
@@ -464,8 +466,8 @@ def geocode(address, address2, city, state, postcode, country):
         print("Skipping Bing geocoder because we don't have a free API key")
 
 
-    if google_geocoder_api_key is not None:
-        geolocator = GoogleV3(api_key=google_geocoder_api_key, timeout=30)
+    if config.google_geocoder_api_key is not None:
+        geolocator = GoogleV3(api_key=config.google_geocoder_api_key, timeout=30)
         location = geolocator.geocode(geoaddress)
         if location is not None:
             return {"lat": location.latitude, "lon": location.longitude, "zip": get_zip_from_google_location(location)}
