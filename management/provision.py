@@ -149,7 +149,7 @@ if ui_mode:
 
 
 def main(settings):
-    print("Sensorbot Device Provisioning Script Version " + __version__ )
+    print("Sensorbot Device Provisioning Script Version " + __version__)
 
     validate_led_style(settings.led_style)
 
