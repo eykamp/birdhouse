@@ -89,13 +89,15 @@ settings = SimpleNamespace(**{
 })
 
 
+
 settings.birdhouse_number = args['<number>']
 settings.led_style        = args['--ledstyle']
 settings.device_token     = args['--token']
-settings.wifi_ssid        = args['--wifissid']   or config.wifi_ssid       if 'wifi_ssid'       in dir(config) else None
-settings.wifi_pass        = args['--wifipass']   or config.wifi_password   if 'wifi_password'   in dir(config) else None
-settings.local_pass       = args['--devicepass'] or config.device_password if 'device_password' in dir(config) else None
-base_url                  = args['--baseurl']    or config.base_url        if 'base_url'        in dir(config) else "www.sensorbot.org"
+settings.wifi_ssid        = args['--wifissid']   or (config.wifi_ssid       if 'wifi_ssid'       in dir(config) else None)
+settings.wifi_pass        = args['--wifipass']   or (config.wifi_password   if 'wifi_password'   in dir(config) else None)
+settings.local_pass       = args['--devicepass'] or (config.device_password if 'device_password' in dir(config) else None)
+base_url                  = args['--baseurl']    or (config.base_url        if 'base_url'        in dir(config) else "www.sensorbot.org")
+
 
 thingsboard_username = config.thingsboard_username if 'thingsboard_username' in dir(config) else None
 thingsboard_password = config.thingsboard_password if 'thingsboard_password' in dir(config) else None
