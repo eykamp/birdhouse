@@ -17,7 +17,9 @@ from thingsboard_api_tools import TbApi     # pip install git+git://github.com/e
 
 # Get our passwords and other private data
 sys.path.insert(0, "../management/")
-from config import motherShipUrl, username, password 
+import config
+
+motherShipUrl      = config.base_url + ":8080"
 
 
 ESP8266_VID_PID = '1A86:7523'
@@ -36,7 +38,7 @@ def main():
     global args, tbapi, port
 
 
-    tbapi = TbApi(motherShipUrl, username, password)
+    tbapi = TbApi(motherShipUrl, config.thingsboard_username, config.thingsboard_password)
 
 
     parser = argparse.ArgumentParser(description='Configurate your birdhouse!')
@@ -247,7 +249,7 @@ class Main(Frame):
 
 
         # Connection info
-        layout.add_widget(Text("Birdhouse Number:", "birdhouse_number", validator="^\d\d\d$", on_change=self.input_changed))
+        layout.add_widget(Text("Birdhouse Number:", "birdhouse_number", validator=r"^\d\d\d$", on_change=self.input_changed))
         self.layout.find_widget("birdhouse_number").value = args.number
 
         layout.add_widget(RadioButtons([("Red", "Red"), ("Yellow", "Yellow"), ("Green", "Green"), ("Cycle", "all"), ("Off", "off")], "Test LEDs", "led_test", on_change=self.on_test_leds_changed))
