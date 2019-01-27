@@ -15,7 +15,6 @@ import sys
 import esptool
 import time
 
-# pip install geopy pyserial esptool
 
 # These are IDs that are associated with NodeMCU boards
 ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
@@ -512,7 +511,7 @@ def get_zip_from_google_location(location):
 
 # Build a list of ports we can use
 def get_ports():
-    return list(serial.tools.list_ports.comports())
+    return esptool.get_port_list()
 
 
 def get_port_hwids():
@@ -570,20 +569,19 @@ def hard_reset(esp):
 
 
 def get_best_guess_port():
-    for port in get_ports():
-        port_name = port.name or port.device
-        print("Probing port " + port_name)
-        try:
-            esp = esptool.ESPLoader.detect_chip(port_name)
-            esp._timeout = .01
-            esp.hard_reset()
+    ports = get_ports()
+    
+    if len(ports) == 0:
+        return None
 
-            return esp
-        except (esptool.FatalError, OSError) as err:
-            print("%s failed to connect: %s" % (port, err))
-            raise err
+    esp = esptool.find_port(ports)
+    # esp._timeout = .01
+    # esp.hard_reset()
+    if esp is not None:
+        return esp
 
-    return None
+    print(f"Could not find device on any port (tried: {ports})")
+    raise esptool.FatalError
 
 
     # for port in get_ports():
