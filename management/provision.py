@@ -179,12 +179,11 @@ def main(settings):
             validated_token = True
 
         settings.esp = find_birdhouse_port()
-        settings.port = settings.esp._port.portstr
 
-        bhserial = settings.esp._port
-        if bhserial is None:
-            print("Could not establish serial connection to device on port " + settings.port)
-            exit()
+        # bhserial = settings.esp._port
+        # if bhserial is None:
+        #     print("Could not establish serial connection to device on port " + settings.esp._port.portstr)
+        #     exit()
 
     if should_create_thingsboard_objects:
         settings.device_token = create_server_objects(tbapi, settings.birdhouse_number)         # This will fail if server objects already exist
@@ -197,24 +196,24 @@ def main(settings):
     # assign_device_to_public_user(token, device_id)
 
     if ui_mode:
-        start_ui(tbapi, bhserial)
+        start_ui(tbapi, settings.esp._port)
         exit()
 
     if not validated_token:
         settings.device_token = get_or_validate_device_token(tbapi, settings.birdhouse_number, settings.device_token, should_create_thingsboard_objects)
 
     if should_upload_firmware:
-        upload_firmware_and_configure(bhserial, settings)
+        upload_firmware_and_configure(settings)
 
 
-def upload_firmware_and_configure(bhserial, settings):
+def upload_firmware_and_configure(settings):
     # birdhouse_utils.hard_reset(settings.esp)
     # time.sleep(1)
     upload_firmware(settings.esp)
+    birdhouse_utils.hard_reset(settings.esp)
+    time.sleep(5)
 
-    time.sleep(2)
-
-    set_params(bhserial, settings)
+    set_params(settings.esp._port, settings)
 
 
 def find_birdhouse_port():
@@ -390,15 +389,18 @@ def create_customer(tbapi, cust_name, cust_info):
 
 def upload_firmware(esp):
     serial_port = esp._port.portstr
+    folder = tempfile.TemporaryDirectory()
     try:
-        firmware = fetch_firmware()
+        firmware = fetch_firmware(folder.name)
 
         try:
             start = timer()
 
-            print("Uploading firmware to device on " + serial_port + "...")
+            # esp = esptool.find_port([esp._port.portstr])
+            print("Uploading firmware to device on " + esp._port.portstr + "...")
 
             # esptool.write_flash(esp, ('0x00000', firmware))   <=== what are args?
+            esptool.main(["write_flash", "0x00000", firmware], esp)
 
             # run(["python", "-u", "esptool.py", '--port', serial_port, 'write_flash', '0x00000', firmware])
             # print("ret " + str(ret))
@@ -504,8 +506,6 @@ def set_params(bhserial, settings):
     batch = 0
     batch_size = 5
 
-    birdhouse_utils.hard_reset(settings.esp)
-
     items = list(defaults.items())
 
     while batch * batch_size < len(defaults):
@@ -594,8 +594,8 @@ def send_line_to_serial(bhserial, cmd):
     return buff
 
 
-def fetch_firmware():
-    file = tempfile.NamedTemporaryFile(delete=False)
+def fetch_firmware(folder):
+    file = open(os.path.join(folder, "firmware.bin"), 'wb')
 
     r = requests.get(firmware_url)
 
@@ -685,7 +685,7 @@ class MainMenu(Frame):
         # Parameters
         layout.add_widget(Text("Using device on Port:", "port"))
         layout.find_widget("port").disabled = True
-        # layout.find_widget("port").value = settings.port or "Device not found! Please plug it in!"
+        # layout.find_widget("port").value = settings.portname or "Device not found! Please plug it in!"
 
         layout.add_widget(Text("Local SSID:", "local_ssid", on_change=self.input_changed))
         layout.find_widget("local_ssid").disabled = True
@@ -858,6 +858,8 @@ class MainMenu(Frame):
 
 
     def write_values(self):
+        birdhouse_utils.hard_reset(settings.esp)
+
         set_params(self.bhserial, self.settings)
         self.set_status_msg("Parameters successfully written to device")
 
