@@ -12,8 +12,9 @@ Usage:
         provision.py create upload number ledstyle address address2 city state country zip email phone lat lon <number> <ledstyle> <wifissid> <wifipass> <devicepass>
 
 Commands:
-    delete_from_server
     upload
+    create
+    delete_from_server
 
 Options:
     -s --serveronly          Only configure Thingsboard account for this device
