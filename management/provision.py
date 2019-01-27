@@ -423,11 +423,15 @@ def upload_firmware(esp):
             exit()
 
     finally:
-        os.remove(firmware)     # Cleanup, cleanup
+        try:
+            folder.cleanup()     # Cleanup, cleanup
+        except Exception as ex:
+            print(f"Could not clean up folder {folder.name}: {ex}.")
 
 
 def run(cmd):
     subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+
 
 def validate_led_style(led_style):
     styles = [i[1] for i in led_styles]
