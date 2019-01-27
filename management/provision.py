@@ -869,7 +869,7 @@ class MainMenu(Frame):
 
 
     def install_firmware(self):
-        upload_firmware_and_configure(self.bhserial, self.settings)
+        upload_firmware_and_configure(self.settings)
 
 
     def reload_values(self):
