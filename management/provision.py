@@ -570,8 +570,8 @@ def set_params(bhserial, settings):
 def read_params_from_device(bhserial):
     tries = 10
     while tries > 0:
-        resp = send_line_to_serial(bhserial, "")
-        print("try %d: verify resp >>> %s <<<" % (tries, str(resp)))
+        resp = send_line_to_serial(bhserial, "").decode('latin-1')
+        print("try %d: verify resp >>> %s <<<" % (tries, resp))
         tries -= 1
 
         if resp == "":
@@ -588,7 +588,7 @@ def read_params_from_device(bhserial):
 
 def send_line_to_serial(bhserial, cmd):
     # To get the full variable list back, call this with an empty cmd
-    bhserial.write(bytes((cmd + '\r\n').encode('UTF-8')))   
+    bhserial.write(bytes((cmd + '\r\n').encode('latin-1')))   
     time.sleep(0.5)
     buff = bhserial.read_until()
     return buff
