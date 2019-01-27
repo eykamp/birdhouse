@@ -585,7 +585,8 @@ def read_params_from_device(bhserial):
 
 
 def send_line_to_serial(bhserial, cmd):
-    bhserial.write(bytes((cmd + '\r\n').encode('UTF-8')))       # Send blank line to get back full variable list
+    # To get the full variable list back, call this with an empty cmd
+    bhserial.write(bytes((cmd + '\r\n').encode('UTF-8')))   
     time.sleep(0.5)
     buff = bhserial.read_until()
     return buff
