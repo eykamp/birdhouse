@@ -12,6 +12,7 @@ Usage:
         provision.py create upload number ledstyle address address2 city state country zip email phone lat lon <number> <ledstyle> <wifissid> <wifipass> <devicepass>
 
 Commands:
+    [If no command is provided, will launch in to GUI]
     upload
     create
     delete_from_server
@@ -19,12 +20,14 @@ Commands:
 Options:
     -s --serveronly          Only configure Thingsboard account for this device
     -u --uploadonly          Only upload firmware
-    --token TOKEN            Optional Thingsboard access token; if not provided, will attempt lookup (requires Thinigsboard credentials)
+    --token TOKEN            Optional Thingsboard access token; if not provided, will attempt to look it up
+                                (if you have configured Thinigsboard credentials)
     --ledstyle STYLE         "4PIN", "BUILTIN_ONLY", "RYG", "RYG_REVERSED", "DOTSTAR", "UNKNOWN"
     --testmode               Delete device and related objects from the server
     --wifissid SSID          SSID of local wifi you will be connecting to (SSIDs are case sensitive!)
     --wifipass PASSWORD      Password of local wifi you will be connecting to
-    --baseurl URL            Base URL of Sensorbot Thingsboard installation (do not include http:// prefix!) (e.g. 'www.sensorbot.org')
+    --baseurl URL            Base URL of Sensorbot Thingsboard installation (do not include http:// prefix!)
+                                (e.g. 'www.sensorbot.org')
     --devicepass PASSWORD    Password for local access to device wifi hotspot
 
 Server options:
@@ -32,7 +35,8 @@ Server options:
     --addr2 ADDRESS2         Address (2nd line)
     --city CITY              City where device will be deployed
     --state STATE            State where device will be deployed
-    --zip ZIP                Postcode where device will be deployed (if not provided, will be calculated from address)
+    --zip ZIP                Postcode where device will be deployed
+                                (if not provided, will be calculated from address)
     --country COUNTRY        Country where device will be deployed [default: United States]
     --email EMAIL            Email address of host
     --phone PHONE            Phone number of host
@@ -541,7 +545,7 @@ def set_params(bhserial, settings):
 
             resp = send_line_to_serial(bhserial, "")
             print("Got response:", resp)
-            
+
             if resp == '':
                 tries -= 1
                 continue
@@ -588,7 +592,7 @@ def read_params_from_device(bhserial):
 
 def send_line_to_serial(bhserial, cmd):
     # To get the full variable list back, call this with an empty cmd
-    bhserial.write(bytes((cmd + '\r\n').encode('latin-1')))   
+    bhserial.write(bytes((cmd + '\r\n').encode('latin-1')))
     time.sleep(0.5)
     buff = bhserial.read_until()
     return buff
