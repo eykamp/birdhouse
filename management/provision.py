@@ -596,7 +596,7 @@ def fetch_firmware():
 
     r = requests.get(firmware_url)
 
-    # Save received content in binary mv format
+    # Save received content in binary format
     file.write(r.content)
     file.close()
 
