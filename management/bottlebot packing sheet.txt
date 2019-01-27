@@ -1,0 +1,19 @@
+In envelope
+1 x ESP8266 NodeMCU
+1 x PMS5003 PM sensor
+1 x BME280 Environmental sensor
+1 x 4-strand wiring harness (10cm)
+2 x Wire nuts
+1 x Thumbtack
+2 x Hangar screws/nuts
+2 x ESP8266 screws/o-rings/nuts
+1 x bit of 2-sided tape
+4 x 2mm PMS5003 mounting screws
+1 x PMS5003 wiring harness
+1 x 6" hangar Wire
+2 x 10cm single-strand lengths power wire (different colors)
+1 x Sensorbot sticker
+1 x Paperwork sheet
+
+Not in envelope
+1 x Power supply
