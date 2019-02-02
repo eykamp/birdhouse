@@ -104,13 +104,14 @@ def build(source_file, build_target, build_target_file):
 
 
     built_file = source_file + ".bin"
+    fullfile = os.path.join(build_folder, built_file)
 
     if build_only:
-        print("Successfully built " + built_file + " (but did not rename it)")
+        print(f"Successfully built {fullfile} (but did not rename it)")
         exit()
 
     # Rename build file
-    os.rename(os.path.join(build_folder, built_file), os.path.join(build_folder, build_target_file))
+    os.rename(fullfile, os.path.join(build_folder, build_target_file))
 
 
 def binary_too_big(output):
