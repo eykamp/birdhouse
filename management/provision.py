@@ -62,11 +62,15 @@ from asciimatics.screen     import Screen   # pip install aciimatics
 from asciimatics.scene      import Scene
 from asciimatics.exceptions import ResizeScreenError, NextScene, StopApplication
 from asciimatics.widgets    import Frame, Layout, Divider, Text, Button, Label, RadioButtons  # , TextBox, Widget, ListBox
+from asciimatics.effects import Matrix
 
 from functools import partial
 from timeit import default_timer as timer
 
 import birdhouse_utils
+
+import threading
+import traceback
 
 # We don't want to fail in the absence of a config file -- most users won't actually need one
 try:
@@ -140,7 +144,7 @@ if thingsboard_only and settings.device_token is not None:
 #################################################
 
 base_url           = birdhouse_utils.get_base_url(args)
-mothership_url     = birdhouse_utils.make_mothership_url(args)
+mothership_url     = birdhouse_utils.make_mothership_url(args, config)
 firmware_url       = "http://" + base_url + ":8989/firmware"
 key_validation_url = "http://" + base_url + ":8989/validatekey"
 
@@ -171,7 +175,7 @@ def main(settings):
             print("Aborting.")
             exit()
 
-        upload_firmware(settings.esp, firmware_image)
+        upload_firmware(print, settings.esp, firmware_image)
         exit()
 
     validate_led_style(settings.led_style)
@@ -218,17 +222,30 @@ def main(settings):
         settings.device_token = get_or_validate_device_token(tbapi, settings.birdhouse_number, settings.device_token, should_create_thingsboard_objects)
 
     if should_upload_firmware:
-        upload_firmware_and_configure(settings)
+        upload_firmware_and_configure(print, settings)
 
 
-def upload_firmware_and_configure(settings):
+def upload_firmware_and_configure(updater, settings):
     # birdhouse_utils.hard_reset(settings.esp)
     # time.sleep(1)
-    upload_firmware(settings.esp)
-    birdhouse_utils.hard_reset(settings.esp)
-    time.sleep(5)
+    try:
+        updater("Uploading firmware...")
 
-    set_params(settings.esp._port, settings)
+        if not download_and_upload_firmware(updater, settings.esp):
+            return False
+
+        birdhouse_utils.hard_reset(settings.esp)
+
+        updater("Sleeping...")
+        time.sleep(2)
+
+        updater("Setting params...")
+        set_params(updater, settings)
+
+        return True
+    except Exception as ex:
+        updater(ex)
+        return False
 
 
 def find_birdhouse_port():
@@ -402,56 +419,61 @@ def create_customer(tbapi, cust_name, cust_info):
                               cust_info["zip"], cust_info["country"], cust_info["email"], cust_info["phone"])
 
 
-def upload_firmware(esp, image_file=None):
+
+def download_and_upload_firmware(updater, esp):
+    try:
+        folder = tempfile.TemporaryDirectory()
+        firmware = fetch_firmware(folder.name)
+        return upload_firmware(updater, esp, firmware)
+    finally:
+        try:
+            folder.cleanup()     # Cleanup, cleanup... sometimes fails for unknown reasons
+        except Exception as ex:
+            print(f"Could not clean up folder {folder.name}: {ex}.")
+
+
+def upload_firmware(updater, esp, firmware):
     # serial_port = esp._port.portstr
     try:
-        if image_file:
-            folder = None
-            firmware = image_file
-        else:
-            folder = tempfile.TemporaryDirectory()
-            firmware = fetch_firmware(folder.name)
+        start = timer()
 
-        try:
-            start = timer()
+        # esp = esptool.find_port([esp._port.portstr])
+        updater(f"Uploading firmware to device on {esp._port.portstr}...")
 
-            # esp = esptool.find_port([esp._port.portstr])
-            print("Uploading firmware to device on " + esp._port.portstr + "...")
+        # esptool.write_flash(esp, ('0x00000', firmware))   <=== what are args?
+        esptool.main(["write_flash", "0x00000", firmware], esp)
 
-            # esptool.write_flash(esp, ('0x00000', firmware))   <=== what are args?
-            esptool.main(["write_flash", "0x00000", firmware], esp)
+        # run(["python", "-u", "esptool.py", '--port', serial_port, 'write_flash', '0x00000', firmware])
+        # print("ret " + str(ret))
 
-            # run(["python", "-u", "esptool.py", '--port', serial_port, 'write_flash', '0x00000', firmware])
-            # print("ret " + str(ret))
+        elapsed = timer() - start   # in seconds
 
-            elapsed = timer() - start   # in seconds
+        if elapsed < 3:
+            updater(f"The firmware upload process went suspcisiously fast, meaning something went wrong.  Run time: {elapsed:0.1f} seconds.")
+            print("Aborting!")
+            return False
 
-            if elapsed < 3:
-                print(f"The firmware upload process went suspcisiously fast, meaning something went wrong.  Run time: {elapsed:0.1f} seconds.")
-                print("Aborting!")
-                exit()
+        updater("Upload complete")
+    except esptool.FatalError as ex:      
+        updater(f"Problem: {ex}")
+        traceback.print_exc()
+        return False
 
-            print("Upload complete")
-        except subprocess.CalledProcessError as ex:
-            output = ex.output
+    except subprocess.CalledProcessError as ex:
+        output = ex.output
 
-            # Check for specific known failure modes
-            search = re.search(r"error: Failed to open (COM\d+)", output)
-            print("Failed to upload firmware:\n" + output)
+        # Check for specific known failure modes
+        search = re.search(r"error: Failed to open (COM\d+)", output)
+        updater(f"Failed to upload firmware: {output}")
 
-            if search:
-                port = search.group(1)
-                print()
-                print("Could not open " + port + ": it appears to be in use by another process!")
-
-            exit()
-
-    finally:
-        if folder:
-            try:
-                folder.cleanup()     # Cleanup, cleanup
-            except Exception as ex:
-                print(f"Could not clean up folder {folder.name}: {ex}.")
+        if search:
+            port = search.group(1)
+            updater()
+            updater(f"Could not open {port}: it appears to be in use by another process!")
+        return False
+            
+    updater("Firmware loaded and device successfully configured.")        
+    return True
 
 
 def run(cmd):
@@ -518,8 +540,48 @@ def get_default_values(settings):
     }
 
 
+def get_settings_from_device(updater, settings):
+    reboot_device(updater, settings)
 
-def set_params(bhserial, settings):
+    updater("Reading values...")
+    query_birdhouse(settings)
+    updater("Imported saved values from device")
+    return True
+    
+
+def put_settings_to_device(updater, settings):
+    reboot_device(updater, settings)
+
+    updater("Writing values...")
+    set_params(updater, settings)
+    updater("Parameters successfully written to device")
+    return True
+
+
+def reboot_device(updater, settings):
+    updater("Resetting device...")
+    birdhouse_utils.hard_reset(settings.esp)
+    updater("Restarted")
+    return True
+
+
+def query_birdhouse(settings):
+    """ 
+    Updates the UI and settings object based on values retrieved from an attached device 
+    """
+    defaults = get_default_values(settings)
+    params = read_params_from_device(settings.esp._port)
+
+    for item in list(defaults.items()):
+        path, settingspath = item[1][1], item[1][2]
+
+        checkval = eval("params" + path)
+
+        if settingspath is not None:
+            exec('settings.' + settingspath + ' = "' + str(checkval) + '"')
+
+
+def set_params(updater, settings):
 
     defaults = get_default_values(settings)
 
@@ -551,16 +613,16 @@ def set_params(bhserial, settings):
         if first:       # This will be true if we added no items to our list because, for example, they all had values of None
             continue
 
-        print("Sending command:", cmd)
+        print(f"Sending command: {cmd}")
 
         tries = 3
         done = False
 
         while tries > 0 and not done:
-            resp = send_line_to_serial(bhserial, cmd)
+            resp = send_line_to_serial(settings.esp._port, cmd)
             print("Got line back:", resp)
 
-            resp = send_line_to_serial(bhserial, "")
+            resp = send_line_to_serial(settings.esp._port, "")
             print("Got response:", resp)
 
             if resp == '':
@@ -570,12 +632,12 @@ def set_params(bhserial, settings):
             done = True
 
         if not done:
-            print("It appears the device isn't accepting commands.  Try again?")
-            exit()
+            updater("It appears the device isn't accepting commands.  Try again?")
+            return False
 
         batch += 1
 
-    params = read_params_from_device(bhserial)
+    params = read_params_from_device(settings.esp._port)
 
     print(params)
 
@@ -584,14 +646,16 @@ def set_params(bhserial, settings):
         checkval = eval("params" + path)
 
         if eval(fn + "('" + str(checkval) + "')") != eval(fn + "('" + str(val) + "')"):
-            print("Value didn't stick: " + field + " expected " + str(val) + ", but got " + str(checkval))
-            exit()
+            updater(f"ERROR: Value didn't stick: {field} expected {val}, but got {checkval}")
+            return False
+
+    return True
 
 
-def read_params_from_device(bhserial):
+def read_params_from_device(port):
     tries = 10
     while tries > 0:
-        resp = send_line_to_serial(bhserial, "").decode('latin-1')
+        resp = send_line_to_serial(port, "").decode('latin-1')
         print("try %d: verify resp >>> %s <<<" % (tries, resp))
         tries -= 1
 
@@ -605,6 +669,8 @@ def read_params_from_device(bhserial):
             return parsed_json["variables"]
         except Exception as ex:
             print("Exception:", ex)
+            traceback.print_exc()
+
 
 
 def send_line_to_serial(bhserial, cmd):
@@ -642,11 +708,11 @@ def update_dash_def(dash_def, device_id):
             raise e
 
 
-def start_ui(tbapi, serial):
+def start_ui(tbapi, port):
     last_scene = None
     while True:
         try:
-            Screen.wrapper(singleton, catch_interrupt=True, arguments=[last_scene, tbapi, serial])
+            Screen.wrapper(singleton, catch_interrupt=True, arguments=[last_scene, tbapi, port])
             exit(0)
         except ResizeScreenError as ex:
             last_scene = ex.scene
@@ -665,6 +731,7 @@ class MainMenu(Frame):
         self.token_ok = False
         self.bhserial = serial
         self.settings = settings
+        self.busy = False
 
         # if not port:
         #     raise Exception("I don't know what port to use!")
@@ -722,9 +789,9 @@ class MainMenu(Frame):
 
         layout3 = Layout([16, 15, 8])
         self.add_layout(layout3)
-        layout3.add_widget(Button("[Write settings]", self.write_values, add_box=False), 0)
-        layout3.add_widget(Button("[Load settings]", self.reload_values, add_box=False), 1)
-        layout3.add_widget(Button("[Reboot]", self.reboot, add_box=False), 2)
+        layout3.add_widget(Button("[Write settings]", self.save_values_to_device,   add_box=False), 0)
+        layout3.add_widget(Button("[Load settings]",  self.load_values_from_device, add_box=False), 1)
+        layout3.add_widget(Button("[Reboot]",         self.reboot,                  add_box=False), 2)
 
         # Status message
         layout_status = Layout([100])
@@ -734,8 +801,6 @@ class MainMenu(Frame):
         self.fix()  # Calculate positions of widgets
 
         self.initializing = False
-
-        # self.query_birdhouse()
 
         self.has_connection_to_birdhouse = False
 
@@ -797,7 +862,7 @@ class MainMenu(Frame):
         if changed and change_triggers_device_token_validation:
             self.revalidate_device_token()
 
-        self.set_status_msg(name + " set to " + eval("settings." + name))
+        # self.set_status_msg(name + " set to " + eval("settings." + name))
 
 
     def update_settings_param(self, item):
@@ -856,55 +921,56 @@ class MainMenu(Frame):
                 self.set_status_msg(val + " LED should be on")
 
 
-    def query_birdhouse(self):
-        ''' Updates the UI and settings object based on values retrieved from an attached device '''
-        defaults = get_default_values(settings)
-        params = read_params_from_device(self.bhserial)
-
-        for item in list(defaults.items()):
-            field, val, path, settingspath = item[0], item[1][0], item[1][1], item[1][2]
-
-            checkval = eval("params" + path)
-
-            self.set_status_msg(checkval)
-            if settingspath is not None:
-                exec('self.settings.' + settingspath + ' = "' + str(checkval) + '"')
-
-            self.set_widgets_from_settings()
-
-
     def set_status_msg(self, msg):
-        self._status_msg.text = msg
-        print(msg)
-
-
-    def write_values(self):
-        birdhouse_utils.hard_reset(settings.esp)
-
-        set_params(self.bhserial, self.settings)
-        self.set_status_msg("Parameters successfully written to device")
+        self._status_msg.text = str(msg)
+        print(f"Set status to {msg}")
 
 
     def install_firmware(self):
-        upload_firmware_and_configure(self.settings)
+        self.busy = True
+        myThread("Install firmware", upload_firmware_and_configure, [self.settings], self.update_status, self.done_saving_values).start()
 
 
-    def reload_values(self):
-        self.set_status_msg("Reading values from device")
-        birdhouse_utils.hard_reset(self.settings.esp)
-        self.set_status_msg("Done")
-        self.query_birdhouse()
-        self.set_status_msg("Imported saved values from device")
+    def done_updating_firmware(self):
+        self.busy = False
 
+
+    def done_loading_values(self):
+        self.busy = False
+        self.set_widgets_from_settings()
+    
+    
+    def done_saving_values(self):
+        self.busy = False
+        self.set_widgets_from_settings()
+
+
+    def update_status(self, msg):
+        self.set_status_msg(msg)
+
+
+    def load_values_from_device(self):
+        """
+        User clicked [Load Settings] button
+        """
+        self.busy = True
+        myThread("Load values from device", get_settings_from_device, [self.settings], self.update_status, self.done_loading_values).start()
+
+
+    def save_values_to_device(self):
+        """
+        User clicked [Write settings] button
+        """
+        self.busy = True
+        myThread("Write values to device", put_settings_to_device, [self.settings], self.update_status, self.done_loading_values).start()
+        
 
     def reboot(self):
-        self.set_status_msg("Rebooting birdhouse...")
-
-        send_line_to_serial(self.bhserial, '/restart')  # We'll ignore the response
-
-        time.sleep(3)
-        self.query_birdhouse()
-
+        """
+        User clicked [Reboot] button
+        """
+        self.busy = True
+        myThread("Reset device", reboot_device, [self.settings], self.update_status, self.done_loading_values).start()
 
     def make_device_name(self, base_name):
         return base_name
@@ -922,6 +988,7 @@ class MainMenu(Frame):
         device_id = tbapi.get_id(device)
         device_token = tbapi.get_device_token(device_id)
         self.layout.find_widget('device_token').value = device_token
+
 
     def _quit(self):
         self.save()
@@ -1020,11 +1087,30 @@ def singleton(screen, scene, tbapi, serial):
     server_config = ServerSetupModel()
 
     scenes = [
-        Scene([MainMenu(screen, settings, tbapi, serial)], -1, name="Main"),
-        Scene([ServerSetup(screen, server_config)], -1, name="Server Configuration")
+        Scene([Matrix(screen), MainMenu(screen, settings, tbapi, serial)], -1, name="Main"),
+        # Scene([ServerSetup(screen, server_config)], -1, name="Server Configuration")
     ]
 
+
     screen.play(scenes, stop_on_resize=False, start_scene=scene)
+
+
+class myThread(threading.Thread):
+    def __init__(self, name, function, args, update_callback, done_callback):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.function = function
+        self.args = args
+        self.update_callback = update_callback
+        self.done_callback = done_callback
+
+
+    def run(self):
+        print("Starting " + self.name)
+        if self.function(self.update_callback, *self.args):
+            self.done_callback()
+        else:
+            self.done_callback()
 
 
 
