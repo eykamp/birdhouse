@@ -14,13 +14,14 @@ import birdhouse_utils
 from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
 from config import thingsboard_username, thingsboard_password
+import config
 
 args = docopt(__doc__)
 # print(args)
 
 def main():
 
-    mothership_url = birdhouse_utils.make_mothership_url(args)
+    mothership_url = birdhouse_utils.make_mothership_url(args, config)
     tbapi = TbApi(mothership_url, thingsboard_username, thingsboard_password)
 
     for num in args["<num>"]:
