@@ -25,8 +25,8 @@ import birdhouse_utils
 
 
 from thingsboard_api_tools import TbApi                             # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-from config import base_url, thingsboard_username, thingsboard_password   # You'll need to create this... Be sure to gitignore it!
-
+from config import thingsboard_username, thingsboard_password   # You'll need to create this... Be sure to gitignore it!
+import config
 
 args = docopt(__doc__)
 
@@ -38,7 +38,7 @@ build_only = args['build']
 # clean = True
 # build_only = False
 
-mothership_url = birdhouse_utils.make_mothership_url(base_url)
+mothership_url = birdhouse_utils.make_mothership_url(args, config)
 tbapi = TbApi(mothership_url, thingsboard_username, thingsboard_password)
 
 
