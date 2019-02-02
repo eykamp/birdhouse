@@ -4,6 +4,7 @@ provision.py: The birdhouse and bottlebot provisioning script
 Usage:
         provision.py [<number> --token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD]
         provision.py upload <number> --token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD
+        provision.py upload-img <image>
         provision.py create <number> --addr ADDRESS [--addr2 ADDRESS2] --city CITY --state STATE [--country COUNTRY] [--zip ZIP] --email EMAIL --phone PHONE [--lat LAT --lon LON] [--baseurl URL] [--testmode]
         provision.py create upload <number> --addr ADDRESS [--addr2 ADDRESS2] --city CITY --state STATE [--country COUNTRY] [--zip ZIP] --email EMAIL --phone PHONE [--lat LAT --lon LON] --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD [--baseurl URL]
         provision.py delete_from_server <number>
@@ -14,6 +15,7 @@ Usage:
 Commands:
     [If no command is provided, will launch in to GUI]
     upload
+    upload-img               Upload the specfied image and quit
     create
     delete_from_server
 
@@ -124,9 +126,12 @@ cust_info["phone"]    = args["--phone"]
 thingsboard_only   = args["create"] and not args['upload']
 upload_only        = args['upload'] and not args['create']
 should_delete_only = args['delete_from_server']
-ui_mode            = not args['upload'] and not args['create'] and not args['delete_from_server']
+upload_img         = args['upload-img']
+ui_mode            = not args['upload'] and not args['create'] and not args['delete_from_server'] and not upload_img
 
 testmode           = args['--testmode']
+
+firmware_image     = args['<image>']
 
 if thingsboard_only and settings.device_token is not None:
     print("Can't pass a token if we're only creating the server objects!")
@@ -157,6 +162,18 @@ if ui_mode:
 def main(settings):
     print("Sensorbot Device Provisioning Script Version " + __version__)
 
+    if upload_img or should_upload_firmware:
+        settings.esp = find_birdhouse_port()
+
+    if upload_img:
+        if not os.path.isfile(firmware_image):
+            print(f"Could not find firmware image {firmware_image}")
+            print("Aborting.")
+            exit()
+
+        upload_firmware(settings.esp, firmware_image)
+        exit()
+
     validate_led_style(settings.led_style)
 
     # Instantiate our API helper if needed
@@ -182,12 +199,6 @@ def main(settings):
                 exit()
             validated_token = True
 
-        settings.esp = find_birdhouse_port()
-
-        # bhserial = settings.esp._port
-        # if bhserial is None:
-        #     print("Could not establish serial connection to device on port " + settings.esp._port.portstr)
-        #     exit()
 
     if should_create_thingsboard_objects:
         settings.device_token = create_server_objects(tbapi, settings.birdhouse_number)         # This will fail if server objects already exist
@@ -391,11 +402,15 @@ def create_customer(tbapi, cust_name, cust_info):
                               cust_info["zip"], cust_info["country"], cust_info["email"], cust_info["phone"])
 
 
-def upload_firmware(esp):
-    serial_port = esp._port.portstr
-    folder = tempfile.TemporaryDirectory()
+def upload_firmware(esp, image_file=None):
+    # serial_port = esp._port.portstr
     try:
-        firmware = fetch_firmware(folder.name)
+        if image_file:
+            folder = None
+            firmware = image_file
+        else:
+            folder = tempfile.TemporaryDirectory()
+            firmware = fetch_firmware(folder.name)
 
         try:
             start = timer()
@@ -431,10 +446,11 @@ def upload_firmware(esp):
             exit()
 
     finally:
-        try:
-            folder.cleanup()     # Cleanup, cleanup
-        except Exception as ex:
-            print(f"Could not clean up folder {folder.name}: {ex}.")
+        if folder:
+            try:
+                folder.cleanup()     # Cleanup, cleanup
+            except Exception as ex:
+                print(f"Could not clean up folder {folder.name}: {ex}.")
 
 
 def run(cmd):
