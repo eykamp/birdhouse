@@ -427,7 +427,8 @@ def upload_firmware(esp, image_file=None):
             elapsed = timer() - start   # in seconds
 
             if elapsed < 3:
-                print("The firmware upload process went suspcisiously fast, meaning something went wrong.  It ran in %0.1f seconds.\nAborting!" % elapsed)
+                print(f"The firmware upload process went suspcisiously fast, meaning something went wrong.  Run time: {elapsed:0.1f} seconds.")
+                print("Aborting!")
                 exit()
 
             print("Upload complete")
