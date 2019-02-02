@@ -533,7 +533,7 @@ def get_port_names():
     return ports
 
 
-def get_base_url(args):
+def get_base_url(args, config={}):
     """
     Try to figure out which URL to use: was it passed with the --baseurl parameter?  In our config file?  Or just the default?
     args is a docopt argument list
@@ -541,7 +541,7 @@ def get_base_url(args):
     return args['--baseurl'] or config.base_url if 'base_url' in dir(config) else "www.sensorbot.org"
 
 
-def make_mothership_url(args):
+def make_mothership_url(args, config={}):
     """
     Pass in a string representing the base server URL, or a docopt arg array from which the --baseurl param will be extracted
     """
