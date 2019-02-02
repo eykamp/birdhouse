@@ -25,7 +25,7 @@ import birdhouse_utils
 
 
 from thingsboard_api_tools import TbApi                             # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-from config import base_url, thingsboard_username, thingsboard_password, deq_logfile   # You'll need to create this... Be sure to gitignore it!
+from config import base_url, thingsboard_username, thingsboard_password   # You'll need to create this... Be sure to gitignore it!
 
 
 args = docopt(__doc__)
