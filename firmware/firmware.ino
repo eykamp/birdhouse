@@ -870,8 +870,8 @@ void activatePlantower()
   // if(serialSwapTimer == 0)    // This is only 0 if we've never connected to wifi
   //   return;
 
-  // if(millis() - serialSwapTimer < 3 * SECONDS)
-  //   return;
+  if(millis() - serialSwapTimer < 5 * SECONDS)
+    return;
 
   // if(disablePlantower)
   //   return;
