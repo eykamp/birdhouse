@@ -46,6 +46,12 @@ Server options:
     --lon LON                Deployment longitude (if not provided, will be calculated from address)
  """
 
+# TODO: load settings, the write firware crashes
+# TODO: progress bar
+# TODO: Insturctions after succeess
+# TODO: Grab progress from esptool and display
+# TODO: timeout too long processes
+
 import json
 import os
 import re
@@ -231,7 +237,7 @@ def upload_firmware_and_configure(updater, settings):
     try:
         updater("Uploading firmware...")
 
-        if not download_and_upload_firmware(updater, settings.esp):
+        if not download_then_upload_firmware(updater, settings.esp):
             return False
 
         birdhouse_utils.hard_reset(settings.esp)
@@ -242,9 +248,11 @@ def upload_firmware_and_configure(updater, settings):
         updater("Setting params...")
         set_params(updater, settings)
 
+        updater("Firmware loaded and device configured!  Congratulations!")
         return True
     except Exception as ex:
-        updater(ex)
+        updater(f"Error: {ex}")
+        traceback.print_exc()
         return False
 
 
@@ -420,7 +428,7 @@ def create_customer(tbapi, cust_name, cust_info):
 
 
 
-def download_and_upload_firmware(updater, esp):
+def download_then_upload_firmware(updater, esp):
     try:
         folder = tempfile.TemporaryDirectory()
         firmware = fetch_firmware(folder.name)
@@ -454,7 +462,7 @@ def upload_firmware(updater, esp, firmware):
             return False
 
         updater("Upload complete")
-    except esptool.FatalError as ex:      
+    except esptool.FatalError as ex:
         updater(f"Problem: {ex}")
         traceback.print_exc()
         return False
@@ -471,8 +479,8 @@ def upload_firmware(updater, esp, firmware):
             updater()
             updater(f"Could not open {port}: it appears to be in use by another process!")
         return False
-            
-    updater("Firmware loaded and device successfully configured.")        
+
+    updater("Firmware loaded and device successfully configured.")
     return True
 
 
@@ -544,10 +552,13 @@ def get_settings_from_device(updater, settings):
     reboot_device(updater, settings)
 
     updater("Reading values...")
-    query_birdhouse(settings)
-    updater("Imported saved values from device")
-    return True
-    
+    ok = query_birdhouse(settings)
+    if ok:
+        updater("Imported saved values from device")
+    else:
+        updater("Could not retrieve values from device.  Is it running Birdhouse firwmare?")
+    return ok
+
 
 def put_settings_to_device(updater, settings):
     reboot_device(updater, settings)
@@ -566,11 +577,14 @@ def reboot_device(updater, settings):
 
 
 def query_birdhouse(settings):
-    """ 
-    Updates the UI and settings object based on values retrieved from an attached device 
+    """
+    Updates the UI and settings object based on values retrieved from an attached device; returns True if successful, False otherwise
     """
     defaults = get_default_values(settings)
     params = read_params_from_device(settings.esp._port)
+
+    if params is None:
+        return False
 
     for item in list(defaults.items()):
         path, settingspath = item[1][1], item[1][2]
@@ -579,6 +593,8 @@ def query_birdhouse(settings):
 
         if settingspath is not None:
             exec('settings.' + settingspath + ' = "' + str(checkval) + '"')
+
+    return True
 
 
 def set_params(updater, settings):
@@ -653,31 +669,41 @@ def set_params(updater, settings):
 
 
 def read_params_from_device(port):
-    tries = 10
+    tries = 7
     while tries > 0:
         resp = send_line_to_serial(port, "").decode('latin-1')
         print("try %d: verify resp >>> %s <<<" % (tries, resp))
         tries -= 1
 
-        if resp == "":
+        if resp is None or resp == "":
             print("Response was empty")
-            next
+            continue
 
         try:
             print("Parsing response >>>", resp, "<<<")
             parsed_json = json.loads(resp)
-            return parsed_json["variables"]
+
+            if "variables" in parsed_json:
+                return parsed_json["variables"]
+            continue
+        except json.decoder.JSONDecodeError:        # We got dreck -- try again
+            continue
         except Exception as ex:
             print("Exception:", ex)
             traceback.print_exc()
+            return None
 
+    return None
 
 
 def send_line_to_serial(bhserial, cmd):
     # To get the full variable list back, call this with an empty cmd
     bhserial.write(bytes((cmd + '\r\n').encode('latin-1')))
     time.sleep(0.5)
+    saved_timeout = bhserial.timeout
+    bhserial.timeout = 1
     buff = bhserial.read_until()
+    bhserial.timeout = saved_timeout
     return buff
 
 
@@ -731,7 +757,11 @@ class MainMenu(Frame):
         self.token_ok = False
         self.bhserial = serial
         self.settings = settings
-        self.busy = False
+
+        # For keeping track of threads
+        self.busy = False       # Is a thread off doing something?
+        self.timeout = 0        # When will that the active thread be considered tardy and marked absent?
+        self.active_thread = None
 
         # if not port:
         #     raise Exception("I don't know what port to use!")
@@ -808,6 +838,19 @@ class MainMenu(Frame):
         self.overwrite_params_with_cmd_line_values = False
 
         self.set_widgets_from_settings()
+
+
+    def _update(self, frame_no):
+        super(MainMenu, self)._update(frame_no)
+        if not self.busy:
+            return
+
+        # # Check if the current thread has been running too long
+        # if time.time() > self.timeout:
+        #     # self.active_thread.exit()
+        #     self.busy = False
+        #     self.active_thread = None
+        #     self.update_status("Operation timed out")
 
 
     def set_widgets_from_settings(self):
@@ -938,8 +981,8 @@ class MainMenu(Frame):
     def done_loading_values(self):
         self.busy = False
         self.set_widgets_from_settings()
-    
-    
+
+
     def done_saving_values(self):
         self.busy = False
         self.set_widgets_from_settings()
@@ -954,7 +997,10 @@ class MainMenu(Frame):
         User clicked [Load Settings] button
         """
         self.busy = True
-        myThread("Load values from device", get_settings_from_device, [self.settings], self.update_status, self.done_loading_values).start()
+        self.timeout = time.time() + 20     # seconds
+
+        self.active_thread = myThread("Load values from device", get_settings_from_device, [self.settings], self.update_status, self.done_loading_values)
+        self.active_thread.start()
 
 
     def save_values_to_device(self):
@@ -963,7 +1009,7 @@ class MainMenu(Frame):
         """
         self.busy = True
         myThread("Write values to device", put_settings_to_device, [self.settings], self.update_status, self.done_loading_values).start()
-        
+
 
     def reboot(self):
         """
