@@ -348,7 +348,7 @@ def validate_device_token(birdhouse_number, token):
 
 
 def create_server_objects(tbapi, birdhouse_number):
-    ''' Returns secret token of created device '''
+    """ Returns secret token of created device """
     if settings.dashboard_template_name is None:
         print("Please ensure you have a local file called config.py that defines the following variables:")
         print("\tdashboard_template_name:     The name of an existing dashboard to be used as a template for new devices")
@@ -720,7 +720,7 @@ def fetch_firmware(folder):
 
 
 def update_dash_def(dash_def, device_id):
-    ''' Modifies dash_def '''
+    """ Modifies dash_def """
     device_name = birdhouse_utils.make_device_name(settings.birdhouse_number)
 
     aliases = dash_def["configuration"]["entityAliases"].keys()
@@ -854,7 +854,7 @@ class MainMenu(Frame):
 
 
     def set_widgets_from_settings(self):
-        ''' Finds any widgets that have the same names as our settings vars, and sets their value '''
+        """ Finds any widgets that have the same names as our settings vars, and sets their value """
 
         for item in vars(settings).items():
             settings_param_name, val = item[0], item[1]
@@ -867,7 +867,7 @@ class MainMenu(Frame):
 
 
     def revalidate_device_token(self):
-        ''' Check if device token is valid for specified birdhouse; update ui accordingly '''
+        """ Check if device token is valid for specified birdhouse; update ui accordingly """
         if self.initializing:
             return
 
@@ -888,7 +888,7 @@ class MainMenu(Frame):
 
 
     def on_birdhouse_number_changed(self):
-        ''' Immediate response to birdhouse number changing '''
+        """ Immediate response to birdhouse number changing """
         if self.initializing: return
 
         num = self.layout.find_widget('birdhouse_number').value
