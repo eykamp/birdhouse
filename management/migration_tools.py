@@ -144,6 +144,8 @@ def check_for_dupes(items):
     """
     Make sure we haven't queued the same device up to be run twice
     """
+    print("Checking to make sure the same device isn't queued twice")
+
     items.sort()
     for i in range(len(items) - 1):
         if items[i] == items[i + 1]:
@@ -162,6 +164,7 @@ def check_for_remigration(to_do_list):
     old_client = create_client(old_server_ip)
     new_client = create_client(new_server_ip)
 
+    print("Conducting remigration checks (to make sure device hasn't already been migrated to new server)")
 
     for num in to_do_list:
         print('.', end='')
@@ -199,6 +202,8 @@ def ensure_devices_exist(device_nums):
     """
     tbapi_old = TbApi(birdhouse_utils.make_mothership_url(old_server_ip), thingsboard_username, thingsboard_password)
     tbapi_new = TbApi(birdhouse_utils.make_mothership_url(new_server_ip), thingsboard_username, thingsboard_password)
+
+    print("Making sure every device we want to migrate exists on both source and desitnation machines")
 
     for num in device_nums:
         print('.', end='')
@@ -240,6 +245,8 @@ def verify_devices_remapped(device_nums, min_interval=120, age_considered_offlin
 
     old_client = create_client(old_server_ip)
     new_client = create_client(new_server_ip)
+
+    print("Verifying that device has attached itself to the new server and isn't still sending data to the old server")
 
 
     now = int(time.time() * 1000)
