@@ -450,7 +450,7 @@ def count_records(client, bhnums):
     device_names = [birdhouse_utils.make_device_name(n) for n in bhnums]
 
     comma = "','"
-    command = f'{postgres_command} "select device.name, count(*), min(ts), max(ts) from ts_kv join device on ts_kv.entity_id = device.id where entity_id in (select id from device where name in (\'{comma.join(device_names)}\')) group by device.name order by device.name"'
+    command = f'{POSTGRES_COMMAND} "select device.name, count(*), min(ts), max(ts) from ts_kv join device on ts_kv.entity_id = device.id where entity_id in (select id from device where name in (\'{comma.join(device_names)}\')) group by device.name order by device.name"'
     log.info(f"Command: {command}")
 
     print(f"Counting records for {', '.join(device_names)}...", end='')
