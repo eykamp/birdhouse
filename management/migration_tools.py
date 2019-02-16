@@ -26,6 +26,10 @@ ssh_port = 22
 POSTGRES_COMMAND = "sudo -u postgres psql -qAtX -d thingsboard -c"
 COLUMN_LIST = "entity_type, entity_id, key, ts, bool_v, str_v, long_v, dbl_v"
 
+MINUTES = 60
+HOURS = 60 * MINUTES
+DAYS = 24 * HOURS
+WEEKS = 7 * DAYS
 
 def main():
     # report_device_info([1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 17, 18, 20, 21, 24, 25, 27, 28, 29, 30, 33, 35, 36, 37, 38, 39, 41, 42, 44, 46, 47, 90, 100, 101, 102, 114, 116, 117, 118, 119, 120])
@@ -253,8 +257,33 @@ def verify_devices_remapped(device_nums, min_interval=120, age_considered_offlin
 
         if age_of_old < age_considered_offline and diff < min_interval:
             print(f"\nIt looks like device {name} is still active and hasn't switched to new server yet.  Not ready to migrate data!")
+            print(f"\tLast telemetry on old server was {format_time_delta(age_of_old)} ago.")
+            if latest_new == 0:
+                print("\tThe device has not yet sent any data to the new server.")
+            else:
+                print(f"\tLast telemetry on new server was {format_time_delta(now - latest_new)} ago.")
             exit()
     print()
+
+
+def format_time_delta(seconds):
+    sign_string = '-' if seconds < 0 else ''
+    seconds = abs(int(seconds))
+    weeks, seconds = divmod(seconds, WEEKS)
+    days, seconds = divmod(seconds, DAYS)
+    hours, seconds = divmod(seconds, HOURS)
+    minutes, seconds = divmod(seconds, MINUTES)
+
+    if weeks > 0:
+        return f"{sign_string}{weeks} weeks, {days} days, {hours} hours, {minutes} mins, {seconds} secs"
+    if days > 0:
+        return f"{sign_string}{days} days, {hours} hours, {minutes} mins, {seconds} secs"
+    elif hours > 0:
+        return f"{sign_string}{hours} hours, {minutes} mins, {seconds} secs"
+    elif minutes > 0:
+        return f"{sign_string}{minutes} mins, {seconds} secs"
+    else:
+        return f"{sign_string}{seconds} secs"
 
 
 def get_latest_telemetry_date(tbapi, client, name, key="freeHeap"):      # freeHeap is sent with every packet
