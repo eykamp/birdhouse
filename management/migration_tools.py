@@ -16,10 +16,14 @@ log = logging.getLogger("migrate")
 logging.basicConfig(level=logging.INFO)
 
 logging.getLogger("paramiko").setLevel(logging.WARNING)     # Quiet this dude down a notch
-old_server_ip = "198.46.139.101"   # 80GB  <-- Migrate data from
+
+
+old_server_ip = "162.212.157.80"
+# old_server_ip = "198.46.139.101"   # 80GB  <-- Migrate data from
 new_server_ip = "192.210.218.130"  # 100GB <-- Migrate data to
 
-bhnums = [22]   # Note that this list  will be sorted before processing!
+# Unmigrated  ['Birdhouse 008', 'Birdhouse 014', 'Birdhouse 016', 'Birdhouse 019', 'Birdhouse 022', 'Birdhouse 023', 'Birdhouse 048']
+bhnums = [8, 14, 16, 19, 22, 23, 48]   # Note that this list  will be sorted before processing!
 
 # Things that probably will never change:
 ssh_port = 22
@@ -31,12 +35,11 @@ HOURS = 60 * MINUTES
 DAYS = 24 * HOURS
 WEEKS = 7 * DAYS
 
-def main():
-    # report_device_info([1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 17, 18, 20, 21, 24, 25, 27, 28, 29, 30, 33, 35, 36, 37, 38, 39, 41, 42, 44, 46, 47, 90, 100, 101, 102, 114, 116, 117, 118, 119, 120])
-    # report_device_info([8,14,16,22,23,26,31,32,34,40,43,45])
-    find_unmigrated_devices(old_server_ip, new_server_ip)   # This still isn't right -- devices that are not online are marked as not ready for migration... maybe other problems
-    exit()
 
+def main():
+
+    # find_unmigrated_devices(old_server_ip, new_server_ip)   # This still isn't right -- devices that are not online are marked as not ready for migration... maybe other problems
+    # exit()
 
     old_client = create_client(old_server_ip)
     new_client = create_client(new_server_ip)
