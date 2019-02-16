@@ -414,7 +414,8 @@ def export_data(client, bhnum, filename):
     """
     device_name = birdhouse_utils.make_device_name(bhnum)
 
-    command = f'{POSTGRES_COMMAND} "COPY (select {COLUMN_LIST} from ts_kv where entity_id in (select id from device where name in(\'{device_name}\') order by ts)) TO \'{filename}\' (DELIMITER \',\');"'
+    command = f'{POSTGRES_COMMAND} "COPY (select {COLUMN_LIST} from ts_kv where entity_id = (select id from device where name = \'{device_name}\')) "
+                                 + "TO \'{filename}\' (DELIMITER \',\');"'
 
     print(f"Exporting data for {device_name} to {filename}...", end='')
     out = run_command(client, command)
