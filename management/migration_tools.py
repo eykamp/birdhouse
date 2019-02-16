@@ -41,7 +41,7 @@ def main():
     check_for_remigration(bhnums)                       # Make sure we're not reprocessing an device we've already migrated
     check_for_dupes(bhnums)                             # Make sure we haven't entered the same number twice in our processing list
     ensure_devices_exist(bhnums)                        # Make sure device is defined on both old and new servers
-    verify_devices_remapped(bhnums, min_interval=3600)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
+    verify_devices_remapped(bhnums, min_interval=1 * HOURS, age_considered_offline=5 * DAYS)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
 
     print(f"Passed preflight checks.  Processing devices {bhnums}...")
     # exit()
@@ -216,7 +216,7 @@ def ensure_devices_exist(device_nums):
     print()
 
 
-def verify_devices_remapped(device_nums, min_interval=120):
+def verify_devices_remapped(device_nums, min_interval=120, age_considered_offline=7 * DAYS):        # In seconds
     """
     Look at the ages of the most recent telemetry, and ensure each device is sending current telemetry to the new server.
     The theory is that once a device is talking to the new server, it will never go back to the old, and we can safely
@@ -224,7 +224,7 @@ def verify_devices_remapped(device_nums, min_interval=120):
 
     min_interval is the minimum time, in seconds, that the new server must be ahead of the old server for this check to pass.
 
-    Note that if the most recent telemetry on the old server is older than a week, we'll assume the device is out of contact 
+    Note that if the most recent telemetry on the old server is older than age_considered_offline, we'll assume the device is out of contact
     (perhaps disconnceted or off), and we'll go ahead and migrate the data over.
     """
     tbapi_old = TbApi(birdhouse_utils.make_mothership_url(old_server_ip), thingsboard_username, thingsboard_password)
@@ -235,7 +235,6 @@ def verify_devices_remapped(device_nums, min_interval=120):
 
 
     now = int(time.time() * 1000)
-    one_week = 60 * 60 * 24 * 7     # In seconds
 
     for num in device_nums:
         print('.', end='')
@@ -252,7 +251,7 @@ def verify_devices_remapped(device_nums, min_interval=120):
 
         diff = int((latest_new - latest_old) / 1000)    # Diffrence in ages between most recent telmetry on new and old server, in seconds
 
-        if age_of_old < one_week and diff < min_interval:
+        if age_of_old < age_considered_offline and diff < min_interval:
             print(f"\nIt looks like device {name} is still active and hasn't switched to new server yet.  Not ready to migrate data!")
             exit()
     print()
