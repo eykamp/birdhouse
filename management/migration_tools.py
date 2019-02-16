@@ -26,7 +26,7 @@ new_server_ip = "192.210.218.130"  # 100GB <-- Migrate data to
 bhnums = [8, 14, 16, 19, 22, 23, 48]   # Note that this list  will be sorted before processing!
 
 # Things that probably will never change:
-ssh_port = 22
+SSH_PORT = 22
 POSTGRES_COMMAND = "sudo -u postgres psql -qAtX -d thingsboard -c"
 COLUMN_LIST = "entity_type, entity_id, key, ts, bool_v, str_v, long_v, dbl_v"
 
@@ -360,7 +360,7 @@ def create_client(addr):
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
 
-    client.connect(addr, port=ssh_port, username=ssh_username, password=ssh_password)
+    client.connect(addr, port=SSH_PORT, username=ssh_username, password=ssh_password)
 
     return client
 
