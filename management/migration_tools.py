@@ -47,9 +47,10 @@ def main():
     ensure_devices_exist(bhnums)                        # Make sure device is defined on both old and new servers
     verify_devices_remapped(bhnums, min_interval=1 * HOURS, age_considered_offline=5 * DAYS)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
 
-    print(f"Passed preflight checks.  Processing devices {bhnums}...")
-    # exit()
+    print("Passed preflight checks.")
+    exit()
 
+    print(f"Processing devices {bhnums}...")
 
     for bhnum in bhnums:
         formatted_num = birdhouse_utils.make_device_number(bhnum)
