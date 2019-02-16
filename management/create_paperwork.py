@@ -28,10 +28,10 @@ from config import thingsboard_username, thingsboard_password
 nameplate_template_file = r'c:\dev\birdhouse\management\nameplate_template.svg'
 outfile_base = r'c:\dev\birdhouse\management\test'          # Will have _{pagenum}.pdf appended to it
 
-inkscape = r'c:\Program Files\Inkscape\inkscape.exe'        # Full path to inkscape binary (for converting SVGs to PDFs)
+INKSCAPE = r'c:\Program Files\Inkscape\inkscape.exe'        # Full path to inkscape binary (for converting SVGs to PDFs)
 
-element_height = 470
-elements_per_page = 2
+ELEMENT_HEIGHT = 470
+ELEMENTS_PER_PAGE = 2
 
 
 args = docopt(__doc__)
@@ -73,7 +73,7 @@ def make_params(nums):
 
 
 def generate_pdfs(params):
-    pages = calc_num_pages(len(params), elements_per_page)
+    pages = calc_num_pages(len(params), ELEMENTS_PER_PAGE)
     doclist = list()
 
     for page in range(pages):
@@ -86,14 +86,14 @@ def generate_pdfs(params):
 
         elements = [template_element]
 
-        # We'll have between 1 and elements_per_page elements on this page
-        first_element = page * elements_per_page
-        last_element = min((page + 1) * elements_per_page, len(params)) - 1
+        # We'll have between 1 and ELEMENTS_PER_PAGE elements on this page
+        first_element = page * ELEMENTS_PER_PAGE
+        last_element = min((page + 1) * ELEMENTS_PER_PAGE, len(params)) - 1
         elements_on_this_page = last_element - first_element + 1
 
         # Template already has one element, so we get the first on free; we need to create copies for anh additional elements we need
         for i in range(1, elements_on_this_page):
-            new_element = create_nudged_copy(template_element, f'layer{i}', (0, element_height * i))
+            new_element = create_nudged_copy(template_element, f'layer{i}', (0, ELEMENT_HEIGHT * i))
             elements.append(new_element)        # Add it to our list of elements
             doc.getroot().append(new_element)   # And add it to the XML document tree
 
@@ -112,18 +112,18 @@ def generate_pdfs(params):
         try:
             doc.write(tmpfile)
 
-            subprocess.call([inkscape, "--without-gui", "--export-area-page", f"--export-pdf={outfile}", f"--file={tmpfile}"])
+            subprocess.call([INKSCAPE, "--without-gui", "--export-area-page", f"--export-pdf={outfile}", f"--file={tmpfile}"])
         finally:
             os.remove(tmpfile)
 
     return doclist
 
 
-def calc_num_pages(elements, elements_per_page):
+def calc_num_pages(elements, ELEMENTS_PER_PAGE):
     if elements == 0:   # It won't...
         return 0
 
-    return int((elements - 1) / elements_per_page) + 1
+    return int((elements - 1) / ELEMENTS_PER_PAGE) + 1
 
 
 def create_nudged_copy(elem, id, nudge_amount):
