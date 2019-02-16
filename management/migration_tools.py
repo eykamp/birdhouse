@@ -148,9 +148,11 @@ def check_for_dupes(items):
 
     items.sort()
     for i in range(len(items) - 1):
+        print(".", end="")
         if items[i] == items[i + 1]:
             print(f"List of devices to process contains at least one duplicate! ({items[i]})")
             exit()
+    print()            
 
 
 
