@@ -169,7 +169,7 @@ def check_for_remigration(to_do_list):
     print("Conducting remigration checks (to make sure device hasn't already been migrated to new server)")
 
     for num in to_do_list:
-        print('.', end='')
+        print(".", end="")
         name = birdhouse_utils.make_device_name(num)
 
         if not device_has_data(tbapi_old, old_client, name):
@@ -208,7 +208,7 @@ def ensure_devices_exist(device_nums):
     print("Making sure every device we want to migrate exists on both source and desitnation machines")
 
     for num in device_nums:
-        print('.', end='')
+        print(".", end="")
 
         name = birdhouse_utils.make_device_name(num)
 
@@ -254,7 +254,7 @@ def verify_devices_remapped(device_nums, min_interval=120, age_considered_offlin
     now = int(time.time() * 1000)
 
     for num in device_nums:
-        print('.', end='')
+        print(".", end="")
 
         name = birdhouse_utils.make_device_name(num)
         latest_old = get_latest_telemetry_date(tbapi_old, old_client, name) or 0
