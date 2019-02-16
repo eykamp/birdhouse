@@ -23,8 +23,8 @@ bhnums = [22]   # Note that this list  will be sorted before processing!
 
 # Things that probably will never change:
 ssh_port = 22
-postgres_command = "sudo -u postgres psql -qAtX -d thingsboard -c"
-column_list = "entity_type, entity_id, key, ts, bool_v, str_v, long_v, dbl_v"
+POSTGRES_COMMAND = "sudo -u postgres psql -qAtX -d thingsboard -c"
+COLUMN_LIST = "entity_type, entity_id, key, ts, bool_v, str_v, long_v, dbl_v"
 
 
 def main():
@@ -279,7 +279,7 @@ def get_arbitrary_telemetry_date(tbapi, client, name, key="freeHeap", get_max=Fa
         return tel[key][0]['ts']
 
     # We didn't find any data the easy way; let's check the hard way.  We might have data that never made it to ts_kv_latest; we need to bypass by going straight to the server
-    ts = run_command(client, f'{postgres_command} "select {"max(ts)" if get_max else "ts"} from ts_kv where entity_id in (select id from device where name =\'{name}\') limit 1;"').strip()
+    ts = run_command(client, f'{POSTGRES_COMMAND} "select {"max(ts)" if get_max else "ts"} from ts_kv where entity_id in (select id from device where name =\'{name}\') limit 1;"').strip()
     return int(ts) if ts != "" else None
 
 
@@ -334,7 +334,7 @@ def load_data(client, filename, num):
     """
     outfile = f"dataload_{num}.out"
     print(f"Loading data from {filename} into postgres...", end='')
-    out = run_command(client, f'nohup {postgres_command} "\\copy ts_kv ({column_list}) from \'{filename}\' DELIMITER \',\' null \'\\N\' csv;" > {outfile}')
+    out = run_command(client, f'nohup {POSTGRES_COMMAND} "\\copy ts_kv ({COLUMN_LIST}) from \'{filename}\' DELIMITER \',\' null \'\\N\' csv;" > {outfile}')
     print(" done.")
     print(f"\t[{out}]")
 
@@ -372,7 +372,7 @@ def export_data(client, bhnum, filename):
     """
     device_name = birdhouse_utils.make_device_name(bhnum)
 
-    command = f'{postgres_command} "COPY (select {column_list} from ts_kv where entity_id in (select id from device where name in(\'{device_name}\') order by ts)) TO \'{filename}\' (DELIMITER \',\');"'
+    command = f'{POSTGRES_COMMAND} "COPY (select {COLUMN_LIST} from ts_kv where entity_id in (select id from device where name in(\'{device_name}\') order by ts)) TO \'{filename}\' (DELIMITER \',\');"'
 
     print(f"Exporting data for {device_name} to {filename}...", end='')
     out = run_command(client, command)
