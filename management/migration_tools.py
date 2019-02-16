@@ -53,6 +53,9 @@ def main():
     print("Passed preflight checks... ready to migrate")
     exit()
 
+    print()
+    print("=== Beginning Migration ===")
+
     print(f"Processing devices {bhnums}...")
 
     for bhnum in bhnums:
