@@ -248,7 +248,7 @@ def verify_devices_remapped(device_nums, min_interval=120, age_considered_offlin
     old_client = create_client(old_server_ip)
     new_client = create_client(new_server_ip)
 
-    print("Verifying that device has attached itself to the new server and isn't still sending data to the old server")
+    print("Verifying devices have attached themselves to the new server and aren't still sending data to the old")
 
 
     now = int(time.time() * 1000)
