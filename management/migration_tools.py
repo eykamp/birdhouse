@@ -50,7 +50,7 @@ def main():
     ensure_devices_exist(bhnums)                        # Make sure device is defined on both old and new servers
     verify_devices_remapped(bhnums, min_interval=60 * MINUTES, age_considered_offline=5 * DAYS)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
 
-    print("Passed preflight checks.")
+    print("Passed preflight checks... ready to migrate")
     exit()
 
     print(f"Processing devices {bhnums}...")
@@ -422,7 +422,7 @@ def export_data(client, bhnum, filename):
     print(f"\t[{out}]")
 
     linect = run_command(client, f"wc -l {filename}|awk '{{print $1}}")
-    print(f"Exported {linect} lines")
+    print(f"Exported {linect} lines to {filename} on server")
 
     return filename
 
