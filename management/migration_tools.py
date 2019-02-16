@@ -61,7 +61,7 @@ def main():
     for bhnum in bhnums:
         formatted_num = birdhouse_utils.make_device_number(bhnum)
 
-        print(f"Starting load for {formatted_num}...")
+        print(f"Starting load for {birdhouse_utils.make_device_name(bhnum)}...")
 
         filename = f"/tmp/ts_kv_{formatted_num}.csv"        # Filename on remote server
 
@@ -426,7 +426,7 @@ def export_data(client, bhnum, filename):
     print(f"\t[{out}]")
 
     linect = run_command(client, f"wc -l {filename}|awk '{{print $1}}")
-    print(f"Exported {linect} lines to {filename} on server")
+    print(f"Exported {int(linect.strip()) - 1} records.")
 
     return filename
 
