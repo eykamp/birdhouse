@@ -48,7 +48,7 @@ def main():
     check_for_remigration(bhnums)                       # Make sure we're not reprocessing an device we've already migrated
     check_for_dupes(bhnums)                             # Make sure we haven't entered the same number twice in our processing list
     ensure_devices_exist(bhnums)                        # Make sure device is defined on both old and new servers
-    verify_devices_remapped(bhnums, min_interval=1 * HOURS, age_considered_offline=5 * DAYS)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
+    verify_devices_remapped(bhnums, min_interval=60 * MINUTES, age_considered_offline=5 * DAYS)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
 
     print("Passed preflight checks.")
     exit()
