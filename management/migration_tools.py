@@ -60,7 +60,7 @@ def main():
 
         print(f"Starting load for {formatted_num}...")
 
-        filename = f"/tmp/ts_kv_{formatted_num}.csv"
+        filename = f"/tmp/ts_kv_{formatted_num}.csv"        # Filename on remote server
 
         export_data(old_client, bhnum, filename)
         pull_file_to_server(new_client, old_server_ip, filename)
