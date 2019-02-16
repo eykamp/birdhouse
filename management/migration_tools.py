@@ -15,7 +15,7 @@ from config import thingsboard_username, thingsboard_password, ssh_username, ssh
 log = logging.getLogger("migrate")
 logging.basicConfig(level=logging.INFO)
 
-orig_server = "162.212.157.80"
+logging.getLogger("paramiko").setLevel(logging.WARNING)     # Quiet this dude down a notch
 old_server_ip = "198.46.139.101"   # 80GB  <-- Migrate data from
 new_server_ip = "192.210.218.130"  # 100GB <-- Migrate data to
 
