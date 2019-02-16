@@ -152,7 +152,7 @@ def check_for_dupes(items):
         if items[i] == items[i + 1]:
             print(f"List of devices to process contains at least one duplicate! ({items[i]})")
             exit()
-    print()            
+    print()
 
 
 
