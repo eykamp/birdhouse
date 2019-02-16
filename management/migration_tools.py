@@ -424,7 +424,9 @@ def export_data(client, bhnum, filename):
     print(f"Exporting data for {device_name} to {filename}...", end='')
     out = run_command(client, command)
     print(" done.")
-    print(f"\t[{out}]")
+
+    if out.strip() != "":
+        print(out)
 
     linect = run_command(client, f"wc -l {filename}|awk '{{print $1}}")
     print(f"Exported {int(linect.strip()) - 1} records.")
