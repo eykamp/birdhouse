@@ -58,8 +58,13 @@ def main():
 
     print(f"Processing devices {bhnums}...")
 
+    first = True
+
     for bhnum in bhnums:
         formatted_num = birdhouse_utils.make_device_number(bhnum)
+        
+        if not first:
+            print("==========")
 
         print(f"Starting load for {birdhouse_utils.make_device_name(bhnum)}...")
 
@@ -75,6 +80,7 @@ def main():
         delete_file(new_client, filename, "server")
 
         print(f"Data loaded for device {formatted_num}")
+        first = False
 
     old_client.close()
     new_client.close()
