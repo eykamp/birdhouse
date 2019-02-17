@@ -387,9 +387,12 @@ def load_data(client, filename, num):
     print(f"Loading data from {filename} into postgres...", end="")
     out = run_command(client, f'nohup {POSTGRES_COMMAND} "\\copy ts_kv ({COLUMN_LIST}) from \'{filename}\' DELIMITER \',\' null \'\\N\' csv;" > {outfile}')
     print(" done.")
-    print(f"\t[{out}]")
+    if out.strip() != "":
+        print(f"\t[{out}]")
 
-    print(run_command(client, f'cat {outfile} & rm {outfile}'))
+    out2 = run_command(client, f"cat {outfile} & rm {outfile}")
+    if out2.strip() != "":
+        print(f"\t[{out2}]")
 
 
 def pull_file_to_server(client, source_ip, source_file):
