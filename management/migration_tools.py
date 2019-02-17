@@ -1,7 +1,46 @@
 """
-Usage:
-    migrate <bhnum>
+The purpose of this file is to provide a set of tools for migrating collected data from one server 
+to another, even while devices are online and collecting.
+
+
+When configuring a new machine, the first thing to do is to copy everything from the
+old server to the new server: 
+
+On source machine: 
+sudo vi /etc/ssh/sshd_config
+>>> PermitRootLogin yes
+sudo service ssh restart
+
+On dest machine, pull files from old machine:
+
+rsync -aHxv --numeric-ids --exclude=/etc/fstab --exclude=/etc/network/* --exclude=/proc/*
+    --exclude=/tmp/* --exclude=/sys/* --exclude=/dev/* --exclude=/mnt/* --exclude=/boot/*
+    --exclude=/var/db/backups/* root@198.46.139.101:/* /
+
+Restart dest machine, make sure can login as root and chris
+
+At this point, all devices will still be writing to the old machine; delete the telemetry records in
+our new database:
+
+sudo su -c "psql thingsboard -c \"delete from ts_kv; delete from ts_kv_latest;\"" postgres
+sudo su -c "psql thingsboard -c \"select count(*) from ts_kv;\"" postgres
+
+Verify access to thingsboard on new server using IP address.    
+
+Now change the sensorbot.org DNS settings to aim at the new machine.  As devices start sending
+telemetry to the new server, their old data can be tansferred.  If necessary, use a minor software
+update to force devices to restart and make fresh DNS requests.  Migrating a few devices at a time
+is fine; it is best to make a list of device you think need to be migrated and manually track your
+progress.
+
+Use the find_unmigrated_devices() function to help deterine which devices might have data that
+needs to be moved.  This also assesses whether devices are writing to the new server yet.
+
+print_item_counts() shows how many records for a device exists on the origin and destination servers.
+
+
 """
+
 # from docopt import docopt
 import birdhouse_utils
 import paramiko    # pip install paramiko
@@ -22,7 +61,7 @@ old_server_ip = "162.212.157.80"
 # old_server_ip = "198.46.139.101"   # 80GB  <-- Migrate data from
 new_server_ip = "192.210.218.130"  # 100GB <-- Migrate data to
 
-# Unmigrated  ['Birdhouse 008', 'Birdhouse 014', 'Birdhouse 016', 'Birdhouse 019', 'Birdhouse 022', 'Birdhouse 023', 'Birdhouse 048']
+devices_to_migrate = [8, 14, 16, 19, 22, 23, 48]   # Note that this list  will be sorted before processing!
 bhnums = [8, 14, 16, 19, 22, 23, 48]   # Note that this list  will be sorted before processing!
 
 # Things that probably will never change:
