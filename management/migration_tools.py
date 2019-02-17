@@ -58,11 +58,9 @@ logging.getLogger("paramiko").setLevel(logging.WARNING)     # Quiet this dude do
 
 
 old_server_ip = "162.212.157.80"
-# old_server_ip = "198.46.139.101"   # 80GB  <-- Migrate data from
-new_server_ip = "192.210.218.130"  # 100GB <-- Migrate data to
+new_server_ip = "192.210.218.130"  
 
 devices_to_migrate = [8, 14, 16, 19, 22, 23, 48]   # Note that this list  will be sorted before processing!
-bhnums = [8, 14, 16, 19, 22, 23, 48]   # Note that this list  will be sorted before processing!
 
 # Things that probably will never change:
 SSH_PORT = 22
@@ -76,18 +74,22 @@ WEEKS = 7 * DAYS
 
 
 def main():
-
-    # find_unmigrated_devices(old_server_ip, new_server_ip)   # This still isn't right -- devices that are not online are marked as not ready for migration... maybe other problems
-    # exit()
+    find_unmigrated_devices(old_server_ip, new_server_ip)   # This still isn't right -- devices that are not online are marked as not ready for migration... maybe other problems
+    exit()
 
     old_client = create_client(old_server_ip)
     new_client = create_client(new_server_ip)
 
+    print_item_counts(old_client, new_client, devices_to_migrate)
+    exit()
+
+
     # Make sure everything is clear sailing
-    check_for_remigration(bhnums)                       # Make sure we're not reprocessing an device we've already migrated
-    check_for_dupes(bhnums)                             # Make sure we haven't entered the same number twice in our processing list
-    ensure_devices_exist(bhnums)                        # Make sure device is defined on both old and new servers
-    verify_devices_remapped(bhnums, min_interval=60 * MINUTES, age_considered_offline=5 * DAYS)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
+    check_for_remigration(devices_to_migrate)   # Make sure we're not reprocessing an device we've already migrated
+    check_for_dupes(devices_to_migrate)         # Make sure we haven't entered the same number twice in our processing list
+    ensure_devices_exist(devices_to_migrate)    # Make sure device is defined on both old and new servers
+    
+    verify_devices_remapped(devices_to_migrate, min_interval=60 * MINUTES)  # Ensure device has started sending telemetry to new server -- don't migrate until it has
 
     print("Passed preflight checks... ready to migrate")
     exit()
@@ -95,11 +97,11 @@ def main():
     print()
     print("=== Beginning Migration ===")
 
-    print(f"Processing devices {bhnums}...")
+    print(f"Processing devices {devices_to_migrate}...")
 
     first = True
 
-    for bhnum in bhnums:
+    for bhnum in devices_to_migrate:
         formatted_num = birdhouse_utils.make_device_number(bhnum)
         
         if not first:
@@ -122,7 +124,6 @@ def main():
 
         print(f"Data loaded for device {formatted_num}")
         first = False
-
 
     old_client.close()
     new_client.close()
@@ -180,6 +181,16 @@ def find_unmigrated_devices(old_ip, new_ip):
     exit()
 
 
+def print_item_counts(old_client, new_client, nums):
+    print("Counting records for devies on old and new servers...")
+    for num in nums:
+        name = birdhouse_utils.make_device_name(num)
+        cmd = f'{POSTGRES_COMMAND} "select count(*) from ts_kv where entity_id in (select id from device where name =\'{name}\');"'
+        old_count = run_command(old_client, cmd).strip()
+        new_count = run_command(new_client, cmd).strip()
+        print(f"{name}: {'Same' if old_count == new_count else 'Different'} [Old | New: {old_count} | {new_count}]")
+
+
 def check_for_dupes(items):
     """
     Make sure we haven't queued the same device up to be run twice
@@ -193,7 +204,6 @@ def check_for_dupes(items):
             print(f"List of devices to process contains at least one duplicate! ({items[i]})")
             exit()
     print()
-
 
 
 def check_for_remigration(to_do_list):
