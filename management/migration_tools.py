@@ -68,12 +68,14 @@ def main():
 
         print(f"Starting load for {birdhouse_utils.make_device_name(bhnum)}...")
 
-        filename = f"/tmp/ts_kv_{formatted_num}.csv"        # Filename on remote server
+        filename = f"/tmp/ts_kv_{formatted_num}.csv"        # Filename on remote servers
 
         export_data(old_client, bhnum, filename)
-        pull_file_to_server(new_client, old_server_ip, filename)
-
-        verify_hashes(old_client, new_client, filename)
+        md5 = get_md5(old_client, filename)
+        if md5.strip() == "":
+            print(f"Could not find database export file {filename} on old server... Aborting.")
+            exit()
+        transfer_file(new_client, old_server_ip, filename, md5)
         load_data(new_client, filename, formatted_num)
 
         delete_file(old_client, filename, "client")
@@ -81,6 +83,7 @@ def main():
 
         print(f"Data loaded for device {formatted_num}")
         first = False
+
 
     old_client.close()
     new_client.close()
@@ -136,17 +139,6 @@ def find_unmigrated_devices(old_ip, new_ip):
     print(f"New only, nothing to do: {sorted(new_only)}")
 
     exit()
-
-
-def verify_hashes(client1, client2, filename):
-    """
-    Verify that the hashes for filename match on our two servers; mostly pedantic, but also cheap and easily done
-    """
-    oldmd5 = get_md5(client1, filename)
-    newmd5 = get_md5(client2, filename)
-    if oldmd5 != newmd5:
-        print("Hashes do not match.  Aborting.")
-        exit()
 
 
 def check_for_dupes(items):
@@ -395,11 +387,40 @@ def load_data(client, filename, num):
         print(f"\t[{out2}]")
 
 
-def pull_file_to_server(client, source_ip, source_file):
+def transfer_file(client, source_ip, source_file, md5):
     """
     Copy a file from server specified by source_ip to the remote server specified by client.  Presumes that token login works, of course.
     """
-    print(run_command(client, f"scp {source_ip}:{source_file} {source_file}"))
+    print("Checking if file has already been copied...", end="")
+    newmd5 = get_md5(client, source_file)
+    if md5 == newmd5:
+        print(" it has!  Yay!")
+        return
+    print(" no.")
+
+    print("Copying data to new server...", end="")
+    copycmd = f"scp {source_ip}:{source_file} {source_file}"
+    out = run_command(client, copycmd)
+    print(" checking hashes...", end="")
+    lines = run_command(client, f"ls {source_file} | wc -l")
+
+    if int(lines.strip()) == 0:
+        print(f"File {source_file} not copied.")
+        print("Please verify that auto login is configured so the following command can run on the new server without interaction:")
+        print(copycmd)
+        exit()
+
+    if out.strip() != "":
+        print(out)
+        exit()
+
+    newmd5 = get_md5(client, source_file)
+    if md5 != newmd5:
+        print(" no match... aborting.", end="")
+        exit()
+
+    print(" match...", end="")
+    print(" done.")
 
 
 def get_md5(client, filename):
