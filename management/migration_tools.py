@@ -384,7 +384,7 @@ def load_data(client, filename, num):
     Load data from filename into thingsboard database on remote server
     """
     outfile = f"dataload_{num}.out"
-    print(f"Loading data from {filename} into postgres...", end='')
+    print(f"Loading data from {filename} into postgres...", end="")
     out = run_command(client, f'nohup {POSTGRES_COMMAND} "\\copy ts_kv ({COLUMN_LIST}) from \'{filename}\' DELIMITER \',\' null \'\\N\' csv;" > {outfile}')
     print(" done.")
     print(f"\t[{out}]")
