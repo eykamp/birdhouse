@@ -433,6 +433,7 @@ def export_data(client, bhnum, filename):
 
     if out.strip() != "":
         print(out)
+        exit()
 
     linect = run_command(client, f"wc -l {filename}|awk '{{print $1}}'")
     print(f"Exported {int(linect.strip()) - 1} records.")
