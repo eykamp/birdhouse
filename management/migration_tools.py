@@ -17,7 +17,9 @@ rsync -aHxv --numeric-ids --exclude=/etc/fstab --exclude=/etc/network/* --exclud
     --exclude=/tmp/* --exclude=/sys/* --exclude=/dev/* --exclude=/mnt/* --exclude=/boot/*
     --exclude=/var/db/backups/* root@198.46.139.101:/* /
 
-Restart dest machine, make sure can login as root and chris
+Restart dest machine, make sure can login as root and chris; also make sure you can log in to the
+older machine from the newer one withtout entering a password (see
+https://www.tecmint.com/ssh-passwordless-login-using-ssh-keygen-in-5-easy-steps/).
 
 At this point, all devices will still be writing to the old machine; delete the telemetry records in
 our new database:
@@ -37,7 +39,6 @@ Use the find_unmigrated_devices() function to help deterine which devices might 
 needs to be moved.  This also assesses whether devices are writing to the new server yet.
 
 print_item_counts() shows how many records for a device exists on the origin and destination servers.
-
 
 """
 
