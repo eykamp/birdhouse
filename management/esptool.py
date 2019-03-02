@@ -2392,7 +2392,7 @@ def version(args):
 #
 
 
-def main(custom_commandline, esp=None):
+def main(custom_commandline, esp=None, output_fn=print):
     """
     Main function for esptool
 
@@ -2622,6 +2622,8 @@ def main(custom_commandline, esp=None):
         sys.exit(1)
 
     operation_func = globals()[args.operation]
+
+    args.xxx = 123
 
     if PYTHON2:
         # This function is depreciated in Python3
