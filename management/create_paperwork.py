@@ -37,7 +37,6 @@ ELEMENTS_PER_PAGE = 2
 args = docopt(__doc__)
 
 
-
 def main():
     params = make_params(args["<num>"])
 

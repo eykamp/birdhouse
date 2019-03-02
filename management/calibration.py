@@ -67,9 +67,13 @@ def main():
     # print(corr.to_string())
     # exit()
 
-    formatDataForGoogle(["004","005"])
-    exit()
+    # formatDataForGoogle(["004","005"])
+    # exit()
     
+    doit(100)
+    doit(101)
+    doit(102)
+
 
     # # batch 1
     doit("002")
@@ -151,7 +155,9 @@ def doit(birdhouse_number):
     merged = pd.merge_ordered(data_df, ref_df, on='ts', how='outer')
     merged.set_index('ts', inplace=True)
     merged.index = pd.to_datetime(merged.index)
-    resampled = merged.resample('1H').mean()
+
+    duration = calibrationData[birdhouse_number]["duration"]
+    resampled = merged.resample(duration).mean()
     resampled.dropna(inplace=True) 
 
 
@@ -164,9 +170,9 @@ def doit(birdhouse_number):
     scaling_factor_based_on_rescaled_data = compute_scaling_factor(resampled["data"], resampled["ref"])
     # print("Scaling factor (resampled data)", scaling_factor_based_on_rescaled_data)
 
+    print(data_df["data"], ref_df["ref"])
     scaling_factor_based_on_orig_data = compute_scaling_factor(data_df["data"], ref_df["ref"])
     # print("Scaling factor (orig data)", scaling_factor_based_on_orig_data)
-
 
 
     d_resampled = resampled["data"].values.reshape(-1, 1)
@@ -251,26 +257,72 @@ def retrieve_data(birdhouse_number):
     if device is None:
         print("Could not find device " + device_name)
         exit()
-    reference_device = tbapi.get_device_by_name(reference_device_name)
-    if reference_device is None:
-        print("Could not find reference device " + reference_device_name)
-        exit()
-        # 004 005 003 010 002 011 012 013
-    # for i in range(0, len(attributes)):
-    #     telemetry = get_telemetry(device, attributes[i], start_ts, end_ts)[attributes[i]]
-    #     reference_telemetry = get_telemetry(reference_device, reference_attributes[i], start_ts, end_ts)[reference_attributes[i]]
 
-    #     print(telemetry)
-    #     print(reference_telemetry)
+    reference_devices = make_device_list(reference_device_name)     # Returns a list of devices
 
 
+
+    # Now we need to collect the data from our device and the reference
+
+    # First, see if we have any cached:
     from testData import telemetry, reference_telemetry
 
-    return telemetry[birdhouse_number], reference_telemetry[birdhouse_number]
+    return telemetry[str(birdhouse_number)], reference_telemetry[str(birdhouse_number)]
+
+    # telemetry = {}
+    # reference_telemetry = {}
+    # telemetry["004"]           =  [{'ts': 1527717583898, 'value': '2.94'}, {'ts': 
+    # reference_telemetry["004"] =  [{'ts': 1527714000000, 'value': '3.1'}, {'ts': 1
+    # telemetry["005"]           =  [{'ts': 1527717573800, 'value': '1.92'}, {'ts': 
+    # reference_telemetry["005"] =  [{'ts': 1527714000000, 'value': '3.1'}, {'ts': 1
+
+
+    # for n in (3,4,11,12,13):
+    #     device_name = birdhouse_utils.make_device_name(n)
+    #     device = tbapi.get_device_by_name(device_name)
+
+    #     # 004 005 003 010 002 011 012 013
+    #     for i in range(0, len(attributes)):
+    #         telemetry = get_telemetry(device, attributes[i], start_ts, end_ts)[attributes[i]]
+    #         # reference_telemetry = get_telemetry(reference_device, reference_attributes[i], start_ts, end_ts)[reference_attributes[i]]
+
+    #         print(telemetry)
+    #         # print(reference_telemetry)
+
+    # exit()
+
+
+def make_device_list(device_spec):
+    ''' Return a list of devices that we know exist based on passed spec.  Spec will either be a name or a function (like average(1,2,3)), in which case we'll return devices 1,2,3 '''
+
+    # Are we dealing with a single reference device, or a collection of devices?
+    match = re.search(r'average\((.*)\)', device_spec) 
+    if match:
+        device_list = []
+        number_list = match.group(1).split(',')
+        for number in number_list:
+            name = birdhouse_utils.make_device_name(number)
+            device = tbapi.get_device_by_name(name)
+            if device is None:
+                print("Could not find device with number " + str(number))
+                exit()
+            device_list.append(device)
+
+        return device_list
+
+    else:
+        name = birdhouse_utils.make_device_name(device_spec)
+        device = tbapi.get_device_by_name(name)
+
+        if device is None:
+            print("Could not find reference device " + device_spec)
+            exit()
+
+        return device
 
 
 
-def create_data_frame(data, name):
+def create_data_frame(data, name="value"):
     '''
     Creates a pandas timeseries data frame indexed and ordered by the timestamp column
     Will rename value column "value" (which is what the data is called when retrieved from Thingsboard) to the specified name
@@ -279,9 +331,11 @@ def create_data_frame(data, name):
               .set_index('ts')
               .sort_values(by=['ts'])) 
 
-    df.rename(columns={"value":name}, inplace=True)
+    if name != "value":
+        df.rename(columns={"value":name}, inplace=True)
 
     return df
+
 
 
 
@@ -316,6 +370,14 @@ def compute_offset(data_df, ref_df):
 
     return r_scaler.center_ - d_scaler.center_
 
+
+def convert_dataframe_to_thingsboard_json(data_frame):
+    jsn = json.loads(data_frame.to_json(orient='table'))["data"]
+    for j in jsn:
+        epoch = int(dateutil.parser.parse(j["ts"]).timestamp() * 1000)
+        j["ts"] = epoch
+
+    return jsn
 
 
 def get_telemetry(device, field, start_ts, end_ts):

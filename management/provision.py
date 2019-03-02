@@ -67,7 +67,7 @@ from thingsboard_api_tools import TbApi     # pip install git+git://github.com/e
 from asciimatics.screen     import Screen   # pip install aciimatics
 from asciimatics.scene      import Scene
 from asciimatics.exceptions import ResizeScreenError, NextScene, StopApplication
-from asciimatics.widgets    import Frame, Layout, Divider, Text, Button, Label, RadioButtons  # , TextBox, Widget, ListBox
+from asciimatics.widgets    import Frame, Layout, Divider, Text, Button, Label, RadioButtons, TextBox  #, Widget, ListBox
 from asciimatics.effects import Matrix
 
 from functools import partial
@@ -174,6 +174,11 @@ def main(settings):
 
     if upload_img or should_upload_firmware:
         settings.esp = find_birdhouse_port()
+        if settings.esp is None:
+            if ui_mode:
+                start_ui_no_device()
+            else:
+                exit()
 
     if upload_img:
         if not os.path.isfile(firmware_image):
@@ -271,9 +276,9 @@ def find_birdhouse_port():
         print(" none found")
         print("Could not find a USB port with a birdhouse on it.\n\t* Is your device plugged in?\n\t* Is another program using the port?")
         # list_hwids(port)   <-- Not using hwids anymore!
-        exit()
 
-    print("Using " + esp._port.portstr)
+    else:
+        print("Using " + esp._port.portstr)
 
     return esp
 
@@ -734,6 +739,16 @@ def update_dash_def(dash_def, device_id):
             raise e
 
 
+def start_ui_no_device():
+    last_scene = None
+    while True:
+        try:
+            Screen.wrapper(singleton_no_device, catch_interrupt=True, arguments=[last_scene])
+            exit(0)
+        except ResizeScreenError as ex:
+            last_scene = ex.scene
+
+
 def start_ui(tbapi, port):
     last_scene = None
     while True:
@@ -742,6 +757,41 @@ def start_ui(tbapi, port):
             exit(0)
         except ResizeScreenError as ex:
             last_scene = ex.scene
+
+
+class NoDevice(Frame):
+
+    def __init__(self, screen):
+
+        super(NoDevice, self).__init__(screen,
+                                   min(10, screen.height * 2 // 3),
+                                   min(60, screen.width * 2 // 3),
+                                   hover_focus=True,
+                                   title="No Device Found")
+
+        layout = Layout([100], fill_frame=True)
+
+        self.msg0= Label("")
+        self.msg1 = Label("  Could not find a USB port with a birdhouse on it.")
+        self.msg2 = Label("      * Is your device plugged in?")
+        self.msg3 = Label("      * Is another program using the port?")
+        self.msg4 = Label("")
+        
+        self.add_layout(layout)
+        layout.add_widget(self.msg0)
+        layout.add_widget(self.msg1)
+        layout.add_widget(self.msg2)
+        layout.add_widget(self.msg3)
+        layout.add_widget(self.msg4)
+        layout.add_widget(Button("[Exit]", self._quit, add_box=False))
+
+
+        self.fix()  # Calculate positions of widgets
+
+
+    def _quit(self):
+        print("Bye!")
+        raise StopApplication("User pressed quit")
 
 
 class MainMenu(Frame):
@@ -1104,40 +1154,14 @@ class ServerSetup(Frame):
         raise NextScene("Main")
 
 
-class ServerSetupModel(object):
-    def __init__(self):
-
-        # Current contact when editing.
-        self.current_id = None
-
-    def add(self, contact):
-        pass
-
-    def get_summary(self):
-        pass
-
-    def get_contact(self, contact_id):
-        pass
-
-    def get_current_contact(self):
-        pass
-
-    def update_current_contact(self, details):
-        pass
-
-    def delete_contact(self, contact_id):
-        pass
-
 
 def singleton(screen, scene, tbapi, serial):
-    server_config = ServerSetupModel()
-
-    scenes = [
-        Scene([Matrix(screen), MainMenu(screen, settings, tbapi, serial)], -1, name="Main"),
-        # Scene([ServerSetup(screen, server_config)], -1, name="Server Configuration")
-    ]
+    scenes = [ Scene([Matrix(screen), MainMenu(screen, settings, tbapi, serial)], -1, name="Main"), ]
+    screen.play(scenes, stop_on_resize=False, start_scene=scene)
 
 
+def singleton_no_device(screen, scene):
+    scenes = [ Scene([NoDevice(screen)], -1, name="Main"), ]
     screen.play(scenes, stop_on_resize=False, start_scene=scene)
 
 

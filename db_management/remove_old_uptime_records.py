@@ -19,6 +19,7 @@ con = None
 rows = -1
 
 try:
+    logging.info("Starting daily maintenance")
     con = psycopg2.connect("dbname='thingsboard'")
     cur = con.cursor()
     cur.execute("""
@@ -47,6 +48,12 @@ try:
     rows = cur.rowcount
     con.commit()
     logging.info("Deleted " + str(rows) + " uptime records")
+
+    cur.execute("""
+        vacuum ts_kv;
+    """)
+
+    logging.info("Vacuum finished")
 
 except psycopg2.DatabaseError as e:
     logging.error("Error removing useless uptime records: %s" % e)
