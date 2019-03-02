@@ -3,13 +3,15 @@ import psycopg2  # pip install psycopg2-binary
 import logging
 import sys
 
-'''
+# Run as user postgres
+
+"""
 This script will delete any uptime data more than 30 days old, except those records that are written either:
     1) Immediately after a reboot
     2) Immediately prior to a device rebooting or being taken offline
 
 To be run daily via cron    
-'''
+"""
 
 logging.basicConfig(filename='/var/log/db_maintenance.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', datefmt='%d %b %Y %H:%M:%S')
 
