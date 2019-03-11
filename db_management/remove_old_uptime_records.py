@@ -70,7 +70,8 @@ def vacuum(table):
     Run vacuum on specified table
     """
 
-    query = f"VACUUM {table}"
+    query = "VACUUM %s" % table
+
 
     # VACUUM can not run in a transaction block,
     # which psycopg2 uses by default.
