@@ -18,48 +18,73 @@ logging.basicConfig(filename='/var/log/db_maintenance.log', level=logging.DEBUG,
 con = None
 rows = -1
 
-try:
-    logging.info("Starting daily maintenance")
-    con = psycopg2.connect("dbname='thingsboard'")
-    cur = con.cursor()
-    cur.execute("""
-        WITH deletable AS (
 
-          SELECT t.*
-          FROM (  SELECT *,
-                       lead(long_v) over (partition by entity_id order by ts) as next_val,
-                       lag(long_v) over (partition by entity_id order by ts) as prev_val
-                  FROM ts_kv
-                  WHERE key = 'uptime'
-                          AND 
-                        ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
-               ) AS t
+con = psycopg2.connect("dbname='thingsboard'")
 
-          WHERE long_v < next_val  -- delete where the next value is higher than this one... still growing!
-                  AND              -- but only where...
-                long_v > prev_val limit 200000  -- we are not the lowest 
-        )
+def main():
+    try:
+        logging.info("Starting daily maintenance")
+        cur = con.cursor()
+        cur.execute("""
+            WITH deletable AS (
+
+            SELECT t.*
+            FROM (  SELECT *,
+                        lead(long_v) over (partition by entity_id order by ts) as next_val,
+                        lag(long_v) over (partition by entity_id order by ts) as prev_val
+                    FROM ts_kv
+                    WHERE key = 'uptime'
+                            AND 
+                            ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
+                ) AS t
+
+            WHERE long_v < next_val  -- delete where the next value is higher than this one... still growing!
+                    AND              -- but only where...
+                    long_v > prev_val limit 200000  -- we are not the lowest 
+            )
+            
+            DELETE FROM ts_kv K
+            USING deletable
+            WHERE K.entity_id = deletable.entity_id  AND  K.key = 'uptime'  AND  K.ts = deletable.ts;
+            """)
+
+        rows = cur.rowcount
+        con.commit()
+        logging.info("Deleted " + str(rows) + " uptime records")
+
+        vacuum("ts_kv")
+
+        logging.info("Vacuum finished")
+
+    except psycopg2.DatabaseError as e:
+        logging.error("Error removing useless uptime records: %s" % e)
         
-        DELETE FROM ts_kv K
-        USING deletable
-        WHERE K.entity_id = deletable.entity_id  AND  K.key = 'uptime'  AND  K.ts = deletable.ts;
-        """)
+    finally:
+        if con:
+            con.close()
 
-    rows = cur.rowcount
-    con.commit()
-    logging.info("Deleted " + str(rows) + " uptime records")
 
-    cur.commit_transaction()
+# Adapted from https://nessy.info/?p=886
+def vacuum(table):
+    """
+    Run vacuum on specified table
+    """
 
-    cur.execute("""
-        vacuum ts_kv;
-    """)
+    query = f"VACUUM {table}"
 
-    logging.info("Vacuum finished")
+    # VACUUM can not run in a transaction block,
+    # which psycopg2 uses by default.
+    # http://bit.ly/1OUbYB3
+    isolation_level = con.isolation_level
+    con.set_isolation_level(0)
 
-except psycopg2.DatabaseError as e:
-    logging.error("Error removing useless uptime records: %s" % e)
-    
-finally:
-    if con:
-        con.close()
+    cur = con.cursor()
+    cur.execute(query)
+
+    # Restore isolation_level
+    con.set_isolation_level(isolation_level)
+
+    return con.notices
+
+
+main()
