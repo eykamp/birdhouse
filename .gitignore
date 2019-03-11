@@ -22,3 +22,5 @@ firmware/config\.py
 *.pyc
 
 firmware/\.vscode/
+
+management/test_*\.pdf
