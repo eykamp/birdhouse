@@ -20,7 +20,6 @@ rows = -1
 
 try:
     logging.info("Starting daily maintenance")
-
     con = psycopg2.connect("dbname='thingsboard'")
     cur = con.cursor()
     cur.execute("""
