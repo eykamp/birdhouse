@@ -24,6 +24,14 @@ def make_device_number(birdhouse_number):
     return str(birdhouse_number).zfill(3)
 
 
+def get_device_number_from_name(device_name):
+    match = re.search(r"Birdhouse (\d+)", device_name)
+    if match:
+        return match.group(1)
+
+    raise Exception(f"{device_name} doesn't look like a valid device name!")
+
+
 def make_device_name(birdhouse_number):
     if birdhouse_number is None:
         return "Unknown"
@@ -105,6 +113,27 @@ def update_customer_data(cust_info):
             raise ValueError("Need a lat/lon to proceed")
 
     return cust_info
+
+
+def reassign_dash_to_new_device(dash_def, dash_name, from_device_id, to_device_id, to_device_name):
+    """
+    Modifies dash_def, and makes it work for the specified device
+    """
+    # to_device_name = birdhouse_utils.make_device_name(device_number)
+
+    dash_def["name"] = dash_name
+    dash_def["title"] = dash_name
+
+    aliases = dash_def.get("configuration", {}).get("entityAliases", {}).keys()
+    for alias in aliases:
+        try:
+            dash_def["configuration"]["entityAliases"][alias]["alias"] = to_device_name
+            filterx = dash_def["configuration"]["entityAliases"][alias]["filter"]
+            if "singleEntity" in filterx and filterx["singleEntity"]["id"] == from_device_id :
+                dash_def["configuration"]["entityAliases"][alias]["filter"]["singleEntity"]["id"] = to_device_id
+        except Exception as e:
+            print(f'Alias: {alias}\n dash_def["configuration"]["entityAliases"][alias]["filter"]: {dash_def["configuration"]["entityAliases"][alias]["filter"]}')
+            raise e
 
 
 # From https://stackoverflow.com/questions/3041986/apt-command-line-interface-like-yes-no-input
