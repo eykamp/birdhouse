@@ -109,7 +109,8 @@ def update_customer_data(cust_info):
 
 # From https://stackoverflow.com/questions/3041986/apt-command-line-interface-like-yes-no-input
 def query_yes_no(question, default="yes"):
-    """Ask a yes/no question via raw_input() and return their answer.
+    """
+    Ask a yes/no question via raw_input() and return their answer.
 
     "question" is a string that is presented to the user.
     "default" is the presumed answer if the user just hits <Enter>.
@@ -570,7 +571,7 @@ def hard_reset(esp):
 
 def get_best_guess_port():
     ports = get_ports()
-    
+
     if len(ports) == 0:
         return None
 
