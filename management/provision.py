@@ -4,6 +4,7 @@ provision.py: The birdhouse and bottlebot provisioning script
 Usage:
         provision.py [<number> --token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD]
         provision.py upload <number> --token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD
+        provision.py attrib <number> [--token TOKEN --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD]
         provision.py upload-img <image>
         provision.py create <number> --addr ADDRESS [--addr2 ADDRESS2] --city CITY --state STATE [--country COUNTRY] [--zip ZIP] --email EMAIL --phone PHONE [--lat LAT --lon LON] [--baseurl URL] [--testmode]
         provision.py create upload <number> --addr ADDRESS [--addr2 ADDRESS2] --city CITY --state STATE [--country COUNTRY] [--zip ZIP] --email EMAIL --phone PHONE [--lat LAT --lon LON] --ledstyle LEDSTYLE --wifissid SSID --wifipass PASSWORD --devicepass PASSWORD [--baseurl URL]
@@ -15,6 +16,7 @@ Usage:
 Commands:
     [If no command is provided, will launch in to GUI]
     upload
+    attrib                   Set attributes and quit
     upload-img               Upload the specfied image and quit
     create
     delete_from_server
@@ -67,7 +69,7 @@ from thingsboard_api_tools import TbApi     # pip install git+git://github.com/e
 from asciimatics.screen     import Screen   # pip install aciimatics
 from asciimatics.scene      import Scene
 from asciimatics.exceptions import ResizeScreenError, NextScene, StopApplication
-from asciimatics.widgets    import Frame, Layout, Divider, Text, Button, Label, RadioButtons  # , TextBox, Widget, ListBox
+from asciimatics.widgets    import Frame, Layout, Divider, Text, Button, Label, RadioButtons, TextBox  #, Widget, ListBox
 from asciimatics.effects import Matrix
 
 from functools import partial
@@ -137,6 +139,7 @@ thingsboard_only   = args["create"] and not args['upload']
 upload_only        = args['upload'] and not args['create']
 should_delete_only = args['delete_from_server']
 upload_img         = args['upload-img']
+attributes_only    = args['attrib']
 ui_mode            = not args['upload'] and not args['create'] and not args['delete_from_server'] and not upload_img
 
 testmode           = args['--testmode']
@@ -174,6 +177,11 @@ def main(settings):
 
     if upload_img or should_upload_firmware:
         settings.esp = find_birdhouse_port()
+        if settings.esp is None:
+            if ui_mode:
+                start_ui_no_device()
+            else:
+                exit()
 
     if upload_img:
         if not os.path.isfile(firmware_image):
@@ -193,7 +201,6 @@ def main(settings):
     if should_delete_only:
         birdhouse_utils.purge_server_objects_for_device(tbapi, settings.birdhouse_number)
         exit()
-
 
     device_name = birdhouse_utils.make_device_name(settings.birdhouse_number)
     if settings.birdhouse_number is not None:
@@ -229,6 +236,10 @@ def main(settings):
 
     if should_upload_firmware:
         upload_firmware_and_configure(print, settings)
+
+    if attributes_only:
+        hhhh
+        set_params(print, settings)
 
 
 def upload_firmware_and_configure(updater, settings):
@@ -271,9 +282,9 @@ def find_birdhouse_port():
         print(" none found")
         print("Could not find a USB port with a birdhouse on it.\n\t* Is your device plugged in?\n\t* Is another program using the port?")
         # list_hwids(port)   <-- Not using hwids anymore!
-        exit()
 
-    print("Using " + esp._port.portstr)
+    else:
+        print("Using " + esp._port.portstr)
 
     return esp
 
@@ -398,7 +409,7 @@ def create_server_objects(tbapi, birdhouse_number):
 
     try:
         # Upate the dash def. to point at the device we just created (modifies dash_def)
-        update_dash_def(dash_def, device_id)
+        birdhouse_utils.reassign_dash_to_new_device(dash_def, birdhouse_utils.make_dash_name(birdhouse_number), device_id, device_name)
     except Exception as ex:
         print(" error")
         print("Exception encountered: Cleaning up...")
@@ -719,19 +730,14 @@ def fetch_firmware(folder):
     return file.name
 
 
-def update_dash_def(dash_def, device_id):
-    """ Modifies dash_def """
-    device_name = birdhouse_utils.make_device_name(settings.birdhouse_number)
-
-    aliases = dash_def["configuration"]["entityAliases"].keys()
-    for a in aliases:
+def start_ui_no_device():
+    last_scene = None
+    while True:
         try:
-            dash_def["configuration"]["entityAliases"][a]["alias"] = device_name
-            if "singleEntity" in dash_def["configuration"]["entityAliases"][a]["filter"]:
-                dash_def["configuration"]["entityAliases"][a]["filter"]["singleEntity"]["id"] = device_id
-        except Exception as e:
-            print('Alias: %s\n dash_def["configuration"]["entityAliases"][a]["filter"]: %s' % (a, dash_def["configuration"]["entityAliases"][a]["filter"]))
-            raise e
+            Screen.wrapper(singleton_no_device, catch_interrupt=True, arguments=[last_scene])
+            exit(0)
+        except ResizeScreenError as ex:
+            last_scene = ex.scene
 
 
 def start_ui(tbapi, port):
@@ -742,6 +748,41 @@ def start_ui(tbapi, port):
             exit(0)
         except ResizeScreenError as ex:
             last_scene = ex.scene
+
+
+class NoDevice(Frame):
+
+    def __init__(self, screen):
+
+        super(NoDevice, self).__init__(screen,
+                                   min(10, screen.height * 2 // 3),
+                                   min(60, screen.width * 2 // 3),
+                                   hover_focus=True,
+                                   title="No Device Found")
+
+        layout = Layout([100], fill_frame=True)
+
+        self.msg0= Label("")
+        self.msg1 = Label("  Could not find a USB port with a birdhouse on it.")
+        self.msg2 = Label("      * Is your device plugged in?")
+        self.msg3 = Label("      * Is another program using the port?")
+        self.msg4 = Label("")
+        
+        self.add_layout(layout)
+        layout.add_widget(self.msg0)
+        layout.add_widget(self.msg1)
+        layout.add_widget(self.msg2)
+        layout.add_widget(self.msg3)
+        layout.add_widget(self.msg4)
+        layout.add_widget(Button("[Exit]", self._quit, add_box=False))
+
+
+        self.fix()  # Calculate positions of widgets
+
+
+    def _quit(self):
+        print("Bye!")
+        raise StopApplication("User pressed quit")
 
 
 class MainMenu(Frame):
@@ -1104,40 +1145,14 @@ class ServerSetup(Frame):
         raise NextScene("Main")
 
 
-class ServerSetupModel(object):
-    def __init__(self):
-
-        # Current contact when editing.
-        self.current_id = None
-
-    def add(self, contact):
-        pass
-
-    def get_summary(self):
-        pass
-
-    def get_contact(self, contact_id):
-        pass
-
-    def get_current_contact(self):
-        pass
-
-    def update_current_contact(self, details):
-        pass
-
-    def delete_contact(self, contact_id):
-        pass
-
 
 def singleton(screen, scene, tbapi, serial):
-    server_config = ServerSetupModel()
-
-    scenes = [
-        Scene([Matrix(screen), MainMenu(screen, settings, tbapi, serial)], -1, name="Main"),
-        # Scene([ServerSetup(screen, server_config)], -1, name="Server Configuration")
-    ]
+    scenes = [ Scene([Matrix(screen), MainMenu(screen, settings, tbapi, serial)], -1, name="Main"), ]
+    screen.play(scenes, stop_on_resize=False, start_scene=scene)
 
 
+def singleton_no_device(screen, scene):
+    scenes = [ Scene([NoDevice(screen)], -1, name="Main"), ]
     screen.play(scenes, stop_on_resize=False, start_scene=scene)
 
 
