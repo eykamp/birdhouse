@@ -8,8 +8,8 @@ try:
 except ModuleNotFoundError:
     config = {}
 
-import serial                       # pip install pyserial
-import serial.tools.list_ports
+# import serial                       # pip install pyserial
+# import serial.tools.list_ports
 import re
 import sys
 import esptool
@@ -29,8 +29,8 @@ def make_device_name(birdhouse_number):
         return "Unknown"
 
     # If birdhouse_number is not in fact a number, let's assume we already have a name, and just return it
-    if re.match(r"^\d+$", str(birdhouse_number)):
-        return "Birdhouse " + make_device_number(birdhouse_number)
+    if re.match(r'^\d+$', str(birdhouse_number)):
+        return 'Birdhouse ' + make_device_number(birdhouse_number)
     else:
         return birdhouse_number
 
