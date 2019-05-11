@@ -522,13 +522,13 @@ def get_zip_from_nominatim_location(location):
 def get_zip_from_google_location(location):
     bits = location.raw['address_components']
     postal_code = None
-    postal_code_suffix = None
+    # postal_code_suffix = None
 
-    for b in bits:
-        if 'postal_code' in b['types']:
-            postal_code = b['long_name']
-        if 'postal_code_suffix' in b['types']:
-            postal_code_suffix = b['long_name']
+    for bit in bits:
+        if 'postal_code' in bit['types']:
+            postal_code = bit['long_name']
+        # if 'postal_code_suffix' in bit['types']:
+        #     postal_code_suffix = bit['long_name']
 
     if postal_code is None:
         return None
