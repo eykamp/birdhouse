@@ -572,13 +572,14 @@ def get_base_url(args=None, config={}):
 
 
 def make_mothership_url(args, config={}):
+def make_mothership_url(args=None, config={}):
     """
     Pass in a string representing the base server URL, or a docopt arg array from which the --baseurl param will be extracted
     """
     if type(args) is str:
         base = args
     else:
-        base = get_base_url(args)
+        base = get_base_url(args, config)
 
     return "http://" + base + ":8080"
 
