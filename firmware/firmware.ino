@@ -84,12 +84,9 @@ PMS::DATA PmsData;
 #define FIRMWARE_UPDATE_SERVER "192.210.218.130"
 #define FIRMWARE_UPDATE_PORT 8989
 
-
-
 // Create a new exponential filter with a weight of 5 and an initial value of 0. 
 // Bigger numbers hew truer to the unfiltered data
 ExponentialFilter<F32> TemperatureSmoothingFilter(30, 0);
-
 
 
 bool plantowerSensorDetected = false;
@@ -107,7 +104,6 @@ ParameterManager paramManager;
 const char *localAccessPointAddress = "192.168.1.1";    // Url a user connected by wifi would use to access the device server
 
 void handlesetWifiConnection(); // Forward declare
-
 
 
 // A package just arrived!
@@ -295,6 +291,7 @@ void onConnectedToPubSubServer() {
 
 
 
+// Variables for helping us average mutliple readings over our sampling period
 U32 plantowerPm1Sum = 0;
 U32 plantowerPm25Sum = 0;
 U32 plantowerPm10Sum = 0;
@@ -368,14 +365,12 @@ void setup() {
   Rest.variable("mqttConnected",       &getMqttConnected);
   Rest.variable("lastUpdateCheckTime", &lastUpdateCheckTime);
 
-
   Rest.variable("wifiStatus",         &getWifiStatus);
-
 
   Rest.variable("mqttServerConfigured",             &mqttServerConfigured);
   Rest.variable("mqttServerLookupError",            &mqttServerLookupError);
   Rest.variable("ledStyle",           &getLedStyle);
-  Rest.variable("sensorsDetected",    &getSensorsDetected,    false);      // false ==> We'll handle quoting ourselves
+  Rest.variable("sensorsDetected",    &getSensorsDetected, false);      // false ==> We'll handle quoting ourselves
   Rest.variable("plantowerDisabled",  &disablePlantower);      
   Rest.variable("calibrationFactors", &getCalibrationJson, false);
 
@@ -395,8 +390,6 @@ void setup() {
   Rest.function("setparams", setParamsHandler);
   Rest.function("serial",    serialHandler);
   Rest.function("restart",   rebootHandler);
-
-
 
   Rest.set_id("brdhse");  // Should be 9 chars or less
   Rest.set_name(Eeprom.getLocalSsid());
@@ -431,7 +424,14 @@ void setup() {
 
 
 void publishCredentials() {
-  mqtt.publishCredentials(Eeprom.getLocalSsid(), Eeprom.getLocalPassword(), localAccessPointAddress, Eeprom.getWifiSsid(), Eeprom.getWifiPassword(), WiFi.localIP());
+  mqtt.publishCredentials(
+    Eeprom.getLocalSsid(), 
+    Eeprom.getLocalPassword(), 
+    localAccessPointAddress, 
+    Eeprom.getWifiSsid(), 
+    Eeprom.getWifiPassword(), 
+    WiFi.localIP()
+  );
 }
 
 
@@ -537,7 +537,7 @@ void loop() {
     Rest.handle(Serial);
     activatePlantower();  // This will have a little delay built in so that we can deactivate it if we're connected via serial
   }
-
+ 
 
   wifiUtils.loop();
   loopPubSub();
@@ -555,6 +555,17 @@ void loop() {
 }
 
 
+// void printToSerial(int x) {
+  
+//   if (serialSwapped) {
+//     Serial.swap();
+//   }
+//   Serial.println(x);
+//   if (serialSwapped) {
+//     Serial.swap();
+//   }
+// }
+
 
 // If memory is running down, reboot!
 void checkFreeHeap() {
@@ -563,7 +574,6 @@ void checkFreeHeap() {
   // If we've lost 10K, or down under 10K... these limits are set arbitrarily, and, based on observed behavior, will rarely be hit
   if(freeHeap < initialFreeHeap - 10000 || freeHeap < 10000)
     restart();
-
 }
 
 
@@ -580,11 +590,10 @@ void restart() {
 }
 
 
-bool BME_ok = false;
+bool BME_ok = false;    // Will be set to true once we've established contact with the sensor
 
 // Temperature sensor
 BME280I2C bme;
-
 
 // Orange: VCC, yellow: GND, Green: SCL, d1, Blue: SDA, d2
 void setupSensors() {
@@ -593,24 +602,21 @@ void setupSensors() {
   BME_ok = bme.begin();
 
   if(BME_ok) {
-
     BME280I2C::Settings settings(
-           BME280::OSR_X16,             // Temp   --> default was OSR_1X
-           BME280::OSR_X16,             // Humid  --> default was OSR_1X
-           BME280::OSR_X16,             // Press
-           BME280::Mode_Forced,         // Power mode --> Forced is recommended by datasheet
-           BME280::StandbyTime_1000ms, 
-           BME280::Filter_Off,          // Pressure filter
-           BME280::SpiEnable_False,
-           0x76                         // I2C address. I2C specific.
-        );
+      BME280::OSR_X16,             // Temp   --> default was OSR_1X
+      BME280::OSR_X16,             // Humid  --> default was OSR_1X
+      BME280::OSR_X16,             // Press
+      BME280::Mode_Forced,         // Power mode --> Forced is recommended by datasheet
+      BME280::StandbyTime_1000ms, 
+      BME280::Filter_Off,          // Pressure filter
+      BME280::SpiEnable_False,
+      0x76                         // I2C address. Device specific.
+    );
 
     // Temperature sensor
     bme.setSettings(settings);
 
-    F32 t = bme.temp();
-
-    TemperatureSmoothingFilter.SetCurrent(t);
+    TemperatureSmoothingFilter.SetCurrent(bme.temp());    // Seed the filter
   }
 
   resetDataCollection();
@@ -694,7 +700,6 @@ void checkForFirmwareUpdates() {
 }
 
 
-
 void reportPlantowerSensorStatus() {
   // Report each status only once
   if(!plantowerSensorDetected && !plantowerSensorNondetectReported) {
@@ -756,7 +761,6 @@ void reportMeasurements() {
 }
 
 
-
 void onMqttPortUpdated() {
   if(Eeprom.getMqttPort() == 0)
     return;
@@ -788,8 +792,6 @@ void onMqttPortUpdated() {
   
 //   paramManager.setParam("wifiSsid", WiFi.SSID(index - 1));  
 // }
-
-
 
 
 void ping(const char *target) {
@@ -882,7 +884,6 @@ void activatePlantower()
 
   Serial.begin(PLANTOWER_SERIAL_BAUD_RATE);
   Serial.swap();    // D8 is now TX, D7 RX
-  // Serial1.begin(115200);
   serialSwapped = true;
 }
 
