@@ -86,6 +86,8 @@ try:
 except ModuleNotFoundError:
     config = {}
 
+from config import dashboard_template_device
+
 # pip install pyserial geopy requests docopt esptool aciimatics
 # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 # Requirements: Python 3.7
@@ -409,7 +411,10 @@ def create_server_objects(tbapi, birdhouse_number):
 
     try:
         # Upate the dash def. to point at the device we just created (modifies dash_def)
-        birdhouse_utils.reassign_dash_to_new_device(dash_def, birdhouse_utils.make_dash_name(birdhouse_number), device_id, device_name)
+
+        template_device = tbapi.get_device_by_name(dashboard_template_device)
+        template_device_id = tbapi.get_id(template_device)
+        birdhouse_utils.reassign_dash_to_new_device(dash_def, birdhouse_utils.make_dash_name(birdhouse_number), template_device_id, device_id, device_name)
     except Exception as ex:
         print(" error")
         print("Exception encountered: Cleaning up...")
