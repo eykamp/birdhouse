@@ -2,10 +2,11 @@
 get_token.py: Retrieve secret token for device
 
 Usage:
-        get_token.py <num>...  
+        get_token.py <num>...   [--baseurl <base-url>]  
 
 Parameters:
-    num                 Device number
+    num         Device number
+    baseurl     Mothership URL; Defaults to sensorbot.org
  """
 
 from docopt import docopt                   # pip install docopt
