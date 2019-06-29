@@ -8,7 +8,6 @@ import os
 import time
 import hashlib          # for md5
 
-# pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 from thingsboard_api_tools import TbApi # sudo pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
 from redlight_greenlight_config import motherShipUrl, username, password, data_encoding, google_geolocation_key, firmware_images_folder
@@ -88,14 +87,14 @@ class handle_hotspots:
             wifi_lat = results["location"]["lat"]
             wifi_lng = results["location"]["lng"]
             wifi_acc = results["accuracy"]
-        except:
+        except Exception:
             web.debug("Error parsing response from Google Location API!")
             return
 
         web.debug("Calculating distance...")
         try:
-            dist = geopy.distance.vincenty((known_lat, known_lng),(wifi_lat, wifi_lng)).m  # In meters!
-        except:
+            dist = geopy.distance.vincenty((known_lat, known_lng), (wifi_lat, wifi_lng)).m  # In meters!
+        except Exception:
             web.debug("Error calculating!")
             return
 
@@ -104,7 +103,7 @@ class handle_hotspots:
         web.debug("Sending ", outgoing_data)
         try:
             tbapi.send_telemetry(device_token, outgoing_data)
-        except:
+        except Exception:
             web.debug("Error sending location telemetry!")
             return
 
@@ -116,13 +115,13 @@ class handle_firmware:
         return get_firmware(get_path_of_latest_firmware(firmware_images_folder))
 
 
-def get_path_of_latest_firmware(folder, current_major = 0, current_minor = 0):
+def get_path_of_latest_firmware(folder, current_major=0, current_minor=0):
     newest_firmware = None
     newest_major = current_major
     newest_minor = current_minor
 
     for file in os.listdir(folder):
-        candidate = re.search("(\d+)\.(\d+).bin", file)
+        candidate = re.search(r"(\d+)\.(\d+).bin", file)
         if candidate:
             major = int(candidate.group(1))
             minor = int(candidate.group(2))
@@ -143,10 +142,10 @@ def get_firmware(full_filename):
 
         web.debug("Sending firmware (" + byte_count + " bytes), with hash " + md5)
 
-        web.header('Content-type','application/octet-stream')
-        web.header('Content-transfer-encoding','base64')
-        web.header('Content-length', byte_count)
-        web.header('x-MD5', md5)
+        web.header("Content-type", "application/octet-stream")
+        web.header("Content-transfer-encoding", "base64")
+        web.header("Content-length", byte_count)
+        web.header("X-MD5", md5)
 
         return bin_image
 
@@ -154,7 +153,7 @@ def get_firmware(full_filename):
 class handle_update:
     # Returns the full file/path of the latest firmware, or None if we are already running the latest
     def find_firmware_folder(self, current_version, mac_address):
-        v = re.search("(\d+)\.(\d+)", current_version)
+        v = re.search(r"(\d+)\.(\d+)", current_version)
         current_major = int(v.group(1))
         current_minor = int(v.group(2))
 
@@ -225,7 +224,7 @@ class handle_update:
 
 
 class handle_validate_key:
-    # Pass two args: name and key.  Returns "true" if key is the correct secret key for named device, false otherwise.
+    # Pass two args: name and key.  Returns "true" if key is the correct secret key for named device, "false" otherwise.
     # Used to validate whether users have input correct secret key when configuring devices.
     def GET(self):
         query = web.input(name='', key='')
