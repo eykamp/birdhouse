@@ -105,7 +105,6 @@ void loop() {
   wifiStatus = WiFi.status();
   isConnectedToWifi = (wifiStatus == WL_CONNECTED);
 
-
   // There was a change in status -- either we just connected or disconnected
   if(isConnectedToWifi != wasConnectedToWiFi) {
     wasConnectedToWiFi = isConnectedToWifi;
