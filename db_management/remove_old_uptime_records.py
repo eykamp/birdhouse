@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import psycopg2  # pip install psycopg2-binary
 import logging
-import sys
 
 # Run as user postgres
 
@@ -18,61 +17,64 @@ logging.basicConfig(filename='/var/log/db_maintenance.log', level=logging.DEBUG,
 con = None
 rows = -1
 
-
 con = psycopg2.connect("dbname='thingsboard'")
 
+
 def main():
+    logging.info("Starting daily maintenance")
+
     try:
-        logging.info("Starting daily maintenance")
-        cur = con.cursor()
-        cur.execute("""
-            WITH deletable AS (
-
-            SELECT t.*
-            FROM (  SELECT *,
-                        lead(long_v) over (partition by entity_id order by ts) as next_val,
-                        lag(long_v) over (partition by entity_id order by ts) as prev_val
-                    FROM ts_kv
-                    WHERE key = 'uptime'
-                            AND
-                            ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
-                ) AS t
-
-            WHERE long_v < next_val   -- delete where the next value is higher than this one... still growing!
-                    AND               -- but only where...
-                    long_v > prev_val -- we are not the lowest
-                    limit 200000      -- no reason; I just like incrementalism
-            )
-
-            DELETE FROM ts_kv K
-            USING deletable
-            WHERE K.entity_id = deletable.entity_id  AND  K.key = 'uptime'  AND  K.ts = deletable.ts;
-            """)
-
-        rows = cur.rowcount
-        con.commit()
+        rows = remove_uptime_records(con)
         logging.info("Deleted " + str(rows) + " uptime records")
-
-        vacuum("ts_kv")
-
+        vacuum(con, "ts_kv")
         logging.info("Vacuum finished")
 
     except psycopg2.DatabaseError as e:
-        logging.error("Error removing useless uptime records: %s" % e)
+        logging.error(f"Error removing useless uptime records: {e}")
 
     finally:
         if con:
             con.close()
 
 
+def remove_uptime_records(con):
+    cur = con.cursor()
+    cur.execute("""
+        WITH deletable AS (
+
+        SELECT t.*
+        FROM (  SELECT *,
+                    lead(long_v) over (partition by entity_id order by ts) as next_val,
+                    lag(long_v) over (partition by entity_id order by ts) as prev_val
+                FROM ts_kv
+                WHERE   key = 'uptime'
+                    AND
+                        ts < trunc(extract(epoch from (now() - interval '1 month')) * 1000)       -- Older than a month
+            ) AS t
+
+        WHERE long_v < next_val  -- delete where the next value is higher than this one... still growing!
+                AND              -- but only where...
+                long_v > prev_val limit 200000  -- we are not the lowest (use 200000 to keep chunks manageable; will become irrelevant when scheduled daily)
+        )
+
+        DELETE FROM ts_kv K
+        USING deletable
+        WHERE K.entity_id = deletable.entity_id  AND  K.key = 'uptime'  AND  K.ts = deletable.ts;
+        """)
+
+    rows = cur.rowcount
+    con.commit()
+
+    return rows
+
+
 # Adapted from https://nessy.info/?p=886
-def vacuum(table):
+def vacuum(con, table):
     """
     Run vacuum on specified table
     """
 
     query = "VACUUM %s" % table
-
 
     # VACUUM can not run in a transaction block,
     # which psycopg2 uses by default.
@@ -89,4 +91,5 @@ def vacuum(table):
     return con.notices
 
 
-main()
+if __name__ == "__main__":
+    main()
