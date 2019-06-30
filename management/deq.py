@@ -16,7 +16,9 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import re
-import datetime, time, pytz
+import datetime
+import time
+import pytz
 import logging
 import deq_tools                                                    # pip install deq_tools
 
