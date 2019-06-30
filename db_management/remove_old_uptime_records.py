@@ -12,7 +12,7 @@ This script will delete any uptime data more than 30 days old, except those reco
 To be run daily via cron
 """
 
-logging.basicConfig(filename='/var/log/db_maintenance.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', datefmt='%d %b %Y %H:%M:%S')
+logging.basicConfig(filename="/var/log/db_maintenance.log", level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s", datefmt="%d %b %Y %H:%M:%S")
 
 con = None
 rows = -1
@@ -30,7 +30,7 @@ def main():
         logging.info("Vacuum finished")
 
     except psycopg2.DatabaseError as e:
-        logging.error(f"Error removing useless uptime records: {e}")
+        logging.error("Error removing useless uptime records: %s" % e)
 
     finally:
         if con:
