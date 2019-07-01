@@ -70,8 +70,8 @@ def main():
         logging.warning(ex)
 
         # Swallow exception until things have been down awhile... DEQ servers fail from time to time
-        time_since_last_data = to_ts - from_ts  # in ms
-        if time_since_last_data > 1000 * 60 * 12:    # 12 hours
+        time_since_last_data = int(to_ts) - int(from_ts)  # in ms
+        if time_since_last_data > 1000 * 60 * 60 * 1:    # 1 hour
             raise ex
 
     records = 0
