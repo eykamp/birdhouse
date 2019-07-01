@@ -16,7 +16,9 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import re
-import datetime, time, pytz
+import datetime
+import time
+import pytz
 import logging
 import deq_tools                                                    # pip install deq_tools
 
@@ -36,7 +38,7 @@ device = tbapi.get_device_by_name(device_name)
 device_token = tbapi.get_device_token(tbapi.get_id(device))
 
 
-# This is the earliest timestamp we're interested in.  The first time we run this script, all data since this date will be imported. 
+# This is the earliest timestamp we're interested in.  The first time we run this script, all data since this date will be imported.
 # Making the date unnecessarily early will make this script run very slowly.
 earliest_ts = "2018/04/28T00:00"        # DEQ uses ISO datetime format: YYYY/MM/DDTHH:MM
 
@@ -45,23 +47,33 @@ station_id = 2              # 2 => SE Lafayette, 7 => Sauvie Island, 51 => Gresh
 
 # Mapping of DEQ keys to the ones we'll use for the same data
 key_mapping = {
-    "PM2.5 Est": "pm25",
+    # Their key            # Our key
+    "PM2.5 Est":           "pm25",
     "Ambient Temperature": "temperature",
     "Barometric Pressure": "pressure"
 }
 
 
 def main():
-
     start = time.time()
     now_ts = make_deq_date_from_ts(int(time.time() * 1000) + 1000 * 60 * 60 * 24)    # Add 24 hours to protect against running in other timezones
-    
+
     # Date range for the data we're requesting from DEQ
     from_ts = get_from_ts(device)           # Our latest and value, or earliest_ts if this is the inaugural run
     to_ts   = now_ts
 
     # Fetch the data from DEQ
-    data = deq_tools.get_data(station_id, from_ts, to_ts)
+    try:
+        data = deq_tools.get_data(station_id, from_ts, to_ts)
+    except Exception as ex:
+        logging.warning("Error retrieving data")
+        logging.warning(ex)
+
+        # Swallow exception until things have been down awhile... DEQ servers fail from time to time
+        time_since_last_data = to_ts - from_ts  # in ms
+        if time_since_last_data > 1000 * 60 * 12:    # 12 hours
+            raise ex
+
     records = 0
 
     for d in data:
@@ -71,7 +83,7 @@ def main():
 
         for deq_key, our_key in key_mapping.items():
             if deq_key in data[d]:
-                outgoing_data[our_key] = data[d][deq_key]          
+                outgoing_data[our_key] = data[d][deq_key]
 
         if len(outgoing_data) == 0:
             continue
@@ -103,12 +115,12 @@ def make_deq_date_from_ts(ts):
 
 
 # This function returns the ts to use as the beginning of the data range in our data request to DEQ.  It will return the
-# ts for the most recently inserted DEQ data, or if data hasn't yet been inserted, it will return the value we set in 
+# ts for the most recently inserted DEQ data, or if data hasn't yet been inserted, it will return the value we set in
 # earliest_ts at the top of this file.
 def get_from_ts(device):
     # Key used to determine last available telemetry -- this convoluted statement extracts the first value in our key_mapping dict
     # This is a somewhat arbitrary choice, but it will ensure we don't miss any data
-    key = key_mapping[list(key_mapping.keys())[0]]        
+    key = key_mapping[list(key_mapping.keys())[0]]
     telemetry = tbapi.get_latest_telemetry(device, key)
 
     if telemetry[key][0]["value"] is None:      # We haven't stored any telemetry yet
@@ -120,4 +132,5 @@ def get_from_ts(device):
     return ts
 
 
-main()
+if __name__ == "__main__":
+    main()
