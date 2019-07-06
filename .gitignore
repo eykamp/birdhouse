@@ -24,3 +24,5 @@ firmware/config\.py
 firmware/\.vscode/
 
 management/test_*\.pdf
+
+firmware/tempCodeRunnerFile\.python
