@@ -89,7 +89,7 @@ def get_data_for_station(station_id, device_name):
 
         # Swallow exception until things have been down awhile... DEQ servers fail from time to time.  Pretty regularly, actually.
         time_since_last_data = datetime.datetime.fromtimestamp(time.time()) - parser.parse(from_ts)  # gives timedelta
-        if time_since_last_data > datetime.timedelta(hours=3):
+        if time_since_last_data > datetime.timedelta(hours=12):
             logging.error("Persistent error retrieving data (%s)" % str(time_since_last_data))
 
             raise ex
