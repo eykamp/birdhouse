@@ -66,7 +66,7 @@ def make_params(nums):
         print(f"Retrieving details for device {num}... ", end='', flush=True)
         device_name = birdhouse_utils.make_device_name(num)
         dash_name = birdhouse_utils.make_dash_name(num)
-        
+
         device = tbapi.get_device_by_name(device_name)
         dash = tbapi.get_dashboard_by_name(dash_name)
         dash_url = tbapi.get_public_dash_url(dash)
@@ -79,8 +79,8 @@ def make_params(nums):
         token = tbapi.get_device_token(device)
 
         params.append((
-            birdhouse_utils.get_sensor_type(num)[1], 
-            birdhouse_utils.make_device_number(num), 
+            birdhouse_utils.get_sensor_type(num)[1],
+            birdhouse_utils.make_device_number(num),
             token,
             tiny_url
         ))
@@ -102,49 +102,34 @@ def generate_pdfs(params):
 def generate_forms(params):
     # We will print two items per page for now -- how many pages will we be making altogether?
     pages = len(params)
-    doclist = list()
+    pdfs_created = list()
 
     for page in range(pages):
         # Start afresh for each sheet
         parser = etree.XMLParser(remove_blank_text=True)
         doc = etree.parse(ownership_form_file, parser)
 
-        # Grabs the first <g> element
-        template_element = doc.xpath('//svg:g', namespaces={'svg': 'http://www.w3.org/2000/svg'})[0]
+        template_element = get_first_g_element(doc)
 
-        # Update our elements
-        change_device_name(template_element, params[page][0])
-        change_device_number(template_element, params[page][1])
-        change_device_key(template_element, params[page][2])
-        change_dash_url(template_element, params[page][3])
+        update_elements(template_element, params[page])
 
-        tmpfile = get_temp_file()                   # For an intermediate copy of our SVG
-        outfile = forms_pdf_basename + f'_{page}.pdf'     # For the final copy of our PDF
-        doclist.append(outfile)
+        pdf = write_to_pdf(doc, forms_pdf_basename, page)
+        pdfs_created.append(pdf)
 
-        # Convert with Inkscape
-        try:
-            doc.write(tmpfile)
-
-            subprocess.call([INKSCAPE, "--without-gui", "--export-area-page", f"--export-pdf={outfile}", f"--file={tmpfile}"])
-        finally:
-            os.remove(tmpfile)
-
-    return doclist
+    return pdfs_created
 
 
 def generate_labels(params):
     # We will print two items per page for now -- how many pages will we be making altogether?
     pages = calc_num_pages(len(params), ELEMENTS_PER_PAGE)
-    doclist = list()
+    pdfs_created = list()
 
     for page in range(pages):
         # Start afresh for each sheet
         parser = etree.XMLParser(remove_blank_text=True)
         doc = etree.parse(nameplate_template_file, parser)
 
-        # Grabs the first <g> element
-        template_element = doc.xpath('//svg:g', namespaces={'svg': 'http://www.w3.org/2000/svg'})[0]
+        template_element = get_first_g_element(doc)  # We're going to repliate this
 
         elements = [template_element]
 
@@ -161,26 +146,45 @@ def generate_labels(params):
 
         # We need to do this for all our elements, even the original copy from the template
         for i in range(elements_on_this_page):
-            # Update our elements
-            change_device_name(elements[i],   params[first_element + i][0])
-            change_device_number(elements[i], params[first_element + i][1])
-            change_device_key(elements[i],    params[first_element + i][2])
-            change_dash_url(elements[i],      params[first_element + i][3])
+            update_elements(elements[i], params[first_element + i])
+
+        pdf = write_to_pdf(doc, label_pdf_basename, page)
+        pdfs_created.append(pdf)
+
+    return pdfs_created
 
 
-        tmpfile = get_temp_file()                   # For an intermediate copy of our SVG
-        outfile = label_pdf_basename + f'_{page}.pdf'     # For the final copy of our PDF
-        doclist.append(outfile)
+def get_first_g_element(doc):
+    return doc.xpath('//svg:g', namespaces={'svg': 'http://www.w3.org/2000/svg'})[0]
 
-        # Convert with Inkscape
-        try:
-            doc.write(tmpfile)
 
-            subprocess.call([INKSCAPE, "--without-gui", "--export-area-page", f"--export-pdf={outfile}", f"--file={tmpfile}"])
-        finally:
-            os.remove(tmpfile)
 
-    return doclist
+def write_to_pdf(doc, basename, page_number):
+    tmpfile = get_temp_file()                      # For an intermediate copy of our SVG
+    outfile = basename + f'_{page_number}.pdf'     # For the final copy of our PDF
+
+    # Convert with Inkscape
+    try:
+        doc.write(tmpfile)
+
+        subprocess.call([INKSCAPE, "--without-gui", "--export-area-page", f"--export-pdf={outfile}", f"--file={tmpfile}"])
+    finally:
+        os.remove(tmpfile)
+
+    return outfile
+
+
+def update_elements(element, replacement_vals):
+    """
+    Replace dummy strings with their replacement values -- looks for SVG elements that have their text equal to
+    a placeholder value with the actual values we want to show on the output documents
+    """
+    name, number, device_key, dash_url = replacement_vals
+
+    changeElement(element, "Birdhouse", name)
+    changeElement(element, "XXX", number)
+    changeElement(element, "ABCDEFGHIJKLMNOPQRST", device_key)
+    changeElement(element, "YYY", dash_url)
 
 
 def calc_num_pages(elements, elements_per_page):
@@ -207,22 +211,6 @@ def changeElement(doc, from_text, to_text):
         el.text = to_text
 
 
-def change_device_name(doc, name):
-    changeElement(doc, "Birdhouse", name)
-
-
-def change_device_number(doc, number):
-    changeElement(doc, "XXX", number)
-
-
-def change_dash_url(doc, dash_url):
-    changeElement(doc, "YYY", dash_url)
-
-
-def change_device_key(doc, device_key):
-    changeElement(doc, "ABCDEFGHIJKLMNOPQRST", device_key)
-
-
 def get_temp_file():
     f = tempfile.NamedTemporaryFile(delete=False)
     f.close()
@@ -230,5 +218,5 @@ def get_temp_file():
     return f.name
 
 
-
-main()
+if __name__ == "__main__":
+    main()
