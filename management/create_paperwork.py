@@ -18,6 +18,8 @@ import re
 from lxml import etree
 from copy import deepcopy
 from docopt import docopt                   # pip install docopt
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
 import birdhouse_utils
 from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
@@ -25,10 +27,16 @@ from thingsboard_api_tools import TbApi     # pip install git+git://github.com/e
 from config import thingsboard_username, thingsboard_password
 
 
-nameplate_template_file = r'c:\dev\birdhouse\management\nameplate_template.svg'
-outfile_base = r'c:\dev\birdhouse\management\test'          # Will have _{pagenum}.pdf appended to it
+template_folder = "c:/dev/birdhouse/management"
+output_folder   = "c:/dev/birdhouse/management"
 
-INKSCAPE = r'c:\Program Files\Inkscape\inkscape.exe'        # Full path to inkscape binary (for converting SVGs to PDFs)
+nameplate_template_file = os.path.join(template_folder, "nameplate_template.svg")
+ownership_form_file     = os.path.join(template_folder, "ownership_form.svg")
+
+label_pdf_basename = os.path.join(output_folder, "label")         # Will have _{pagenum}.pdf appended to it
+forms_pdf_basename = os.path.join(output_folder, "form")          # Will have _{pagenum}.pdf appended to it
+
+INKSCAPE = r"c:\Program Files\Inkscape\inkscape.exe"        # Full path to inkscape binary (for converting SVGs to PDFs)
 
 ELEMENT_HEIGHT = 470
 ELEMENTS_PER_PAGE = 2
@@ -56,8 +64,13 @@ def make_params(nums):
 
     for num in nums:
         print(f"Retrieving details for device {num}... ", end='', flush=True)
-        name = birdhouse_utils.make_device_name(num)
-        device = tbapi.get_device_by_name(name)
+        device_name = birdhouse_utils.make_device_name(num)
+        dash_name = birdhouse_utils.make_dash_name(num)
+        
+        device = tbapi.get_device_by_name(device_name)
+        dash = tbapi.get_dashboard_by_name(dash_name)
+        dash_url = tbapi.get_public_dash_url(dash)
+        tiny_url = make_tiny_url(dash_url)
 
         if device is None:
             print(f"Failed.\nCould not find device {num}... Aborting.")
@@ -65,13 +78,63 @@ def make_params(nums):
 
         token = tbapi.get_device_token(device)
 
-        params.append((birdhouse_utils.get_sensor_type(num)[1], birdhouse_utils.make_device_number(num), token))
+        params.append((
+            birdhouse_utils.get_sensor_type(num)[1], 
+            birdhouse_utils.make_device_number(num), 
+            token,
+            tiny_url
+        ))
         print("done.")
 
     return params
 
 
+def make_tiny_url(url):
+    request_url = "http://tinyurl.com/api-create.php?" + urlencode({"url": url})
+    with urlopen(request_url) as response:
+        return response.read().decode("utf-8")
+
+
 def generate_pdfs(params):
+    return generate_forms(params) + generate_labels(params)
+
+
+def generate_forms(params):
+    # We will print two items per page for now -- how many pages will we be making altogether?
+    pages = len(params)
+    doclist = list()
+
+    for page in range(pages):
+        # Start afresh for each sheet
+        parser = etree.XMLParser(remove_blank_text=True)
+        doc = etree.parse(ownership_form_file, parser)
+
+        # Grabs the first <g> element
+        template_element = doc.xpath('//svg:g', namespaces={'svg': 'http://www.w3.org/2000/svg'})[0]
+
+        # Update our elements
+        change_device_name(template_element, params[page][0])
+        change_device_number(template_element, params[page][1])
+        change_device_key(template_element, params[page][2])
+        change_dash_url(template_element, params[page][3])
+
+        tmpfile = get_temp_file()                   # For an intermediate copy of our SVG
+        outfile = forms_pdf_basename + f'_{page}.pdf'     # For the final copy of our PDF
+        doclist.append(outfile)
+
+        # Convert with Inkscape
+        try:
+            doc.write(tmpfile)
+
+            subprocess.call([INKSCAPE, "--without-gui", "--export-area-page", f"--export-pdf={outfile}", f"--file={tmpfile}"])
+        finally:
+            os.remove(tmpfile)
+
+    return doclist
+
+
+def generate_labels(params):
+    # We will print two items per page for now -- how many pages will we be making altogether?
     pages = calc_num_pages(len(params), ELEMENTS_PER_PAGE)
     doclist = list()
 
@@ -102,9 +165,11 @@ def generate_pdfs(params):
             change_device_name(elements[i],   params[first_element + i][0])
             change_device_number(elements[i], params[first_element + i][1])
             change_device_key(elements[i],    params[first_element + i][2])
+            change_dash_url(elements[i],      params[first_element + i][3])
+
 
         tmpfile = get_temp_file()                   # For an intermediate copy of our SVG
-        outfile = outfile_base + f'_{page}.pdf'     # For the final copy of our PDF
+        outfile = label_pdf_basename + f'_{page}.pdf'     # For the final copy of our PDF
         doclist.append(outfile)
 
         # Convert with Inkscape
@@ -118,11 +183,11 @@ def generate_pdfs(params):
     return doclist
 
 
-def calc_num_pages(elements, ELEMENTS_PER_PAGE):
+def calc_num_pages(elements, elements_per_page):
     if elements == 0:   # It won't...
         return 0
 
-    return int((elements - 1) / ELEMENTS_PER_PAGE) + 1
+    return int((elements - 1) / elements_per_page) + 1
 
 
 def create_nudged_copy(elem, id, nudge_amount):
@@ -137,8 +202,9 @@ def create_nudged_copy(elem, id, nudge_amount):
 
 
 def changeElement(doc, from_text, to_text):
-    f = [element for element in doc.getiterator() if element.text == from_text][0]
-    f.text = to_text
+    els = [element for element in doc.getiterator() if element.text == from_text]
+    for el in els:
+        el.text = to_text
 
 
 def change_device_name(doc, name):
@@ -147,6 +213,10 @@ def change_device_name(doc, name):
 
 def change_device_number(doc, number):
     changeElement(doc, "XXX", number)
+
+
+def change_dash_url(doc, dash_url):
+    changeElement(doc, "YYY", dash_url)
 
 
 def change_device_key(doc, device_key):
