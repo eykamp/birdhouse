@@ -26,3 +26,6 @@ firmware/\.vscode/
 management/test_*\.pdf
 
 firmware/tempCodeRunnerFile\.python
+
+management/label_*\.pdf
+management/form_*\.pdf
