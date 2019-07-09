@@ -94,7 +94,7 @@ def get_data_for_station(station_id, device_name):
 
             raise ex
         else:
-            logging.info("DEQ connection failure; last data %s / %s / %s" % str(time_since_last_data), from_ts, to_ts)
+            logging.info("DEQ connection failure; last data %s / %s / %s" % (time_since_last_data, from_ts, to_ts))
 
     print_if_ssh("Uploading data to Sensorbot...")
     records = 0
