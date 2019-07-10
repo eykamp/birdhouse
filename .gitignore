@@ -26,3 +26,5 @@ firmware/\.vscode/
 management/test_*\.pdf
 
 firmware/tempCodeRunnerFile\.python
+management/.vscode/settings.json
+.code-workspace.code-workspace
