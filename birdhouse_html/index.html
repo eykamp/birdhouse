@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<!-- Minify with http://minifycode.com/html-minifier/ -->
+<!-- more aggressive: https://kangax.github.io/html-minifier/ , uncheck Remove tag whitespace-->
+<html>
+    
+    <head>
+        <meta charset="UTF-8">
+        <title>Birdhouse Configuration</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/vnd.microsoft.icon">
+    <style type="text/css">
+        /* Colors: https://coolors.co/efb6ba-d6dd94-7bbcd8-3d3034-ce1a44 */
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            position: relative;
+            background-color: #3D3034;
+            padding: 20px;
+        }
+        h1 {
+            font-weight: 700;
+            margin: 0 0 35px;
+            letter-spacing: 1px;
+            /* text-transform: uppercase; */
+            color: #7BBCD8;
+        }
+        input[type=text] {
+            border: 2px solid #888;
+            background-color: #ccc;
+        }
+        input[type=text], button {
+            border-radius: 4px;
+            padding: 5px;
+        }
+        button {
+            font-size: 14px;
+            background-color: #aaa;
+            border: 2px solid #555;
+            opacity: 0.6;
+            transition: .3s;
+        }
+        button:hover {opacity: 1}
+
+
+        #statusMsg {
+            color: #CE1A44;
+        }
+        .fieldname {
+            color: #D6DD94;
+        }
+        .note {
+            color: #7BBCD8;
+            font-size: 12px;
+            padding-left: 10px;
+        }
+        .value {
+            color:#EFB6BA;
+        }
+        .more {
+            display: none;
+        }
+        #errorMsg { 
+            padding:10px;
+            margin-bottom: 10px; 
+            color:red; 
+            border: 1px solid red; 
+            width: 300px;
+            border-radius: 4px;
+            }
+        .right { text-align: right; }
+        .padded { padding: 10px; }
+        .small { font-size: smaller;}
+    </style>
+
+    <script>
+        var baseUrl = "http://192.168.1.1";
+        var settings = {};
+        var deviceName = "";
+        var needToVerify = false;
+        var first = true;
+        
+        function failure(code) {
+            showError(true);
+            setHtml("errorMsg", "Error: " + code);
+        }
+
+        function httpGetAsync(theUrl, success, failure)
+        {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() { 
+                if(xmlHttp.readyState == 4) {
+                    if(xmlHttp.status == 200)
+                        success(xmlHttp.responseText);
+                    else if(xmlHttp.status == 0) 
+                        failure((first ? "Unable to contact" : "Lost contact with") + " device. Possible solutions: 1) Check that you are still connected to " + (first ? "the device's wifi" : 'wifi "' + settings["localSsid"] + '"') + "; 2) Try unplugging and replugging in the device, then reconnect to its wifi. <br><br>This page should refresh automatically when you connect.");
+                    else
+                        failure("Received error code: " + xmlHttp.status);
+                }
+            }
+            xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+            xmlHttp.send(null);
+        }
+        
+        function updateClicked() {
+            setHtml("statusMsg", "Working...");
+            
+            var url = baseUrl + "/setparams?wifipass=" + getVal("pass") + 
+                                    "&wifissid=" + getVal("ssid") + 
+                                    "&localPass=" + getVal("devpass") 
+                                    // + "&deviceToken=" + getVal("token")
+            ;
+            httpGetAsync(url, done, failure);
+        }
+        
+        function getVal(id) {
+            return document.getElementById(id).value;
+        }
+
+        function clearStatus() {
+            setHtml("statusMsg", "");
+        }
+
+        function verify(params) {
+            needToVerify = false;
+            if(
+                settings["wifiSsid"] == getVal("ssid") && 
+                settings["wifiPass"] == getVal("pass") && 
+                settings["localPass"] == getVal("devpass")
+                // && settings["deviceToken"] == getVal("token")
+            ) {
+                setHtml("statusMsg", "Successfully updated settings!");
+                showError(false);
+                setTimeout(clearStatus, 5000);
+            }
+            else {
+                setHtml("errorMsg", "Error: Could not verify that settings were properly saved.  Please refresh this page.");
+                showError(true);
+            }
+        }
+
+        function done() {
+            setHtml("statusMsg", "Verfiying...");
+            httpGetAsync(baseUrl, refreshed, failure);
+            needToVerify = true;
+        }
+
+        function setHtml(id, msg) {
+            document.getElementById(id).innerHTML = msg;
+        }
+
+        function setVisibility(id, show) {
+            document.getElementById(id).style.display = show ? "block" : "none";
+        }
+
+        function setDim(id, dim) {
+            document.getElementById(id).style.opacity = dim ? .25 : 1;
+        }
+
+        function setValue(id, val) {
+            document.getElementById(id).value = val;
+        }
+        
+        function initalize() {
+            showError(true);
+            setAllDim(true);
+            setVisibility("errorMsg", false);
+            httpGetAsync(baseUrl, gotInitParams, failure);
+        }
+        
+        function gotInitParams(json) {
+            settings = JSON.parse(json)["variables"];
+            deviceName = JSON.parse(json)["name"];
+
+            setValue("ssid", settings["wifiSsid"]);
+            setValue("pass", settings["wifiPass"]);
+            setValue("devpass", settings["localPass"]);
+            // setValue("token", settings["deviceToken"]);
+            setHtml("devname", deviceName);
+            setHtml("uptime", toHMS(settings["uptime"]));
+            setHtml("firmware", settings["firmwareVersion"]);
+            setHtml("status", settings["wifiStatus"]);
+            setHtml("mqtt", settings["mqttStatus"]);
+            setHtml("params", "<pre class='small value'>" + JSON.stringify(settings, null, 2) + "</pre>");
+            setVisibility("settings", true);
+
+            first = false;
+
+            if(needToVerify) 
+                verify();
+
+            showError(false);
+        }
+
+        function setAllDim(dim) {
+            setDim("params", dim);
+            setDim("uptime", dim);
+            setDim("firmware", dim);
+            setDim("status", dim);
+            setDim("mqtt", dim);
+        }
+
+        function showError(show) {
+            setAllDim(show);
+            setVisibility("errorMsg", show);
+            document.getElementById("update").disabled = show;
+            document.getElementById("ssid").disabled = show;
+            document.getElementById("pass").disabled = show;
+            document.getElementById("devpass").disabled = show;
+            // document.getElementById("token").disabled = show;
+        }
+
+        function refreshed(json) {
+            // If we somehow end up here before having ever retrieved our params, redirect.  This can happen if
+            // the user refreshes while disconnected from the device hotspot, then reconnects.
+            if(first) {
+                gotInitParams(json);
+                return;
+            }
+
+            settings = JSON.parse(json)["variables"];
+            setHtml("uptime", toHMS(settings["uptime"]));
+            setHtml("params", "<span class='small'><pre>" + JSON.stringify(settings, null, 2) + "</pre></span>");
+            setHtml("status", settings["wifiStatus"]);
+            setHtml("mqtt", settings["mqttStatus"]);
+
+            if(needToVerify) verify();
+            showError(false);
+        }
+
+        function toHMS(millis) {
+            var sec_num = Math.round(millis / 1000); // don't forget the second param
+            var hours   = Math.floor(sec_num / 3600);
+            var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+            var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+            if(hours   < 10) { hours   = "0" + hours; }
+            if(minutes < 10) { minutes = "0" + minutes; }
+            if(seconds < 10) { seconds = "0" + seconds; }
+            return hours + ':' + minutes + ':' + seconds;
+        }
+
+        function refresh() {
+            httpGetAsync(baseUrl, refreshed, failure);
+            setTimeout(refresh, 5000);
+        }
+
+        function moreClicked() {
+            var toggle = document.getElementById("toggle");
+            var vis = false;
+            if(toggle.innerHTML == "[+]") {
+                vis = true;
+                toggle.innerHTML = "[-]";
+            } else {
+                vis = false;
+                toggle.innerHTML = "[+]";
+            }
+
+            var els = document.getElementsByClassName("more");
+            for(var i = 0; i < els.length; i++) 
+                els[i].style.display = vis ? "table-row" : "none";
+        }
+        
+        setTimeout(refresh, 5000);
+        </script>
+</head>
+
+<body>
+    <h1 id="devname">Loading device settings...</h1>
+    <div><span class="fieldname">Uptime: </span><span class="value" id="uptime"><i>Retrieving value</i></span></div>
+    <div><span class="fieldname">Firmware version: </span><span class="value" id="firmware"><i>Retrieving value</i></span></div>
+    <div><span class="fieldname">Wifi connection status: </span><span class="value" id="status"><i>Retrieving value</i></span></div>
+    <div><span class="fieldname">Sensorbot connection status: </span><span class="value" id="mqtt"><i>Retrieving value</i></span></div>
+    
+    <table class="padded">
+        <tr>
+            <td class="right fieldname" width=1>Wifi&nbsp;SSID:</td>
+            <td><input type="text" id="ssid"></td>
+            <td rowspan=2 class="note" width=120px>These are the credentials needed to connect to your home wifi hotspot.</td>
+            </tr>
+        <tr>
+            <td class="right fieldname">Wifi&nbsp;Password:</td>
+            <td width=1><input type="text" id="pass"></td>
+        </tr>
+        <tr><td colspan=3 class="note">Note: This device can only connect to 2.4GHz wifi hotspots.</td></tr>
+        <tr class="more">
+            <td class="right fieldname">Device&nbsp;password:</td>
+            <td width=1><input type="text" id="devpass"></td>
+            <td class="note" width=120px>This is the password you enter to connect to the device's wifi hotspot</td>
+        </tr>
+        <!-- <tr class="more"><td class="right fieldname">Device token:</td><td><input type="text" id="token"></td></tr> -->
+
+        <tr><td colspan=2>
+            <span class="fieldname" id="toggle" style="margin-left:10px; margin-right:20px;" onclick="moreClicked(); return false;">[+]</span>
+            <button onclick="updateClicked()" id="update">Update Settings</button>
+        </td></tr>
+    </table>
+    <div id="errorMsg"></div>
+    <div id="statusMsg"></div>
+    <div id="settings" style="display: none"><span class="fieldname">Full settings:</span>
+        <div id="params" class="value"></div>
+    </div>
+</body>
+
+<script>
+    window.onload = initalize;
+</script>
+
+</html>
+
