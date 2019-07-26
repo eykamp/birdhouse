@@ -1,0 +1,20 @@
+Plantower PMS 5003 Sensor
+BME 280 Temperature/Humidity Sensor
+Node MCU ESP8266 12-E
+
+Plantower wiring harness (comes with sensor)
+2 x 20cm 4-strand F-F dupont connectors
+2-strand 10cm power wiring harness (requires two strands dupont wire)
+3x200-ohm resistors
+4-leg common-annode LED
+Thumbtack
+2 x small wire nuts
+1 x short wood screw (#4 3/8" machine screw works well)
+2 x long wood screw (#4 3/4" machine screw works well)
+2 x nylon standoffs (4mm ID, 7mm OD, 8mm long -- basically the smallest diameter that the long wood screw will fit through)
+5V power supply
+2 wood screws to attach sensor plate to birdhouse
+
+Sensor plate
+Business card
+Sticker
