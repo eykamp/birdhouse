@@ -571,7 +571,30 @@ def get_base_url(args=None, config={}):
     return (args and args['--baseurl']) or config.base_url if 'base_url' in dir(config) else "www.sensorbot.org"
 
 
-def make_mothership_url(args, config={}):
+DEVICE_STATUSES = ["Testing", "Deployed", "Offline", "Unknown"]
+
+def is_valid_status(status):
+    return status in DEVICE_STATUSES
+
+
+def set_device_status(tbapi, device, status):
+    # Valid statuses: Testing; Deployed; Offline; Unknown
+
+    if not is_valid_status:
+        raise Exception(f"Invalid status: {status}")
+
+    return tbapi.set_server_attribute(device, {"DeviceStatus": status})
+
+
+def get_device_status(tbapi, device):
+    attribs = tbapi.get_server_attributes(device)
+    for attrib in attribs:
+        if attrib["key"] == "DeviceStatus":
+            return attrib["value"]
+
+    return "Unknown"
+
+
 def make_mothership_url(args=None, config={}):
     """
     Pass in a string representing the base server URL, or a docopt arg array from which the --baseurl param will be extracted
@@ -620,3 +643,120 @@ def get_best_guess_port():
     #         if "VID:PID=" + vid in port.hwid:
     #             return port.name or port.device
     # return None
+
+
+#######################################
+def get_birdhouses(tbapi):
+    birdhouse_defs = tbapi.get_devices_by_name("Birdhouse")
+
+    birdhouses = list()
+
+    for birdhouse in birdhouse_defs:
+        birdhouses.append(Birdhouse(birdhouse, tbapi))
+
+    return birdhouses
+
+
+def get_birdhouses_by_status(tbapi, status):
+    all_birdhouses = get_birdhouses(tbapi)
+    birdhouses = list()
+    for birdhouse in all_birdhouses:
+        if birdhouse.get_status() == status:
+            birdhouses.append(birdhouse)
+
+    return birdhouses
+
+
+class Id(object):
+    def __init__(self, id_def):
+        self.id = id_def["id"]
+        self.entity_type = id_def["entityType"]
+
+    def __str__(self):
+        return self.entity_type + ": " + self.id
+
+    def get_json(self):
+        return {"entityType": self.entity_type, "id": self.id}
+
+
+class Device(object):
+    def __init__(self, device_def, tbapi):
+        self.id = Id(device_def["id"])
+        self.created_time = device_def["createdTime"]
+        self.additional_info = device_def["additionalInfo"]
+        self.tenant_id = Id(device_def["tenantId"])
+        self.customer_id = Id(device_def["customerId"])
+        self.name = device_def["name"]
+        self.device_type = device_def["type"]
+
+        self.tbapi = tbapi
+
+    def __str__(self):
+        return self.name
+
+    def get_server_attributes(self):
+        return self.tbapi.get_server_attributes(self.id.id)
+
+    def get_client_attributes(self):
+        return self.tbapi.get_client_attributes(self.id.id)
+
+    def get_shared_attributes(self):
+        return self.tbapi.get_shared_attributes(self.id.id)
+
+    def set_server_attributes(self, attributes):
+        return self.tbapi.set_server_attributes(self.id.id, attributes)
+
+    def set_client_attributes(self, attributes):
+        return self.tbapi.set_client_attributes(self.id.id, attributes)
+
+    def set_shared_attributes(self, attributes):
+        return self.tbapi.set_shared_attributes(self.id.id, attributes)
+
+    def delete_server_attributes(self, attributes):
+        return self.tbapi.delete_server_attributes(self.id.id, attributes)
+
+    def delete_client_attributes(self, attributes):
+        return self.tbapi.delete_client_attributes(self.id.id, attributes)
+
+    def delete_shared_attributes(self, attributes):
+        return self.tbapi.delete_shared_attributes(self.id.id, attributes)
+
+    def get_json(self):
+        return {
+            "id": self.id.get_json(),
+            "createdTime": self.created_time,
+            "additionalInfo": self.additional_info,
+            "tenantId": self.tenant_id.get_json(),
+            "customerId": self.customer_id.get_json(),
+            "name": self.name,
+            "type": self.device_type
+        }
+
+    # def set_status(self, status):
+
+
+class Birdhouse(Device):
+    DEVICE_STATUS = "deviceStatus"
+
+    def __init__(self, device_def, tbapi):
+        Device.__init__(self, device_def, tbapi)
+
+
+    def get_status(self):
+        attribs = self.get_server_attributes()
+
+        for attrib in attribs:
+            if attrib["key"] == self.DEVICE_STATUS:
+                return attrib["value"]
+
+        return "Unknown"
+
+
+    def set_status(self, status):
+        if not is_valid_status(status):
+            raise Exception(f"Invalid status: {status}")
+
+        return self.tbapi.set_server_attributes(self.get_json(), {self.DEVICE_STATUS: status})
+
+
+
