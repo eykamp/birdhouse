@@ -48,6 +48,7 @@ WifiUtils() {
 // Name is what will be displayed on the wifi device list
 void begin(const char *name) {
   WiFi.mode(WIFI_AP_STA);  
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
 
   WiFi.setAutoConnect(false);
   WiFi.setAutoReconnect(false);     // Disabling this allows us to connect via wifi AP without issue
