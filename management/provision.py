@@ -57,6 +57,7 @@ Server options:
 import json
 import os
 import re
+import sys
 import subprocess
 import requests                             # pip install requests
 import tempfile
@@ -64,6 +65,8 @@ import time
 import esptool                              # pip install esptool
 from docopt import docopt                   # pip install docopt
 from types import SimpleNamespace
+
+sys.path.insert(0, R"C:\dev\thingsboard_api_tools")     # TODO: Delete
 from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
 from asciimatics.screen     import Screen   # pip install aciimatics
@@ -772,7 +775,7 @@ class NoDevice(Frame):
         self.msg2 = Label("      * Is your device plugged in?")
         self.msg3 = Label("      * Is another program using the port?")
         self.msg4 = Label("")
-        
+
         self.add_layout(layout)
         layout.add_widget(self.msg0)
         layout.add_widget(self.msg1)
