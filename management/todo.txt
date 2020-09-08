@@ -1,0 +1,2 @@
+
+compare temperature with smoothed temp, maybe get rid of unsmoothed?

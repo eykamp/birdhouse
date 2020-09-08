@@ -1,3 +1,4 @@
+import sys
 # Import some geocoders
 from geopy.geocoders import Bing
 from geopy.geocoders import GoogleV3
@@ -8,23 +9,28 @@ try:
 except ModuleNotFoundError:
     config = {}
 
+for m in sys.modules:
+    if "thingsboard" in m:
+        print(3, m)
 # import serial                       # pip install pyserial
 # import serial.tools.list_ports
 import re
-import sys
 import esptool
 import time
 
+# from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
+
+from thingsboard_api_tools import TbApi, Customer
 
 # These are IDs that are associated with NodeMCU boards
 ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
 
 
-def make_device_number(birdhouse_number):
+def make_device_number(birdhouse_number: int) -> str:
     return str(birdhouse_number).zfill(3)
 
 
-def get_device_number_from_name(device_name):
+def get_device_number_from_name(device_name: str) -> str:
     match = re.search(r"Birdhouse (\d+)", device_name)
     if match:
         return match.group(1)
@@ -32,7 +38,7 @@ def get_device_number_from_name(device_name):
     raise Exception(f"{device_name} doesn't look like a valid device name!")
 
 
-def make_device_name(birdhouse_number):
+def make_device_name(birdhouse_number: int) -> str:
     if birdhouse_number is None:
         return "Unknown"
 
@@ -40,7 +46,7 @@ def make_device_name(birdhouse_number):
     if re.match(r"^\d+$", str(birdhouse_number)):
         return "Birdhouse " + make_device_number(birdhouse_number)
     else:
-        return birdhouse_number
+        return str(birdhouse_number)
 
 
 def get_sensor_type(birdhouse_number):
@@ -80,7 +86,7 @@ def one_line_address(cust_info):
 
 
 # Untested!
-def update_customer(tbapi, cust_info):
+def update_customer(tbapi: TbApi, cust_info):
     tbapi.update_customer(cust_info["cust_id"], cust_info["name"], cust_info["address"], cust_info["address2"], cust_info["city"], cust_info["state"], cust_info["zip"], cust_info["country"], cust_info["email"], cust_info["phone"])
 
     server_attributes = {
@@ -137,7 +143,7 @@ def reassign_dash_to_new_device(dash_def, dash_name, from_device_id, to_device_i
 
 
 # From https://stackoverflow.com/questions/3041986/apt-command-line-interface-like-yes-no-input
-def query_yes_no(question, default="yes"):
+def query_yes_no(question: str, default: str = "yes") -> bool:
     """
     Ask a yes/no question via raw_input() and return their answer.
 
@@ -218,155 +224,155 @@ def purge_server_objects_for_device(tbapi, birdhouse_number, unsafe=False):
         print(" no objects found")
 
 
-class Customer:
+# class Customer:
 
-    def __init__(self, name=None, address=None, address2=None, city=None, state=None, zip=None, country=None, email=None,
-                       phone=None, first_name=None, last_name=None, lat=None, lon=None, cust_id=None, device_id=None):
-        self.name       = name
-        self.address    = address
-        self.address2   = address2
-        self.city       = city
-        self.state      = state
-        self.postcode   = zip
-        self.country    = country
-        self.email      = email
-        self.phone      = phone
-        self.first_name = first_name
-        self.last_name  = last_name
-        self.lat        = lat
-        self.lon        = lon
-        self.cust_id    = cust_id
-        self.device_id  = device_id
-        self._tbapi     = None
-
-
-
-    def load(self, tbapi, name):
-        cust = tbapi.get_customer(name)
-        dev  = tbapi.get_device_by_name(name)
-
-        if cust is None or dev is None:
-            return None
-
-        cust_id   = tbapi.get_id(cust)
-        device_id = tbapi.get_id(dev)
-
-        first_name = ""
-        last_name = ""
-
-        print(cust)
-        if "additionalInfo" in cust and cust["additionalInfo"] is not None:
-            if "firstName" in cust["additionalInfo"]:
-                first_name = cust["additionalInfo"]["firstName"]
-            if "lastName"  in cust["additionalInfo"]:
-                last_name  = cust["additionalInfo"]["lastName"]
-
-        lat = None
-        lon = None
-
-        attribs = tbapi.get_server_attributes(dev)
-        for attrib in attribs:
-            if attrib["key"] == "latitude":
-                lat = attrib["value"]
-                break
-
-        for attrib in attribs:
-            if attrib["key"] == "longitude":
-                lon = attrib["value"]
-                break
-
-        customer = Customer()
-        customer._tbapi = tbapi      # Hold on to this for future reference
-        customer.init(name, cust["address"], cust["address2"], cust["city"], cust["state"], cust["zip"], cust["country"], cust["email"], cust["phone"], first_name, last_name, lat, lon, cust_id, device_id)
-
-        return customer
-
-
-    def save(self):
-
-        if self._tbapi is None:
-            raise Exception("Please define tbapi!")
-
-        if self.device_id is None or self.cust_id is None:
-            raise Exception("Need to define device_id and cust_id!")
-
-        name = None
-
-        if self.first_name is not None:
-            name = self.first_name
-
-            if self.last_name is not None:
-                name = self.first_name + " " + self.last_name
-
-        additional_info = {}
-        additional_info["firstName"] = self.first_name
-        additional_info["lastName"]  = self.last_name
-
-        if name is not None:
-            additional_info["description"]  = name
-
-
-        self._tbapi.update_customer(self.cust_id, self.name, self.address, self.address2, self.city, self.state, self.postcode, self.country, self.email, self.phone, additional_info)
-
-        server_attributes = {
-            "latitude":  self.lat,
-            "longitude": self.lon,
-            "address":   self.one_line_address()
-        }
-
-        self._tbapi.set_server_attributes(self.device_id, server_attributes)
+#     def __init__(self, name=None, address=None, address2=None, city=None, state=None, zip=None, country=None, email=None,
+#                        phone=None, first_name=None, last_name=None, lat=None, lon=None, cust_id=None, device_id=None):
+#         self.name       = name
+#         self.address    = address
+#         self.address2   = address2
+#         self.city       = city
+#         self.state      = state
+#         self.postcode   = zip
+#         self.country    = country
+#         self.email      = email
+#         self.phone      = phone
+#         self.first_name = first_name
+#         self.last_name  = last_name
+#         self.lat        = lat
+#         self.lon        = lon
+#         self.cust_id    = cust_id
+#         self.device_id  = device_id
+#         self._tbapi     = None
 
 
 
-    def update(self, name=None, address=None, address2=None, city=None, state=None, postcode=None, country=None, email=None, phone=None, first_name=None, last_name=None, lat=None, lon=None):
-        if name is not None:       self.name = name
-        if address is not None:    self.address = address
-        if address2 is not None:   self.address2 = address2
-        if city is not None:       self.city = city
-        if state is not None:      self.state = state
-        if postcode is not None:   self.postcode = postcode
-        if country is not None:    self.country = country
-        if email is not None:      self.email = email
-        if phone is not None:      self.phone = phone
-        if first_name is not None: self.first_name = first_name
-        if last_name is not None:  self.last_name = last_name
-        if lat is not None:        self.lat = lat
-        if lon is not None:        self.lon = lon
+#     def load(self, tbapi, name):
+#         cust = tbapi.get_customer(name)
+#         dev  = tbapi.get_device_by_name(name)
 
-        # Did "location" change?  If it did, and lat/lon/zip were not specified, then let's automatically update those
-        if address is not None or address2 is not None or city is not None or state is not None or country is not None:
-            if lat is None or lon is None or postcode is None:
+#         if cust is None or dev is None:
+#             return None
 
-                results = geocode(self.address, self.address2, self.city, self.state, self.postcode, self.country)
-                if results is not None:
-                    if lat      is None: self.lat      = results["lat"]
-                    if lon      is None: self.lon      = results["lon"]
-                    if postcode is None: self.postcode = results["zip"]
+#         cust_id   = tbapi.get_id(cust)
+#         device_id = tbapi.get_id(dev)
 
+#         first_name = ""
+#         last_name = ""
 
-    def init(self, name, address, address2, city, state, postcode, country, email, phone, first_name, last_name, lat, lon, cust_id, device_id):
-        self.name       = name
-        self.address    = address
-        self.address2   = address2
-        self.city       = city
-        self.state      = state
-        self.postcode   = postcode
-        self.country    = country
-        self.email      = email
-        self.phone      = phone
-        self.first_name = first_name
-        self.last_name  = last_name
-        self.lat        = lat
-        self.lon        = lon
-        self.cust_id    = cust_id
-        self.device_id  = device_id
+#         print(cust)
+#         if "additionalInfo" in cust and cust["additionalInfo"] is not None:
+#             if "firstName" in cust["additionalInfo"]:
+#                 first_name = cust["additionalInfo"]["firstName"]
+#             if "lastName"  in cust["additionalInfo"]:
+#                 last_name  = cust["additionalInfo"]["lastName"]
+
+#         lat = None
+#         lon = None
+
+#         attribs = tbapi.get_server_attributes(dev)
+#         for attrib in attribs:
+#             if attrib["key"] == "latitude":
+#                 lat = attrib["value"]
+#                 break
+
+#         for attrib in attribs:
+#             if attrib["key"] == "longitude":
+#                 lon = attrib["value"]
+#                 break
+
+#         customer = Customer()
+#         customer._tbapi = tbapi      # Hold on to this for future reference
+#         customer.init(name, cust["address"], cust["address2"], cust["city"], cust["state"], cust["zip"], cust["country"], cust["email"], cust["phone"], first_name, last_name, lat, lon, cust_id, device_id)
+
+#         return customer
 
 
-    def one_line_address(self):
-        return self.address + ", " + ((self.address2 + ", ") if self.address2 is not None and self.address2 != "" else "") + self.city + ", " + self.state
+#     def save(self):
+
+#         if self._tbapi is None:
+#             raise Exception("Please define tbapi!")
+
+#         if self.device_id is None or self.cust_id is None:
+#             raise Exception("Need to define device_id and cust_id!")
+
+#         name = None
+
+#         if self.first_name is not None:
+#             name = self.first_name
+
+#             if self.last_name is not None:
+#                 name = self.first_name + " " + self.last_name
+
+#         additional_info = {}
+#         additional_info["firstName"] = self.first_name
+#         additional_info["lastName"]  = self.last_name
+
+#         if name is not None:
+#             additional_info["description"]  = name
 
 
-def get_cust(tbapi, name):
+#         self._tbapi.update_customer(self.cust_id, self.name, self.address, self.address2, self.city, self.state, self.postcode, self.country, self.email, self.phone, additional_info)
+
+#         server_attributes = {
+#             "latitude":  self.lat,
+#             "longitude": self.lon,
+#             "address":   self.one_line_address()
+#         }
+
+#         self._tbapi.set_server_attributes(self.device_id, server_attributes)
+
+
+
+#     def update(self, name=None, address=None, address2=None, city=None, state=None, postcode=None, country=None, email=None, phone=None, first_name=None, last_name=None, lat=None, lon=None):
+#         if name is not None:       self.name = name
+#         if address is not None:    self.address = address
+#         if address2 is not None:   self.address2 = address2
+#         if city is not None:       self.city = city
+#         if state is not None:      self.state = state
+#         if postcode is not None:   self.postcode = postcode
+#         if country is not None:    self.country = country
+#         if email is not None:      self.email = email
+#         if phone is not None:      self.phone = phone
+#         if first_name is not None: self.first_name = first_name
+#         if last_name is not None:  self.last_name = last_name
+#         if lat is not None:        self.lat = lat
+#         if lon is not None:        self.lon = lon
+
+#         # Did "location" change?  If it did, and lat/lon/zip were not specified, then let's automatically update those
+#         if address is not None or address2 is not None or city is not None or state is not None or country is not None:
+#             if lat is None or lon is None or postcode is None:
+
+#                 results = geocode(self.address, self.address2, self.city, self.state, self.postcode, self.country)
+#                 if results is not None:
+#                     if lat      is None: self.lat      = results["lat"]
+#                     if lon      is None: self.lon      = results["lon"]
+#                     if postcode is None: self.postcode = results["zip"]
+
+
+#     def init(self, name, address, address2, city, state, postcode, country, email, phone, first_name, last_name, lat, lon, cust_id, device_id):
+#         self.name       = name
+#         self.address    = address
+#         self.address2   = address2
+#         self.city       = city
+#         self.state      = state
+#         self.postcode   = postcode
+#         self.country    = country
+#         self.email      = email
+#         self.phone      = phone
+#         self.first_name = first_name
+#         self.last_name  = last_name
+#         self.lat        = lat
+#         self.lon        = lon
+#         self.cust_id    = cust_id
+#         self.device_id  = device_id
+
+
+#     def one_line_address(self):
+#         return self.address + ", " + ((self.address2 + ", ") if self.address2 is not None and self.address2 != "" else "") + self.city + ", " + self.state
+
+
+def get_cust(tbapi: TbApi, name: str) -> Customer:
     cust = tbapi.get_customer(name)
     dev  = tbapi.get_device_by_name(name)
 
@@ -667,96 +673,96 @@ def get_birdhouses_by_status(tbapi, status):
     return birdhouses
 
 
-class Id(object):
-    def __init__(self, id_def):
-        self.id = id_def["id"]
-        self.entity_type = id_def["entityType"]
+# class Id(object):
+#     def __init__(self, id_def):
+#         self.id = id_def["id"]
+#         self.entity_type = id_def["entityType"]
 
-    def __str__(self):
-        return self.entity_type + ": " + self.id
+#     def __str__(self):
+#         return self.entity_type + ": " + self.id
 
-    def get_json(self):
-        return {"entityType": self.entity_type, "id": self.id}
-
-
-class Device(object):
-    def __init__(self, device_def, tbapi):
-        self.id = Id(device_def["id"])
-        self.created_time = device_def["createdTime"]
-        self.additional_info = device_def["additionalInfo"]
-        self.tenant_id = Id(device_def["tenantId"])
-        self.customer_id = Id(device_def["customerId"])
-        self.name = device_def["name"]
-        self.device_type = device_def["type"]
-
-        self.tbapi = tbapi
-
-    def __str__(self):
-        return self.name
-
-    def get_server_attributes(self):
-        return self.tbapi.get_server_attributes(self.id.id)
-
-    def get_client_attributes(self):
-        return self.tbapi.get_client_attributes(self.id.id)
-
-    def get_shared_attributes(self):
-        return self.tbapi.get_shared_attributes(self.id.id)
-
-    def set_server_attributes(self, attributes):
-        return self.tbapi.set_server_attributes(self.id.id, attributes)
-
-    def set_client_attributes(self, attributes):
-        return self.tbapi.set_client_attributes(self.id.id, attributes)
-
-    def set_shared_attributes(self, attributes):
-        return self.tbapi.set_shared_attributes(self.id.id, attributes)
-
-    def delete_server_attributes(self, attributes):
-        return self.tbapi.delete_server_attributes(self.id.id, attributes)
-
-    def delete_client_attributes(self, attributes):
-        return self.tbapi.delete_client_attributes(self.id.id, attributes)
-
-    def delete_shared_attributes(self, attributes):
-        return self.tbapi.delete_shared_attributes(self.id.id, attributes)
-
-    def get_json(self):
-        return {
-            "id": self.id.get_json(),
-            "createdTime": self.created_time,
-            "additionalInfo": self.additional_info,
-            "tenantId": self.tenant_id.get_json(),
-            "customerId": self.customer_id.get_json(),
-            "name": self.name,
-            "type": self.device_type
-        }
-
-    # def set_status(self, status):
+#     def get_json(self):
+#         return {"entityType": self.entity_type, "id": self.id}
 
 
-class Birdhouse(Device):
-    DEVICE_STATUS = "deviceStatus"
+# class Device(object):
+#     def __init__(self, device_def, tbapi):
+#         self.id = Id(device_def["id"])
+#         self.created_time = device_def["createdTime"]
+#         self.additional_info = device_def["additionalInfo"]
+#         self.tenant_id = Id(device_def["tenantId"])
+#         self.customer_id = Id(device_def["customerId"])
+#         self.name = device_def["name"]
+#         self.device_type = device_def["type"]
 
-    def __init__(self, device_def, tbapi):
-        Device.__init__(self, device_def, tbapi)
+#         self.tbapi = tbapi
+
+#     def __str__(self):
+#         return self.name
+
+#     def get_server_attributes(self):
+#         return self.tbapi.get_server_attributes(self.id.id)
+
+#     def get_client_attributes(self):
+#         return self.tbapi.get_client_attributes(self.id.id)
+
+#     def get_shared_attributes(self):
+#         return self.tbapi.get_shared_attributes(self.id.id)
+
+#     def set_server_attributes(self, attributes):
+#         return self.tbapi.set_server_attributes(self.id.id, attributes)
+
+#     def set_client_attributes(self, attributes):
+#         return self.tbapi.set_client_attributes(self.id.id, attributes)
+
+#     def set_shared_attributes(self, attributes):
+#         return self.tbapi.set_shared_attributes(self.id.id, attributes)
+
+#     def delete_server_attributes(self, attributes):
+#         return self.tbapi.delete_server_attributes(self.id.id, attributes)
+
+#     def delete_client_attributes(self, attributes):
+#         return self.tbapi.delete_client_attributes(self.id.id, attributes)
+
+#     def delete_shared_attributes(self, attributes):
+#         return self.tbapi.delete_shared_attributes(self.id.id, attributes)
+
+#     def get_json(self):
+#         return {
+#             "id": self.id.get_json(),
+#             "createdTime": self.created_time,
+#             "additionalInfo": self.additional_info,
+#             "tenantId": self.tenant_id.get_json(),
+#             "customerId": self.customer_id.get_json(),
+#             "name": self.name,
+#             "type": self.device_type
+#         }
+
+#     # def set_status(self, status):
 
 
-    def get_status(self):
-        attribs = self.get_server_attributes()
+# class Birdhouse(Device):
+#     DEVICE_STATUS = "deviceStatus"
 
-        for attrib in attribs:
-            if attrib["key"] == self.DEVICE_STATUS:
-                return attrib["value"]
-
-        return "Unknown"
+#     def __init__(self, device_def, tbapi):
+#         Device.__init__(self, device_def, tbapi)
 
 
-    def set_status(self, status):
-        if not is_valid_status(status):
-            raise Exception(f"Invalid status: {status}")
+#     def get_status(self):
+#         attribs = self.get_server_attributes()
 
-        return self.tbapi.set_server_attributes(self.get_json(), {self.DEVICE_STATUS: status})
+#         for attrib in attribs:
+#             if attrib["key"] == self.DEVICE_STATUS:
+#                 return attrib["value"]
+
+#         return "Unknown"
+
+
+#     def set_status(self, status):
+#         if not is_valid_status(status):
+#             raise Exception(f"Invalid status: {status}")
+
+#         return self.tbapi.set_server_attributes(self.get_json(), {self.DEVICE_STATUS: status})
 
 
 
