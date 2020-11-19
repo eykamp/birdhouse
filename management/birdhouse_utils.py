@@ -1,6 +1,7 @@
+# from posix import ST_WRITE
 import sys
 # Import some geocoders
-from geopy.geocoders import Bing
+from geopy.geocoders import Bing        # pip install geopy
 from geopy.geocoders import GoogleV3
 
 # We don't want to fail in the absence of a config file -- most users won't actually need one
@@ -9,25 +10,24 @@ try:
 except ModuleNotFoundError:
     config = {}
 
-for m in sys.modules:
-    if "thingsboard" in m:
-        print(3, m)
+# for m in sys.modules:
+#     if "thingsboard" in m:
+#         print(3, m)
 # import serial                       # pip install pyserial
 # import serial.tools.list_ports
 import re
 import esptool
 import time
+from typing import Union, Tuple, Dict
 
-# from thingsboard_api_tools import TbApi     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
-
-from thingsboard_api_tools import TbApi, Customer
+from thingsboard_api_tools import TbApi, Customer, DashboardDef, Device     # pip install git+git://github.com/eykamp/thingsboard_api_tools.git --upgrade
 
 # These are IDs that are associated with NodeMCU boards
 ESP8266_VID_PIDS = ['1A86:7523', '10C4:EA60']
 
 
-def make_device_number(birdhouse_number: int) -> str:
-    return str(birdhouse_number).zfill(3)
+def make_device_number(birdhouse_number: Union[int, str]) -> str:
+    return str(int(birdhouse_number)).zfill(3)
 
 
 def get_device_number_from_name(device_name: str) -> str:
@@ -38,7 +38,7 @@ def get_device_number_from_name(device_name: str) -> str:
     raise Exception(f"{device_name} doesn't look like a valid device name!")
 
 
-def make_device_name(birdhouse_number: int) -> str:
+def make_device_name(birdhouse_number: Union[int, str]) -> str:
     if birdhouse_number is None:
         return "Unknown"
 
@@ -49,7 +49,7 @@ def make_device_name(birdhouse_number: int) -> str:
         return str(birdhouse_number)
 
 
-def get_sensor_type(birdhouse_number):
+def get_sensor_type(birdhouse_number: Union[int, str]) -> Tuple[str, str]:
     """
     Returns two names -- the first is used for configuring Thingsboard and elsewhere a descriptive device name is used;
     the second is used for printing labels and is a more generic, compact name for the device.
@@ -73,15 +73,15 @@ def get_sensor_type(birdhouse_number):
     return 'Sensorbot Birdhouse', 'Birdhouse'
 
 
-def make_dash_name(birdhouse_number):
+def make_dash_name(birdhouse_number: Union[int, str]) -> str:
     return make_device_name(birdhouse_number) + " Dash"
 
 
-def make_customer_name(birdhouse_number):
+def make_customer_name(birdhouse_number: Union[int, str]) -> str:
     return make_device_name(birdhouse_number)
 
 
-def one_line_address(cust_info):
+def one_line_address(cust_info: Dict[str, str]) -> str:
     return cust_info["address"] + ", " + ((cust_info["address2"] + ", ") if cust_info["address2"] is not None and cust_info["address2"] != "" else "") + cust_info["city"] + ", " + cust_info["state"]
 
 
@@ -121,25 +121,26 @@ def update_customer_data(cust_info):
     return cust_info
 
 
-def reassign_dash_to_new_device(dash_def, dash_name, from_device_id, to_device_id, to_device_name):
+def reassign_dash_to_new_device(dash_def: DashboardDef, dash_name: str, from_device_id: str, to_device_id: str, to_device_name: str) -> None:
     """
     Modifies dash_def, and makes it work for the specified device
     """
     # to_device_name = birdhouse_utils.make_device_name(device_number)
 
-    dash_def["name"] = dash_name
-    dash_def["title"] = dash_name
+    dash_def.name = dash_name
+    dash_def.title = dash_name
 
-    aliases = dash_def.get("configuration", {}).get("entityAliases", {}).keys()
+    aliases = dash_def.configuration.entity_aliases.keys()
     for alias in aliases:
         try:
-            dash_def["configuration"]["entityAliases"][alias]["alias"] = to_device_name
-            filterx = dash_def["configuration"]["entityAliases"][alias]["filter"]
-            if "singleEntity" in filterx and filterx["singleEntity"]["id"] == from_device_id :
-                dash_def["configuration"]["entityAliases"][alias]["filter"]["singleEntity"]["id"] = to_device_id
-        except Exception as e:
-            print(f'Alias: {alias}\n dash_def["configuration"]["entityAliases"][alias]["filter"]: {dash_def["configuration"]["entityAliases"][alias]["filter"]}')
-            raise e
+            dash_def.configuration.entity_aliases[alias].alias = to_device_name
+            filterx = dash_def.configuration.entity_aliases[alias].filter
+            if filterx.single_entity and filterx.single_entity.id == from_device_id:
+                dash_def.configuration.entity_aliases[alias].filter.single_entity.id = to_device_id
+        except Exception as ex:
+            print('Alias: ' + alias + '\n dash_def.configuration.entity_aliases[alias].filter: ', dash_def.configuration.entity_aliases[alias].filter)
+            raise ex
+
 
 
 # From https://stackoverflow.com/questions/3041986/apt-command-line-interface-like-yes-no-input
@@ -175,7 +176,7 @@ def query_yes_no(question: str, default: str = "yes") -> bool:
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def get_server_object_names_for_birdhouse(birdhouse_number):
+def get_server_object_names_for_birdhouse(birdhouse_number: Union[int, str]) -> Tuple[str, str, str]:
     device_name = make_device_name(birdhouse_number)
     cust_name   = make_customer_name(birdhouse_number)
     dash_name   = make_dash_name(birdhouse_number)
@@ -183,7 +184,7 @@ def get_server_object_names_for_birdhouse(birdhouse_number):
     return device_name, cust_name, dash_name
 
 
-def purge_server_objects_for_device(tbapi, birdhouse_number, unsafe=False):
+def purge_server_objects_for_device(tbapi, birdhouse_number: Union[int, str], unsafe=False):
     device_name, cust_name, dash_name = get_server_object_names_for_birdhouse(birdhouse_number)
 
     print("Deleting server objects for '" + device_name + "'...", end='')
@@ -193,7 +194,7 @@ def purge_server_objects_for_device(tbapi, birdhouse_number, unsafe=False):
     dash   = tbapi.get_dashboard_by_name(dash_name)
 
     if device is not None and not unsafe:
-        telkeys = tbapi.get_telemetry_keys(device)
+        telkeys = device.get_telemetry_keys()
         if len(telkeys) > 0:
             print()
             answer = query_yes_no("\nDevice '" + device_name + "' has data.  Are you sure you want to delete it from the server?", default="no")
@@ -203,18 +204,18 @@ def purge_server_objects_for_device(tbapi, birdhouse_number, unsafe=False):
             print("Deleting...", end='')
 
     deleted_any = False
-    if dash is not None:
-        tbapi.delete_dashboard(tbapi.get_id(dash))
+    if dash:
+        dash.delete()
         deleted_any = True
         print(" dash...", end='')
 
-    if device is not None:
-        tbapi.delete_device(tbapi.get_id(device))
+    if device:
+        device.delete()
         deleted_any = True
         print(" device...", end='')
 
     if cust is not None:
-        tbapi.delete_customer_by_id(tbapi.get_id(cust))
+        cust.delete()
         deleted_any = True
         print(" cust...", end='')
 
@@ -569,7 +570,7 @@ def get_port_names():
     return ports
 
 
-def get_base_url(args=None, config={}):
+def get_base_url(args=None, config={}) -> str:
     """
     Try to figure out which URL to use: was it passed with the --baseurl parameter?  In our config file?  Or just the default?
     args is a docopt argument list
@@ -601,7 +602,7 @@ def get_device_status(tbapi, device):
     return "Unknown"
 
 
-def make_mothership_url(args=None, config={}):
+def make_mothership_url(args=None, config={}) -> str:
     """
     Pass in a string representing the base server URL, or a docopt arg array from which the --baseurl param will be extracted
     """
@@ -741,28 +742,28 @@ def get_birdhouses_by_status(tbapi, status):
 #     # def set_status(self, status):
 
 
-# class Birdhouse(Device):
-#     DEVICE_STATUS = "deviceStatus"
+class Birdhouse(Device):
+    DEVICE_STATUS = "deviceStatus"
 
-#     def __init__(self, device_def, tbapi):
-#         Device.__init__(self, device_def, tbapi)
-
-
-#     def get_status(self):
-#         attribs = self.get_server_attributes()
-
-#         for attrib in attribs:
-#             if attrib["key"] == self.DEVICE_STATUS:
-#                 return attrib["value"]
-
-#         return "Unknown"
+    def __init__(self, device_def, tbapi):
+        Device.__init__(self, device_def, tbapi)
 
 
-#     def set_status(self, status):
-#         if not is_valid_status(status):
-#             raise Exception(f"Invalid status: {status}")
+    def get_status(self):
+        attribs = self.get_server_attributes()
 
-#         return self.tbapi.set_server_attributes(self.get_json(), {self.DEVICE_STATUS: status})
+        for attrib in attribs:
+            if attrib["key"] == self.DEVICE_STATUS:
+                return attrib["value"]
+
+        return "Unknown"
+
+
+    def set_status(self, status):
+        if not is_valid_status(status):
+            raise Exception(f"Invalid status: {status}")
+
+        return self.tbapi.set_server_attributes(self.get_json(), {self.DEVICE_STATUS: status})
 
 
 
